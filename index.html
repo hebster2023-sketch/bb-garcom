@@ -1,0 +1,23 @@
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B.B GARÇOM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <h1 class="text-xl font-bold text-red-700 text-center mb-4">B.B CHURRASCO</h1>
+    <div id="mesas" class="grid grid-cols-3 gap-3"></div>
+    <script>
+        let html = '';
+        for (let i = 1; i <= 30; i++) {
+            html += `<div class="bg-green-50 border-2 border-green-500 p-4 rounded-xl text-center font-bold">Mesa ${i < 10 ? '0' + i : i}</div>`;
+        }
+        document.getElementById('mesas').innerHTML = html;
+    </script>
+</body>
+</html>
+
