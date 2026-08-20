@@ -27,51 +27,51 @@
     <script>
         const cardapio = {
             "CHURRASCOS": [
-                { nome: "Frango", preco: 8.00 },
-                { nome: "Porco", preco: 8.00 },
-                { nome: "Linguiça", preco: 8.00 },
-                { nome: "Coração de frango", preco: 8.00 },
-                { nome: "Coração de boi", preco: 8.00 },
-                { nome: "Carne", preco: 8.00 },
-                { nome: "Tripa", preco: 8.00 }
+                { nome: "Frango", preco: 8.00, icon: "🍗" },
+                { nome: "Porco", preco: 8.00, icon: "🥩" },
+                { nome: "Linguiça", preco: 8.00, icon: "🌭" },
+                { nome: "Coração de frango", preco: 8.00, icon: "🍢" },
+                { nome: "Coração de boi", preco: 8.00, icon: "🍢" },
+                { nome: "Carne", preco: 8.00, icon: "🥩" },
+                { nome: "Tripa", preco: 8.00, icon: "🥓" }
             ],
             "CARANGUEJO": [
-                { nome: "Unidade", preco: 8.00 },
-                { nome: "Combo 4", preco: 28.00 }
+                { nome: "Unidade", preco: 8.00, icon: "🦀" },
+                { nome: "Combo 4", preco: 28.00, icon: "🦀" }
             ],
             "BEBIDAS": [
-                { nome: "Skol", preco: 5.00 },
-                { nome: "Brahma Chopp", preco: 5.00 },
-                { nome: "Brahma Puro Malte", preco: 5.00 },
-                { nome: "Heineken", preco: 9.00 },
-                { nome: "Corona Extra", preco: 9.00 },
-                { nome: "Terça amarela", preco: 7.00 },
-                { nome: "Terça prata", preco: 6.00 },
-                { nome: "Meio litro amarela", preco: 16.00 },
-                { nome: "Meio litro prata", preco: 15.00 },
-                { nome: "Balde Skol", preco: 50.00 },
-                { nome: "Balde Brahma", preco: 50.00 },
-                { nome: "Budweiser", preco: 7.50 },
-                { nome: "Caipirinha", preco: 15.00 }
+                { nome: "Skol", preco: 5.00, icon: "🍺" },
+                { nome: "Brahma Chopp", preco: 5.00, icon: "🍺" },
+                { nome: "Brahma Puro Malte", preco: 5.00, icon: "🍺" },
+                { nome: "Heineken", preco: 9.00, icon: "🍺" },
+                { nome: "Corona Extra", preco: 9.00, icon: "🍺" },
+                { nome: "Terça amarela", preco: 7.00, icon: "🍻" },
+                { nome: "Terça prata", preco: 6.00, icon: "🍻" },
+                { nome: "Meio litro amarela", preco: 16.00, icon: "🍺" },
+                { nome: "Meio litro prata", preco: 15.00, icon: "🍺" },
+                { nome: "Balde Skol", preco: 50.00, icon: "🪣" },
+                { nome: "Balde Brahma", preco: 50.00, icon: "🪣" },
+                { nome: "Budweiser", preco: 7.50, icon: "🍺" },
+                { nome: "Caipirinha", preco: 15.00, icon: "🍹" }
             ],
             "REFRIGERANTES": [
-                { nome: "Coca-Cola 1L", preco: 8.00 },
-                { nome: "Guaraná 1L", preco: 7.00 },
-                { nome: "Pepsi 1L", preco: 7.00 },
-                { nome: "Coca-Cola lata", preco: 5.00 },
-                { nome: "Fanta lata", preco: 5.00 },
-                { nome: "Sprite lata", preco: 6.00 },
-                { nome: "Água", preco: 3.00 },
-                { nome: "Água com gás", preco: 4.00 }
+                { nome: "Coca-Cola 1L", preco: 8.00, icon: "🥤" },
+                { nome: "Guaraná 1L", preco: 7.00, icon: "🥤" },
+                { nome: "Pepsi 1L", preco: 7.00, icon: "🥤" },
+                { nome: "Coca-Cola lata", preco: 5.00, icon: "🥫" },
+                { nome: "Fanta lata", preco: 5.00, icon: "🥫" },
+                { nome: "Sprite lata", preco: 6.00, icon: "🥫" },
+                { nome: "Água", preco: 3.00, icon: "💧" },
+                { nome: "Água com gás", preco: 4.00, icon: "💧" }
             ],
             "PETISCOS": [
-                { nome: "Batata frita", preco: 15.00 },
-                { nome: "Calabresa acebolada", preco: 15.00 },
-                { nome: "Camarão (porção)", preco: 25.00 }
+                { nome: "Batata frita", preco: 15.00, icon: "🍟" },
+                { nome: "Calabresa acebolada", preco: 15.00, icon: "🍳" },
+                { nome: "Camarão (porção)", preco: 25.00, icon: "🍤" }
             ],
             "GUARNIÇÕES": [
-                { nome: "Baião caseiro", preco: 8.00 },
-                { nome: "Baião cremoso", preco: 10.00 }
+                { nome: "Baião caseiro", preco: 8.00, icon: "🍚" },
+                { nome: "Baião cremoso", preco: 10.00, icon: "🍲" }
             ]
         };
 
@@ -138,15 +138,16 @@
                         const chave = prod.nome;
                         const qtd = pedidoTemp[chave] || 0;
                         html += `
-                            <div class="bg-white p-3 rounded-lg shadow-sm mb-2 flex justify-between items-center">
-                                <div>
-                                    <p class="font-semibold">${prod.nome}</p>
-                                    <p class="text-sm text-gray-500">R$ ${prod.preco.toFixed(2)}</p>
+                            <div class="bg-white p-3 rounded-lg shadow-sm mb-2 flex justify-between items-center gap-3">
+                                <span class="text-3xl">${prod.icon}</span>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-sm">${prod.nome}</p>
+                                    <p class="text-xs text-gray-500">R$ ${prod.preco.toFixed(2)}</p>
                                 </div>
-                                <div class="flex items-center gap-3">
-                                    <button onclick="alterarQtd('${prod.nome}', -1, ${prod.preco})" class="bg-gray-200 px-3 py-2 rounded-lg font-bold text-lg">-</button>
-                                    <span class="font-bold text-lg w-6 text-center">${qtd}</span>
-                                    <button onclick="alterarQtd('${prod.nome}', 1, ${prod.preco})" class="bg-red-600 text-white px-3 py-2 rounded-lg font-bold text-lg">+</button>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="alterarQtd('${prod.nome}', -1, ${prod.preco})" class="bg-gray-200 px-3 py-2 rounded-lg font-bold text-base">-</button>
+                                    <span class="font-bold text-base w-5 text-center">${qtd}</span>
+                                    <button onclick="alterarQtd('${prod.nome}', 1, ${prod.preco})" class="bg-red-600 text-white px-3 py-2 rounded-lg font-bold text-base">+</button>
                                 </div>
                             </div>
                         `;
