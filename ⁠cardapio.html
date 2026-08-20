@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B.B GARÇOM - Sistema de Atendimento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans pb-20">
+    <div id="app" class="max-w-md mx-auto p-4">
+        <!-- Cabeçalho -->
+        <header class="bg-red-700 text-white p-4 rounded-xl shadow-md mb-4 text-center">
+            <h1 class="text-xl font-bold">B.B CHURRASCO</h1>
+            <p class="text-sm opacity-90">B.B GARÇOM - Sistema de Atendimento</p>
+        </header>
+
+        <!-- Conteúdo Dinâmico -->
+        <div id="conteudo"></div>
+    </div>
+
+    <!-- Navegação Inferior Fixa -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 shadow-lg max-w-md mx-auto">
+        <button onclick="mudarTela('mesas')" class="flex flex-col items-center text-red-700 font-bold text-sm">
+            🪑 Mesas
+        </button>
+        <button onclick="mudarTela('comandas')" class="flex flex-col items-center text-gray-600 font-bold text-sm">
+            📋 Comandas
+        </button>
+    </nav>
+
+    <script>
+        const cardapio = {
+            "CHURRASCOS": [
+                { nome: "Frango", preco: 8.00 },
+                { nome: "Porco", preco: 8.00 },
+                { nome: "Linguiça", preco: 8.00 },
+                { nome: "Coração de frango", preco: 8.00 },
+                { nome: "Coração de boi", preco: 8.00 },
+                { nome: "Carne", preco: 8.00 },
+                { nome: "Tripa", preco: 8.00 }
+            ],
+            "CARANGUEJO": [
+                { nome: "Unidade", preco: 8.00 },
+                { nome: "Combo 4", preco: 28.00 }
+            ],
+            "BEBIDAS": [
+                { nome: "Skol", preco: 5.00 },
+                { nome: "Brahma Chopp", preco: 5.00 },
+                { nome: "Brahma Puro Malte", preco: 5.00 },
+                { nome: "Heineken", preco: 9.00 },
+                { nome: "Balde Skol", preco: 50.00 },
+                { nome: "Balde Brahma", preco: 50.00 },
+                { nome: "Budweiser", preco: 7.50 },
+                { nome: "Caipirinha", preco: 15.00 }
+            ],
+            "REFRIGERANTES": [
+                { nome: "Coca-Cola 1L", preco: 8.00 },
+                { nome: "Guaraná 1L", preco: 7.00 },
+                { nome: "Pepsi 1L", preco: 7.00 },
+                { nome: "Coca-Cola lata", preco: 5.00 },
+                { nome: "Fanta lata", preco: 5.00 },
+                { nome: "Sprite lata", preco: 6.00 },
+                { nome: "Água", preco: 2.00 },
+                { nome: "Água com gás", preco: 3.00 }
+            ],
+            "PETISCOS": [
+                { nome: "Batata frita", preco: 15.00 },
+                { nome: "Calabresa acebolada", preco: 15.00 },
+                { nome: "Camarão (porção)", preco: 15.00 }
+            ],
+            "GUARNIÇÕES": [
+                { nome: "Baião caseiro", preco: 8.00 },
+                { nome: "Baião cremoso", preco: 10.00 }
+            ]
+        };
+
+        let comandas = JSON.parse(localStorage.getItem('bb_comandas')) || {};
+        let telaAtual = 'mesas';
+        let mesaSelecionada = null;
+        let pedidoTemp = {};
+        let pessoasTemp = 1;
+
+        function salvarDados() {
+            localStorage.setItem('bb_comandas', JSON.stringify(comandas));
+        }
+
+        function mudarTela(tela, numeroMesa = null) {
+            telaAtual = tela;
+            if (numeroMesa !== null) mesaSelecionada = numeroMesa;
+            renderizar();
+        }
+
+        function renderizar() {
+            const container = document.getElementById('conteudo');
+            container.innerHTML = '';
+
+            if (telaAtual === 'mesas') {
+                let html = '<div class="grid grid-cols-3 gap-3">';
+                for (let i = 1; i <= 30; i++) {
+                    const comanda = comandas[i];
+                    const ocupada = comanda && comanda.itens && comanda.itens.length > 0;
+                    const cor = ocupada ? 'bg-red-50 border-red-500 text-red-900' : 'bg-green-50 border-green-500 text-green-900';
+                    const statusTexto = ocupada ? '🔴 OCUPADA' : '🟢 LIVRE';
+                    const valorTotal = ocupada ? `R$ ${comanda.total.toFixed(2)}` : '';
+
+                    html += `
+                        <div onclick="abrirMesa(${i})" class="p-3 border-2 rounded-xl shadow-sm cursor-pointer flex flex-col justify-between items-center ${cor}">
+                            <span class="font-bold text-lg">Mesa ${i < 10 ? '0' + i : i}</span>
+                            <span class="text-xs font-semibold">${statusTexto}</span>
+                            <span class="text-sm font-bold mt-1">${valorTotal}</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } 
+            else if (telaAtual === 'atendimento') {
+                if (!comandas[mesaSelecionada]) {
+                    comandas[mesaSelecionada] = { pessoas: pessoasTemp, itens: [], total: 0 };
+                }
+                const comanda = comandas[mesaSelecionada];
+
+                let html = `
+                    <div class="bg-white p-4 rounded-xl shadow-md mb-4">
+                        <h2 class="text-lg font-bold mb-2">Mesa ${mesaSelecionada < 10 ? '0' + mesaSelecionada : mesaSelecionada}</h2>
+                        <label class="block text-sm font-semibold mb-1">Quantidade de pessoas:</label>
+                        <input type="number" id="qtdPessoas" value="${comanda.pessoas}" class="border p-2 rounded w-full mb-4" onchange="atualizarPessoas(this.value)">
+                    </div>
+                `;
+
+                for (let categoria in cardapio) {
+                    html += `<h3 class="font-bold text-red-700 mt-4 mb-2 uppercase">${categoria}</h3>`;
+                    cardapio[categoria].forEach(prod => {
+                        const chave = prod.nome;
+                        const qtd = pedidoTemp[chave] || 0;
+                        html += `
+                            <div class="bg-white p-3 rounded-lg shadow-sm mb-2 flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold">${prod.nome}</p>
+                                    <p class="text-sm text-gray-500">R$ ${prod.preco.toFixed(2)}</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="alterarQtd('${prod.nome}', -1, ${prod.preco})" class="bg-gray-200 px-3 py-1 rounded font-bold">-</button>
+                                    <span class="font-bold text-lg">${qtd}</span>
+                                    <button onclick="alterarQtd('${prod.nome}', 1, ${prod.preco})" class="bg-red-600 text-white px-3 py-1 rounded font-bold">+</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                html += `
+                    <div class="mt-6 bg-white p-4 rounded-xl shadow-md sticky bottom-16">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="font-bold text-lg">Total Pedido:</span>
+                            <span class="font-bold text-xl text-red-700" id="totalPedido">R$ 0,00</span>
+                        </div>
+                        <button onclick="salvarComanda()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg">💾 SALVAR COMANDA</button>
+                    </div>
+                `;
+                container.innerHTML = html;
+                calcularTotalTemp();
+            }
+            else if (telaAtual === 'comandas') {
+                let html = '<h2 class="text-lg font-bold mb-4">Comandas Abertas</h2>';
+                let temComanda = false;
+
+                for (let m in comandas) {
+                    const comanda = comandas[m];
+                    if (comanda && comanda.itens && comanda.itens.length > 0) {
+                        temComanda = true;
+                        html += `
+                            <div class="bg-white p-4 rounded-xl shadow-md mb-4">
+                                <div class="flex justify-between items-center border-b pb-2 mb-2">
+                                    <span class="font-bold text-lg">Mesa ${m}</span>
+                                    <span class="font-bold text-red-700">R$ ${comanda.total.toFixed(2)}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">Pessoas: ${comanda.pessoas}</p>
+                                <ul class="text-sm mb-4">
+                                    ${comanda.itens.map(item => `<li>${item.qtd}x ${item.nome} - R$ ${(item.qtd * item.preco).toFixed(2)}</li>`).join('')}
+                                </ul>
+                                <div class="flex gap-2">
+                                    <button onclick="mudarTela('atendimento', ${m})" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">➕ Adicionar</button>
+                                    <button onclick="fecharMesa(${m})" class="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">🔴 Fechar Mesa</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                if (!temComanda) html += '<p class="text-gray-500 text-center mt-10">Nenhuma comanda aberta no momento.</p>';
+                container.innerHTML = html;
+            }
+        }
+
+        function abrirMesa(num) {
+            mesaSelecionada = num;
+            pedidoTemp = {};
+            if (comandas[num] && comandas[num].itens) {
+                comandas[num].itens.forEach(i => pedidoTemp[i.nome] = i.qtd);
+            }
+            mudarTela('atendimento', num);
+        }
+
+        function atualizarPessoas(val) {
+            pessoasTemp = parseInt(val) || 1;
+            if (comandas[mesaSelecionada]) comandas[mesaSelecionada].pessoas = pessoasTemp;
+        }
+
+        function alterarQtd(nome, delta, preco) {
+            if (!pedidoTemp[nome]) pedidoTemp[nome] = 0;
+            pedidoTemp[nome] += delta;
+            if (pedidoTemp[nome] < 0) pedidoTemp[nome] = 0;
+            calcularTotalTemp();
+        }
+
+        function calcularTotalTemp() {
+            let total = 0;
+            for (let categoria in cardapio) {
+                cardapio[categoria].forEach(prod => {
+                    const q = pedidoTemp[prod.nome] || 0;
+                    total += q * prod.preco;
+                });
+            }
+            const el = document.getElementById('totalPedido');
+            if (el) el.innerText = `R$ ${total.toFixed(2)}`;
+        }
+
+        function salvarComanda() {
+            let itens = [];
+            let total = 0;
+            for (let categoria in cardapio) {
+                cardapio[categoria].forEach(prod => {
+                    const q = pedidoTemp[prod.nome] || 0;
+                    if (q > 0) {
+                        itens.push({ nome: prod.nome, qtd: q, preco: prod.preco });
+                        total += q * prod.preco;
+                    }
+                });
+            }
+
+            if (itens.length === 0) {
+                alert('Adicione pelo menos um produto!');
+                return;
+            }
+
+            comandas[mesaSelecionada] = {
+                pessoas: pessoasTemp,
+                itens: itens,
+                total: total
+            };
+
+            salvarDados();
+            alert('Comanda salva com sucesso!');
+            mudarTela('mesas');
+        }
+
+        function fecharMesa(num) {
+            if (confirm(`Deseja fechar a Mesa ${num} com total de R$ ${comandas[num].total.toFixed(2)}?`)) {
+                delete comandas[num];
+                salvarDados();
+                renderizar();
+            }
+        }
+
+        renderizar();
+    </script>
+</body>
+</html>
