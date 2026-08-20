@@ -6,7 +6,7 @@
     <title>B.B GARÇOM - Sistema de Atendimento</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans pb-20">
+<body class="bg-gray-100 text-gray-900 font-sans pb-24">
     <div id="app" class="max-w-md mx-auto p-4">
         <header class="bg-red-700 text-white p-4 rounded-xl shadow-md mb-4 text-center">
             <h1 class="text-xl font-bold">B.B CHURRASCO</h1>
@@ -15,7 +15,7 @@
         <div id="conteudo"></div>
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 shadow-lg max-w-md mx-auto">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 shadow-lg max-w-md mx-auto z-50">
         <button onclick="mudarTela('mesas')" class="flex flex-col items-center text-red-700 font-bold text-sm">
             🪑 Mesas
         </button>
@@ -44,6 +44,11 @@
                 { nome: "Brahma Chopp", preco: 5.00 },
                 { nome: "Brahma Puro Malte", preco: 5.00 },
                 { nome: "Heineken", preco: 9.00 },
+                { nome: "Corona Extra", preco: 9.00 },
+                { nome: "Terça amarela", preco: 7.00 },
+                { nome: "Terça prata", preco: 6.00 },
+                { nome: "Meio litro amarela", preco: 16.00 },
+                { nome: "Meio litro prata", preco: 15.00 },
                 { nome: "Balde Skol", preco: 50.00 },
                 { nome: "Balde Brahma", preco: 50.00 },
                 { nome: "Budweiser", preco: 7.50 },
@@ -56,13 +61,13 @@
                 { nome: "Coca-Cola lata", preco: 5.00 },
                 { nome: "Fanta lata", preco: 5.00 },
                 { nome: "Sprite lata", preco: 6.00 },
-                { nome: "Água", preco: 2.00 },
-                { nome: "Água com gás", preco: 3.00 }
+                { nome: "Água", preco: 3.00 },
+                { nome: "Água com gás", preco: 4.00 }
             ],
             "PETISCOS": [
                 { nome: "Batata frita", preco: 15.00 },
                 { nome: "Calabresa acebolada", preco: 15.00 },
-                { nome: "Camarão (porção)", preco: 15.00 }
+                { nome: "Camarão (porção)", preco: 25.00 }
             ],
             "GUARNIÇÕES": [
                 { nome: "Baião caseiro", preco: 8.00 },
@@ -118,9 +123,12 @@
 
                 let html = `
                     <div class="bg-white p-4 rounded-xl shadow-md mb-4">
-                        <h2 class="text-lg font-bold mb-2">Mesa ${mesaSelecionada < 10 ? '0' + mesaSelecionada : mesaSelecionada}</h2>
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-lg font-bold">Mesa ${mesaSelecionada < 10 ? '0' + mesaSelecionada : mesaSelecionada}</h2>
+                            <button onclick="mudarTela('mesas')" class="text-sm bg-gray-200 px-3 py-1 rounded-lg font-bold">⬅ Voltar</button>
+                        </div>
                         <label class="block text-sm font-semibold mb-1">Quantidade de pessoas:</label>
-                        <input type="number" id="qtdPessoas" value="${comanda.pessoas}" class="border p-2 rounded w-full mb-4" onchange="atualizarPessoas(this.value)">
+                        <input type="number" id="qtdPessoas" value="${comanda.pessoas}" class="border p-2 rounded w-full mb-2" onchange="atualizarPessoas(this.value)">
                     </div>
                 `;
 
@@ -136,9 +144,9 @@
                                     <p class="text-sm text-gray-500">R$ ${prod.preco.toFixed(2)}</p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <button onclick="alterarQtd('${prod.nome}', -1, ${prod.preco})" class="bg-gray-200 px-3 py-1 rounded font-bold">-</button>
-                                    <span class="font-bold text-lg">${qtd}</span>
-                                    <button onclick="alterarQtd('${prod.nome}', 1, ${prod.preco})" class="bg-red-600 text-white px-3 py-1 rounded font-bold">+</button>
+                                    <button onclick="alterarQtd('${prod.nome}', -1, ${prod.preco})" class="bg-gray-200 px-3 py-2 rounded-lg font-bold text-lg">-</button>
+                                    <span class="font-bold text-lg w-6 text-center">${qtd}</span>
+                                    <button onclick="alterarQtd('${prod.nome}', 1, ${prod.preco})" class="bg-red-600 text-white px-3 py-2 rounded-lg font-bold text-lg">+</button>
                                 </div>
                             </div>
                         `;
@@ -146,12 +154,12 @@
                 }
 
                 html += `
-                    <div class="mt-6 bg-white p-4 rounded-xl shadow-md sticky bottom-16">
-                        <div class="flex justify-between items-center mb-4">
+                    <div class="mt-6 bg-white p-4 rounded-xl shadow-lg sticky bottom-16 border-t">
+                        <div class="flex justify-between items-center mb-3">
                             <span class="font-bold text-lg">Total Pedido:</span>
                             <span class="font-bold text-xl text-red-700" id="totalPedido">R$ 0,00</span>
                         </div>
-                        <button onclick="salvarComanda()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg">💾 SALVAR COMANDA</button>
+                        <button onclick="salvarComanda()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-md">💾 SALVAR COMANDA</button>
                     </div>
                 `;
                 container.innerHTML = html;
@@ -166,17 +174,17 @@
                     if (comanda && comanda.itens && comanda.itens.length > 0) {
                         temComanda = true;
                         html += `
-                            <div class="bg-white p-4 rounded-xl shadow-md mb-4">
+                            <div class="bg-white p-4 rounded-xl shadow-md mb-4 border-l-4 border-red-600">
                                 <div class="flex justify-between items-center border-b pb-2 mb-2">
                                     <span class="font-bold text-lg">Mesa ${m}</span>
-                                    <span class="font-bold text-red-700">R$ ${comanda.total.toFixed(2)}</span>
+                                    <span class="font-bold text-red-700 text-lg">R$ ${comanda.total.toFixed(2)}</span>
                                 </div>
                                 <p class="text-sm text-gray-600 mb-2">Pessoas: ${comanda.pessoas}</p>
-                                <ul class="text-sm mb-4">
-                                    ${comanda.itens.map(item => `<li>${item.qtd}x ${item.nome} - R$ ${(item.qtd * item.preco).toFixed(2)}</li>`).join('')}
+                                <ul class="text-sm mb-4 space-y-1">
+                                    ${comanda.itens.map(item => `<li>• ${item.qtd}x ${item.nome} - R$ ${(item.qtd * item.preco).toFixed(2)}</li>`).join('')}
                                 </ul>
                                 <div class="flex gap-2">
-                                    <button onclick="mudarTela('atendimento', ${m})" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">➕ Adicionar</button>
+                                    <button onclick="abrirMesa(${m})" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">➕ Adicionar</button>
                                     <button onclick="fecharMesa(${m})" class="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">🔴 Fechar Mesa</button>
                                 </div>
                             </div>
