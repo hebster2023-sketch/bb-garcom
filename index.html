@@ -155,12 +155,28 @@ async function fazerLogin(e) {
   const { signInWithEmailAndPassword } = window.fbFns;
 
   try {
-    document.getElementById("erroLogin").textContent = "Entrando...";
+    // Mostra um aviso visual que está tentando entrar
+    let erroDiv = document.getElementById("erroLogin");
+    if (!erroDiv) {
+      // Se não existir o elemento de erro, cria um abaixo do botão
+      erroDiv = document.createElement("div");
+      erroDiv.id = "erroLogin";
+      erroDiv.style.color = "red";
+      erroDiv.style.marginTop = "10px";
+      erroDiv.style.textAlign = "center";
+      document.querySelector("form").appendChild(erroDiv);
+    }
+    erroDiv.textContent = "Entrando...";
+
     await signInWithEmailAndPassword(auth, email, senha);
+    erroDiv.textContent = "Sucesso! Carregando...";
   } catch (err) {
-    document.getElementById("erroLogin").textContent = "Erro ao entrar: verifique e-mail e senha.";
+    console.error(err);
+    let erroDiv = document.getElementById("erroLogin");
+    erroDiv.textContent = "Erro: " + err.message;
   }
 }
+
 
 async function sairSistema() {
   const auth = window.fbAuth;
