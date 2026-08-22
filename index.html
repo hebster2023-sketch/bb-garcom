@@ -6,6 +6,31 @@
 <meta name="theme-color" content="#b12f27">
 <title>B.B GARÇOM — B.B CHURRASCO</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdoF1I7BcItfHEY",
+    authDomain: "bbchurrasco-app.firebaseapp.com",
+    projectId: "bbchurrasco-app",
+    storageBucket: "bbchurrasco-app.firebasestorage.app",
+    messagingSenderId: "470656170967",
+    appId: "1:470656170967:web:f9c96614d411561ddfe992",
+    measurementId: "G-C0KJ5GJKG2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.fbDB = db;
+  window.fbFns = { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot };
+  
+  // Iniciar carregamento dos dados da nuvem após conectar
+  if(window.iniciarAppFirebase) window.iniciarAppFirebase();
+</script>
+
 <style>
 :root{--brand:#b12f29;--brand-dark:#8f241f;--ink:#14281e;--bg:#f8faf9;--card:#ffffff;--border:#e3e8e5}
 *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
@@ -31,7 +56,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 <div class="app">
 <header class="header">
   <h1>B.B CHURRASCO</h1>
-  <p>B.B GARÇOM — Sistema de Atendimento</p>
+  <p>B.B GARÇOM — Sincronizado na Nuvem</p>
 </header>
 <div id="conteudo"></div>
 </div>
@@ -65,18 +90,86 @@ const cardapio={
 "PETISCOS":[["Batata frita",15,"🍟"],["Calabresa acebolada",15,"🍳"],["Camarão (porção)",25,"🍤"]],
 "GUARNIÇÕES":[["Baião caseiro grande",8,"🍚"],["Baião caseiro pequeno",4,"🍚"],["Baião cremoso grande",10,"🍲"],["Baião cremoso pequeno",5,"🍲"]]
 };
-let comandas=JSON.parse(localStorage.getItem("bb_comandas"))||{};
-let historicoVendas=JSON.parse(localStorage.getItem("bb_historico"))||[];
-let despesas=JSON.parse(localStorage.getItem("bb_despesas"))||[];
+
+let comandas={};
+let historicoVendas=[];
+let despesas=[];
 let telaAtual="mesas",mesaSelecionada=null,pedidoTemp={},pessoasTemp=1,categoriaAtual="CHURRASCOS";
 
 const br=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad=n=>String(n).padStart(2,"0");
-function persist(){
-  localStorage.setItem("bb_comandas",JSON.stringify(comandas));
-  localStorage.setItem("bb_historico",JSON.stringify(historicoVendas));
-  localStorage.setItem("bb_despesas",JSON.stringify(despesas));
+
+// Sincronização com o Firebase Firestore
+window.iniciarAppFirebase = function() {
+  const db = window.fbDB;
+  const { collection, onSnapshot } = window.fbFns;
+
+  // Escutar comandas em tempo real
+  onSnapshot(collection(db, "comandas"), (snapshot) => {
+    comandas = {};
+    snapshot.forEach((doc) => {
+      comandas[doc.id] = doc.data();
+    });
+    renderizar();
+  });
+
+  // Escutar histórico de vendas em tempo real
+  onSnapshot(collection(db, "historico"), (snapshot) => {
+    historicoVendas = [];
+    snapshot.forEach((doc) => {
+      historicoVendas.push(doc.data());
+    });
+    if(telaAtual==="relatorios") renderRelatorios();
+  });
+
+  // Escutar despesas em tempo real
+  onSnapshot(collection(db, "despesas"), (snapshot) => {
+    despesas = [];
+    snapshot.forEach((doc) => {
+      despesas.push(doc.data());
+    });
+    if(telaAtual==="relatorios") renderRelatorios();
+  });
+};
+
+async function persistMesa(num, dados) {
+  const db = window.fbDB;
+  const { doc, setDoc } = window.fbFns;
+  if(db) await setDoc(doc(db, "comandas", String(num)), dados);
 }
+
+async function apagarMesaNuvem(num) {
+  const db = window.fbDB;
+  const { doc, deleteDoc } = window.fbFns;
+  if(db) await deleteDoc(doc(db, "comandas", String(num)));
+}
+
+async function adicionarHistoricoNuvem(venda) {
+  const db = window.fbDB;
+  const { doc, setDoc } = window.fbFns;
+  const id = "v_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+  if(db) await setDoc(doc(db, "historico", id), venda);
+}
+
+async function adicionarDespesaNuvem(desp) {
+  const db = window.fbDB;
+  const { doc, setDoc } = window.fbFns;
+  const id = "d_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+  if(db) await setDoc(doc(db, "despesas", id), desp);
+}
+
+async function limparDadosNuvem() {
+  const db = window.fbDB;
+  const { collection, getDocs, deleteDoc, doc } = window.fbFns;
+  if(!db) return;
+  
+  const snapH = await getDocs(collection(db, "historico"));
+  snapH.forEach(async (d) => await deleteDoc(doc(db, "historico", d.id)));
+
+  const snapD = await getDocs(collection(db, "despesas"));
+  snapD.forEach(async (d) => await deleteDoc(doc(db, "despesas", d.id)));
+}
+
 function mudarTela(t,num=null){telaAtual=t;if(num!==null)mesaSelecionada=Number(num);renderizar();scrollTo(0,0)}
 function abrirMesa(num){mesaSelecionada=Number(num);pedidoTemp={};pessoasTemp=1;if(comandas[num]){pessoasTemp=comandas[num].pessoas||1;(comandas[num].itens||[]).forEach(i=>pedidoTemp[i.nome]=i.qtd)}mudarTela("atendimento",num)}
 function atualizarPessoas(v){pessoasTemp=Math.max(1,parseInt(v)||1)}
@@ -102,11 +195,14 @@ function renderAtendimento(){
  <div id="produtos" class="products"></div>`;
  renderProdutos();
 }
-function salvarComanda(){
+async function salvarComanda(){
  const itens=itensTemp();if(!itens.length){alert("Adicione pelo menos um produto.");return}
  const total=itens.reduce((s,i)=>s+i.qtd*i.preco,0);
- comandas[mesaSelecionada]={pessoas:pessoasTemp,itens,total,atualizadoEm:Date.now()};
- persist();fecharModal();alert(`Mesa ${pad(mesaSelecionada)} salva com sucesso!`);mudarTela("mesas");
+ const dadosMesa={pessoas:pessoasTemp,itens,total,atualizadoEm:Date.now()};
+ await persistMesa(mesaSelecionada, dadosMesa);
+ fecharModal();
+ alert(`Mesa ${pad(mesaSelecionada)} salva na nuvem!`);
+ mudarTela("mesas");
 }
 function abrirCarrinho(){const itens=itensTemp();document.getElementById("modalTitle").textContent=`Mesa ${pad(mesaSelecionada)} — Pedido`;document.getElementById("modalBody").innerHTML=`${itens.map(i=>`<div class="line"><div><b>${i.qtd}x ${i.nome}</b><br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Salvar comanda</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;document.getElementById("modal").classList.add("show")}
 function fecharModal(){document.getElementById("modal").classList.remove("show")}
@@ -145,71 +241,70 @@ function atualizarCalculoDivisao(total, qtd){
   <div style="font-size:30px;font-weight:900;color:#b12f29;margin-top:4px">${br(val)}</div>`;
 }
 
-function fecharMesa(num){
- dividirContaModal(num);
-}
+function fecharMesa(num){dividirContaModal(num);}
 
-function pagarParteMesa(num){
+async function pagarParteMesa(num){
  const c=comandas[num];if(!c)return;
  let qtdPessoas=Math.max(1,parseInt(document.getElementById("divPessoas").value)||1);
  let valorPorPessoa=c.total/qtdPessoas;
 
- if(confirm(`Confirmar o recebimento de ${br(valorPorPessoa)} (1 pessoa)? O valor será enviado ao relatório e o restante continuará aberto na mesa.`)){
-   historicoVendas.push({mesa:num,total:valorPorPessoa,itens:[{nome:"Pagamento Parcial / Porção",qtd:1,preco:valorPorPessoa}],horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+ if(confirm(`Confirmar o recebimento de ${br(valorPorPessoa)} (1 pessoa)? O valor será enviado ao relatório.`)){
+   await adicionarHistoricoNuvem({mesa:num,total:valorPorPessoa,itens:[{nome:"Pagamento Parcial / Porção",qtd:1,preco:valorPorPessoa}],horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
    
    c.total-=valorPorPessoa;
    c.pessoas=Math.max(1,qtdPessoas-1);
 
    if(c.total<=0.5){
-     delete comandas[num];
+     await apagarMesaNuvem(num);
      alert("Comanda totalmente quitada e fechada!");
    } else {
-     persist();
+     await persistMesa(num, c);
      alert(`Pagamento de ${br(valorPorPessoa)} registrado! Restam ${br(c.total)} na mesa.`);
    }
-   
-   persist();
    fecharModal();
    renderizar();
  }
 }
 
-function fecharMesaDireto(num){
+async function fecharMesaDireto(num){
  const c=comandas[num];if(!c)return;
- if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar ${br(c.total)} para o Relatório do Dia?`)){
-   historicoVendas.push({mesa:num,total:c.total,itens:c.itens,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
-   delete comandas[num];
-   persist();
+ if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar ${br(c.total)} para o Relatório?`)){
+   await adicionarHistoricoNuvem({mesa:num,total:c.total,itens:c.itens,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+   await apagarMesaNuvem(num);
    fecharModal();
    renderizar();
  }
 }
 
-function adicionarDespesa(){
+async function adicionarDespesa(){
   let desc=prompt("Nome da despesa (ex: Gelo, Carvão, Carne):");
   if(!desc)return;
   let valor=prompt("Valor da despesa em R$ (ex: 45.00):");
   valor=parseFloat(valor.replace(",","."));
   if(isNaN(valor)||valor<=0){alert("Valor inválido.");return;}
-  despesas.push({desc,valor,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
-  persist();
+  await adicionarDespesaNuvem({desc,valor,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
   renderRelatorios();
 }
-function limparRelatorios(){
+
+async function limparRelatorios(){
   if(confirm("Deseja zerar todo o histórico de vendas e despesas do dia?")){
-    historicoVendas=[]; despesas=[]; persist(); renderRelatorios();
+    await limparDadosNuvem();
+    renderRelatorios();
   }
 }
+
 function renderMesas(){
  let abertas=Object.keys(comandas).filter(k=>comandas[k]?.itens?.length).length;
  document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas===1?"":"s"} no salão</span></div><span class="tag">30 mesas</span></div>
  <div class="tables">${Array.from({length:30},(_,i)=>{let n=i+1,c=comandas[n],busy=c?.itens?.length;return `<div class="table ${busy?"busy":""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy?"OCUPADA":"LIVRE"}</div>${busy?`<div class="total">${br(c.total)}</div><div style="font-size:10px;margin-top:2px">${c.pessoas||1} pes.</div>`:""}</div>`}).join("")}</div>`;
 }
+
 function renderComandas(){
  let abertas=Object.entries(comandas).filter(([m,c])=>c?.itens?.length);
  document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length===1?"":"s"} ativa${abertas.length===1?"":"s"}</span></div></div>
  ${abertas.length?abertas.map(([m,c])=>`<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":''} • Média por pessoa: ${br(c.total/(c.pessoas||1))}</p>${c.itens.map(i=>`<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Fechar</button></div></div>`).join(""):`<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
 }
+
 function renderRelatorios(){
  let totalFaturamento=historicoVendas.reduce((s,v)=>s+v.total,0);
  let totalDespesas=despesas.reduce((s,d)=>s+d.valor,0);
@@ -223,7 +318,7 @@ function renderRelatorios(){
  let listaItens=Object.entries(itensContador);
 
  document.getElementById("conteudo").innerHTML=`
-  <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo do Dia</span></div><button onclick="limparRelatorios()" style="border:0;background:#feeceb;color:#a92d25;border-radius:12px;padding:8px 12px;font-size:12px;font-weight:900;cursor:pointer">🗑️ Resetar Dia</button></div>
+  <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo do Dia (Nuvem)</span></div><button onclick="limparRelatorios()" style="border:0;background:#feeceb;color:#a92d25;border-radius:12px;padding:8px 12px;font-size:12px;font-weight:900;cursor:pointer">🗑️ Resetar Dia</button></div>
   
   <div class="card" style="background:linear-gradient(135deg,#14281e,#1f3d2e);color:#fff">
     <div style="font-size:13px;opacity:.85">Lucro Líquido (Faturamento - Gastos)</div>
@@ -248,6 +343,7 @@ function renderRelatorios(){
     ${listaItens.length?listaItens.map(([nome,info])=>`<div class="line"><div><b>${info.qtd}x ${nome}</b></div><strong>${br(info.qtd*info.preco)}</strong></div>`).join(""):`<div class="empty" style="padding:15px">Nenhuma venda finalizada ainda.</div>`}
   </div>`;
 }
+
 function renderizar(){
  const navM=document.getElementById("navMesas"),navC=document.getElementById("navComandas"),navR=document.getElementById("navRelatorios");
  navM.classList.toggle("active",telaAtual==="mesas"||telaAtual==="atendimento");
