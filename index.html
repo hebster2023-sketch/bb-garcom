@@ -28,7 +28,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 </head>
 <body>
 
-<!-- TELA DE LOGIN DO FIREBASE -->
+<!-- TELA DE LOGIN -->
 <div id="telaLogin" style="display:flex; position:fixed; inset:0; background:#f8faf9; z-index:999; align-items:center; justify-content:center; padding:20px;">
   <div class="card" style="width:100%; max-width:400px; text-align:center;">
     <div style="font-size:40px; margin-bottom:10px;">🔥</div>
@@ -54,7 +54,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
     <header class="header" style="display:flex; justify-content:space-between; align-items:center;">
       <div>
         <h1>B.B CHURRASCO</h1>
-        <p>B.B GARÇOM — Sistema de Atendimento</p>
+        <p>B.B GARÇOM — Sistema em Nuvem</p>
       </div>
       <button onclick="fazerLogout()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; font-weight:bold; padding:8px 12px; border-radius:12px; cursor:pointer; font-size:12px;">Sair</button>
     </header>
@@ -80,10 +80,11 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
   </div>
 </div>
 
-<!-- SCRIPTS DO FIREBASE E DO SISTEMA -->
+<!-- SCRIPTS DE FIREBASE E NUVEM -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdoF1I7BcItfHEY",
@@ -97,15 +98,30 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   
   window.fbAuth = auth;
+  window.db = db;
   window.signInWithEmailAndPassword = signInWithEmailAndPassword;
   window.signOut = signOut;
+  window.doc = doc;
+  window.setDoc = setDoc;
+  window.deleteDoc = deleteDoc;
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("telaLogin").style.display = "none";
       document.getElementById("appConteudo").style.display = "block";
+      
+      // Ouve em tempo real as mesas do Firestore
+      onSnapshot(collection(db, "comandas"), (snapshot) => {
+        window.comandas = {};
+        snapshot.forEach((docSnap) => {
+          window.comandas[docSnap.id] = docSnap.data();
+        });
+        if(typeof window.renderizar === "function") window.renderizar();
+      });
+
     } else {
       document.getElementById("telaLogin").style.display = "flex";
       document.getElementById("appConteudo").style.display = "none";
@@ -146,7 +162,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
   "GUARNIÇÕES":[["Baião caseiro grande",8,"🍚"],["Baião caseiro pequeno",4,"🍚"],["Baião cremoso grande",10,"🍲"],["Baião cremoso pequeno",5,"🍲"]]
   };
 
-  let comandas=JSON.parse(localStorage.getItem("bb_comandas"))||{};
+  window.comandas = {};
   let historicoVendas=JSON.parse(localStorage.getItem("bb_historico"))||[];
   let despesas=JSON.parse(localStorage.getItem("bb_despesas"))||[];
   let telaAtual="mesas",mesaSelecionada=null,pedidoTemp={},pessoasTemp=1,categoriaAtual="CHURRASCOS";
@@ -154,14 +170,18 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
   const br=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
   const pad=n=>String(n).padStart(2,"0");
 
-  function persist(){
-    localStorage.setItem("bb_comandas",JSON.stringify(comandas));
+  function persistLocal(){
     localStorage.setItem("bb_historico",JSON.stringify(historicoVendas));
     localStorage.setItem("bb_despesas",JSON.stringify(despesas));
   }
 
   function mudarTela(t,num=null){telaAtual=t;if(num!==null)mesaSelecionada=Number(num);renderizar();scrollTo(0,0)}
-  function abrirMesa(num){mesaSelecionada=Number(num);pedidoTemp={};pessoasTemp=1;if(comandas[num]){pessoasTemp=comandas[num].pessoas||1;(comandas[num].itens||[]).forEach(i=>pedidoTemp[i.nome]=i.qtd)}mudarTela("atendimento",num)}
+  function abrirMesa(num){
+    mesaSelecionada=Number(num);pedidoTemp={};pessoasTemp=1;
+    let c=window.comandas[num];
+    if(c){pessoasTemp=c.pessoas||1;(c.itens||[]).forEach(i=>pedidoTemp[i.nome]=i.qtd)}
+    mudarTela("atendimento",num);
+  }
   function atualizarPessoas(v){pessoasTemp=Math.max(1,parseInt(v)||1)}
   function alterarQtd(nome,delta){pedidoTemp[nome]=(pedidoTemp[nome]||0)+delta;if(pedidoTemp[nome]<0)pedidoTemp[nome]=0;renderProdutos();atualizarBar()}
   function produtosFlat(){let a=[];for(const cat in cardapio)cardapio[cat].forEach(p=>a.push({nome:p[0],preco:p[1],icon:p[2],cat}));return a}
@@ -190,7 +210,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 
   function renderAtendimento(){
    const total=totalTemp();
-   document.getElementById("conteudo").innerHTML=`<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento e lançamento</p></div><span class="tag">${br(total)}</span></div></div>
+   document.getElementById("conteudo").innerHTML=`<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento em nuvem</p></div><span class="tag">${br(total)}</span></div></div>
    <div class="card people"><span><b>👥 Pessoas na mesa</b><br><small class="muted">Informe para divisão de conta</small></span><input id="pessoas" type="number" min="1" value="${pessoasTemp}" onchange="atualizarPessoas(this.value)"></div>
    <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i)=>s+i.qtd,0)} itens</span></div>
    <div class="cats">${Object.keys(cardapio).map(c=>`<button class="cat ${c===categoriaAtual?"active":""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":"🍚"} ${c}</button>`).join("")}</div>
@@ -198,24 +218,31 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
    renderProdutos();
   }
 
-  function salvarComanda(){
+  async function salvarComanda(){
    const itens=itensTemp();if(!itens.length){alert("Adicione pelo menos um produto.");return}
    const total=itens.reduce((s,i)=>s+i.qtd*i.preco,0);
-   comandas[mesaSelecionada]={pessoas:pessoasTemp,itens,total,atualizadoEm:Date.now()};
-   persist();fecharModal();mudarTela("mesas");
+   const dadosMesa={pessoas:pessoasTemp,itens,total,atualizadoEm:Date.now()};
+   
+   try {
+     await window.setDoc(window.doc(window.db, "comandas", String(mesaSelecionada)), dadosMesa);
+     fecharModal();
+     mudarTela("mesas");
+   } catch(err) {
+     alert("Erro ao salvar na nuvem: " + err.message);
+   }
   }
 
   function abrirCarrinho(){
     const itens=itensTemp();
     document.getElementById("modalTitle").textContent=`Mesa ${pad(mesaSelecionada)} — Pedido`;
-    document.getElementById("modalBody").innerHTML=`${itens.map(i=>`<div class="line"><div><b>${i.qtd}x ${i.nome}</b><br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Salvar comanda</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
+    document.getElementById("modalBody").innerHTML=`${itens.map(i=>`<div class="line"><div><b>${i.qtd}x ${i.nome}</b><br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Salvar na Nuvem</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
     document.getElementById("modal").classList.add("show");
   }
 
   function fecharModal(){document.getElementById("modal").classList.remove("show")}
 
   function dividirContaModal(num){
-   const c=comandas[num];if(!c)return;
+   const c=window.comandas[num];if(!c)return;
    let qtdPessoas=c.pessoas||1;
    let porPessoa=c.total/qtdPessoas;
    document.getElementById("modalTitle").textContent=`Divisão da Mesa ${pad(num)}`;
@@ -250,26 +277,44 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 
   function fecharMesa(num){ dividirContaModal(num); }
 
-  function pagarParteMesa(num){
-   const c=comandas[num];if(!c)return;
+  async function pagarParteMesa(num){
+   const c=window.comandas[num];if(!c)return;
    let qtdPessoas=Math.max(1,parseInt(document.getElementById("divPessoas").value)||1);
    let valorPorPessoa=c.total/qtdPessoas;
 
    if(confirm(`Confirmar o recebimento de ${br(valorPorPessoa)} (1 pessoa)?`)){
      historicoVendas.push({mesa:num,total:valorPorPessoa,itens:[{nome:"Pagamento Parcial",qtd:1,preco:valorPorPessoa}],horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+     persistLocal();
+
      c.total-=valorPorPessoa;
      c.pessoas=Math.max(1,qtdPessoas-1);
-     if(c.total<=0.5){ delete comandas[num]; }
-     persist(); fecharModal(); renderizar();
+
+     try {
+       if(c.total<=0.5){
+         await window.deleteDoc(window.doc(window.db, "comandas", String(num)));
+       } else {
+         await window.setDoc(window.doc(window.db, "comandas", String(num)), c);
+       }
+       fecharModal();
+       renderizar();
+     } catch(err) {
+       alert("Erro ao atualizar nuvem: " + err.message);
+     }
    }
   }
 
-  function fecharMesaDireto(num){
-   const c=comandas[num];if(!c)return;
+  async function fecharMesaDireto(num){
+   const c=window.comandas[num];if(!c)return;
    if(confirm(`Deseja fechar a Mesa ${pad(num)} (${br(c.total)})?`)){
      historicoVendas.push({mesa:num,total:c.total,itens:c.itens,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
-     delete comandas[num];
-     persist(); fecharModal(); renderizar();
+     persistLocal();
+     try {
+       await window.deleteDoc(window.doc(window.db, "comandas", String(num)));
+       fecharModal();
+       renderizar();
+     } catch(err) {
+       alert("Erro ao fechar mesa na nuvem: " + err.message);
+     }
    }
   }
 
@@ -280,28 +325,28 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
     valor=parseFloat(valor.replace(",","."));
     if(isNaN(valor)||valor<=0){alert("Valor inválido.");return;}
     despesas.push({desc,valor,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
-    persist(); renderRelatorios();
+    persistLocal(); renderRelatorios();
   }
 
   function limparRelatorios(){
     if(confirm("Deseja zerar as vendas e despesas do dia?")){
-      historicoVendas=[]; despesas=[]; persist(); renderRelatorios();
+      historicoVendas=[]; despesas=[]; persistLocal(); renderRelatorios();
     }
   }
 
   function renderMesas(){
-   let abertas=Object.keys(comandas).filter(k=>comandas[k]?.itens?.length).length;
-   document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas===1?"":"s"} no salão</span></div><span class="tag">30 mesas</span></div>
-   <div class="tables">${Array.from({length:30},(_,i)=>{let n=i+1,c=comandas[n],busy=c?.itens?.length;return `<div class="table ${busy?"busy":""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy?"OCUPADA":"LIVRE"}</div>${busy?`<div class="total">${br(c.total)}</div><div style="font-size:10px;margin-top:2px">${c.pessoas||1} pes.</div>`:""}</div>`}).join("")}</div>`;
+   let abertas=Object.keys(window.comandas).filter(k=>window.comandas[k]?.itens?.length).length;
+   document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas===1?"":"s"} na nuvem</span></div><span class="tag">30 mesas</span></div>
+   <div class="tables">${Array.from({length:30},(_,i)=>{let n=i+1,c=window.comandas[n],busy=c?.itens?.length;return `<div class="table ${busy?"busy":""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy?"OCUPADA":"LIVRE"}</div>${busy?`<div class="total">${br(c.total)}</div><div style="font-size:10px;margin-top:2px">${c.pessoas||1} pes.</div>`:""}</div>`}).join("")}</div>`;
   }
 
   function renderComandas(){
-   let abertas=Object.entries(comandas).filter(([m,c])=>c?.itens?.length);
+   let abertas=Object.entries(window.comandas).filter(([m,c])=>c?.itens?.length);
    document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length===1?"":"s"} ativa${abertas.length===1?"":"s"}</span></div></div>
    ${abertas.length?abertas.map(([m,c])=>`<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":''} • Média: ${br(c.total/(c.pessoas||1))}</p>${c.itens.map(i=>`<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Fechar</button></div></div>`).join(""):`<div class="card empty">📋<br><b>Nenhuma comanda aberta</b></div>`}`;
   }
 
-  function renderRelatorios(){
+  window.renderRelatorios = function(){
    let totalFaturamento=historicoVendas.reduce((s,v)=>s+v.total,0);
    let totalDespesas=despesas.reduce((s,d)=>s+d.valor,0);
    let lucroLiquido=totalFaturamento-totalDespesas;
@@ -329,7 +374,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
     <div class="card">${listaItens.length?listaItens.map(([nome,info])=>`<div class="line"><div><b>${info.qtd}x ${nome}</b></div><strong>${br(info.qtd*info.preco)}</strong></div>`).join(""):`<div class="empty" style="padding:15px">Nenhuma venda ainda.</div>`}</div>`;
   }
 
-  function renderizar(){
+  window.renderizar = function(){
    const navM=document.getElementById("navMesas"),navC=document.getElementById("navComandas"),navR=document.getElementById("navRelatorios");
    if(navM) navM.classList.toggle("active",telaAtual==="mesas"||telaAtual==="atendimento");
    if(navC) navC.classList.toggle("active",telaAtual==="comandas");
@@ -337,9 +382,9 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
    if(telaAtual==="mesas")renderMesas();
    else if(telaAtual==="atendimento")renderAtendimento();
    else if(telaAtual==="comandas")renderComandas();
-   else if(telaAtual==="relatorios")renderRelatorios();
+   else if(telaAtual==="relatorios")window.renderRelatorios();
    atualizarBar();
-}
+  }
 </script>
 </body>
 </html>
