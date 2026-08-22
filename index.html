@@ -65,11 +65,17 @@ const cardapio={
 "GUARNIÇÕES":[["Baião caseiro",8,"🍚"],["Baião cremoso",10,"🍲"]]
 };
 let comandas=JSON.parse(localStorage.getItem("bb_comandas"))||{};
+let historicoVendas=JSON.parse(localStorage.getItem("bb_historico"))||[];
+let despesas=JSON.parse(localStorage.getItem("bb_despesas"))||[];
 let telaAtual="mesas",mesaSelecionada=null,pedidoTemp={},pessoasTemp=1,categoriaAtual="CHURRASCOS";
 
 const br=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad=n=>String(n).padStart(2,"0");
-function persist(){localStorage.setItem("bb_comandas",JSON.stringify(comandas))}
+function persist(){
+  localStorage.setItem("bb_comandas",JSON.stringify(comandas));
+  localStorage.setItem("bb_historico",JSON.stringify(historicoVendas));
+  localStorage.setItem("bb_despesas",JSON.stringify(despesas));
+}
 function mudarTela(t,num=null){telaAtual=t;if(num!==null)mesaSelecionada=Number(num);renderizar();scrollTo(0,0)}
 function abrirMesa(num){mesaSelecionada=Number(num);pedidoTemp={};pessoasTemp=1;if(comandas[num]){pessoasTemp=comandas[num].pessoas||1;(comandas[num].itens||[]).forEach(i=>pedidoTemp[i.nome]=i.qtd)}mudarTela("atendimento",num)}
 function atualizarPessoas(v){pessoasTemp=Math.max(1,parseInt(v)||1)}
@@ -87,7 +93,7 @@ function renderProdutos(){
  document.querySelectorAll(".cat").forEach(x=>x.classList.toggle("active",x.dataset.cat===categoriaAtual));atualizarBar();
 }
 function renderAtendimento(){
- const c=comandas[mesaSelecionada], total=totalTemp();
+ const total=totalTemp();
  document.getElementById("conteudo").innerHTML=`<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento e edição de itens</p></div><span class="tag">${br(total)}</span></div></div>
  <div class="card people"><span><b>👥 Pessoas na mesa</b><br><small class="muted">Quantidade de clientes</small></span><input id="pessoas" type="number" min="1" value="${pessoasTemp}" onchange="atualizarPessoas(this.value)"></div>
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i)=>s+i.qtd,0)} itens</span></div>
@@ -103,7 +109,30 @@ function salvarComanda(){
 }
 function abrirCarrinho(){const itens=itensTemp();document.getElementById("modalTitle").textContent=`Mesa ${pad(mesaSelecionada)} — Pedido`;document.getElementById("modalBody").innerHTML=`${itens.map(i=>`<div class="line"><div><b>${i.qtd}x ${i.nome}</b><br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Salvar comanda</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;document.getElementById("modal").classList.add("show")}
 function fecharModal(){document.getElementById("modal").classList.remove("show")}
-function fecharMesa(num){const c=comandas[num];if(!c)return;if(confirm(`Fechar Mesa ${pad(num)} com total de ${br(c.total)}?`)){delete comandas[num];persist();renderizar()}}
+function fecharMesa(num){
+ const c=comandas[num];if(!c)return;
+ if(confirm(`Fechar Mesa ${pad(num)} com total de ${br(c.total)}?`)){
+   historicoVendas.push({mesa:num,total:c.total,itens:c.itens,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+   delete comandas[num];
+   persist();
+   renderizar();
+ }
+}
+function adicionarDespesa(){
+  let desc=prompt("Nome da despesa (ex: Compra de carvão, Gelo, Carne):");
+  if(!desc)return;
+  let valor=prompt("Valor da despesa em R$ (ex: 45.00):");
+  valor=parseFloat(valor.replace(",","."));
+  if(isNaN(valor)||valor<=0){alert("Valor inválido.");return;}
+  despesas.push({desc,valor,horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+  persist();
+  renderRelatorios();
+}
+function limparRelatorios(){
+  if(confirm("Deseja zerar todo o histórico de vendas e despesas do dia?")){
+    historicoVendas=[]; despesas=[]; persist(); renderRelatorios();
+  }
+}
 function renderMesas(){
  let abertas=Object.keys(comandas).filter(k=>comandas[k]?.itens?.length).length;
  document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas===1?"":"s"} agora</span></div><span class="tag">30 mesas</span></div>
@@ -115,30 +144,41 @@ function renderComandas(){
  ${abertas.length?abertas.map(([m,c])=>`<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand)">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":""}</p>${c.itens.map(i=>`<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:13px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">Fechar mesa</button></div></div>`).join(""):`<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas com pedidos aparecerão aqui.</div>`}`;
 }
 function renderRelatorios(){
- let totalGeral=0, totalComandas=0, itensContador={};
- Object.values(comandas).forEach(c=>{
-  if(c?.itens?.length){
-   totalComandas++;
-   totalGeral+=c.total||0;
-   c.itens.forEach(i=>{
-    if(!itensContador[i.nome])itensContador[i.nome]={qtd:0,preco:i.preco};
-    itensContador[i.nome].qtd+=i.qtd;
-   });
-  }
- });
+ let totalFaturamento=historicoVendas.reduce((s,v)=>s+v.total,0);
+ let totalDespesas=despesas.reduce((s,d)=>s+d.valor,0);
+ let lucroLiquido=totalFaturamento-totalDespesas;
+
+ let itensContador={};
+ historicoVendas.forEach(v=>v.itens.forEach(i=>{
+  if(!itensContador[i.nome])itensContador[i.nome]={qtd:0,preco:i.preco};
+  itensContador[i.nome].qtd+=i.qtd;
+ }));
  let listaItens=Object.entries(itensContador);
+
  document.getElementById("conteudo").innerHTML=`
-  <div class="section-title"><div><h2>Relatório do Dia</h2><span class="muted">Resumo de vendas ativas</span></div></div>
+  <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Faturamento e Gastos</span></div><button onclick="limparRelatorios()" style="border:0;background:#feeceb;color:#a92d25;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900">🗑️ Resetar Dia</button></div>
+  
   <div class="card" style="background:linear-gradient(135deg,#b12f29,#8f241f);color:#fff">
-    <div style="font-size:13px;opacity:.9">Faturamento em Comandas Abertas</div>
-    <div style="font-size:28px;font-weight:900;margin-top:4px">${br(totalGeral)}</div>
-    <div style="margin-top:12px;display:flex;gap:15px;font-size:13px">
-      <div>📦 <b>${totalComandas}</b> mesas ativas</div>
+    <div style="font-size:13px;opacity:.9">Lucro Líquido (Faturamento - Gastos)</div>
+    <div style="font-size:28px;font-weight:900;margin-top:4px">${br(lucroLiquido)}</div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;border-top:1px solid rgba(255,255,255,.2);padding-top:10px">
+      <div>📈 Faturamento: <b>${br(totalFaturamento)}</b></div>
+      <div>📉 Total Gastos: <b>${br(totalDespesas)}</b></div>
     </div>
   </div>
-  <div class="section-title"><h2>Produtos nas Comandas</h2></div>
+
+  <div style="margin-bottom:14px">
+    <button class="primary" onclick="adicionarDespesa()">➕ Registrar Gasto / Despesa</button>
+  </div>
+
+  <div class="section-title"><h2>Gastos Registrados</h2></div>
   <div class="card">
-    ${listaItens.length?listaItens.map(([nome,info])=>`<div class="line"><div><b>${info.qtd}x ${nome}</b><br><small>${br(info.preco)} un</small></div><strong>${br(info.qtd*info.preco)}</strong></div>`).join(""):`<div class="empty" style="padding:15px">Nenhum produto registrado nas comandas abertas ainda.</div>`}
+    ${despesas.length?despesas.map((d,i)=>`<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:#b12f29">- ${br(d.valor)}</strong></div>`).join(""):`<div class="empty" style="padding:15px">Nenhum gasto registrado hoje.</div>`}
+  </div>
+
+  <div class="section-title"><h2>Produtos Vendidos (Histórico)</h2></div>
+  <div class="card">
+    ${listaItens.length?listaItens.map(([nome,info])=>`<div class="line"><div><b>${info.qtd}x ${nome}</b></div><strong>${br(info.qtd*info.preco)}</strong></div>`).join(""):`<div class="empty" style="padding:15px">Nenhuma venda finalizada ainda.</div>`}
   </div>`;
 }
 function renderizar(){
