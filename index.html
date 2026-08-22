@@ -59,10 +59,11 @@ const cardapio={
 "CHURRASCOS":[
 ["Frango",8,"🍗"],["Porco",8,"🥩"],["Linguiça",8,"🌭"],["Coração de frango",8,"🍢"],["Coração de boi",8,"🍢"],["Carne",8,"🥩"],["Tripa",8,"🥓"]],
 "CARANGUEJO":[["Unidade",8,"🦀"],["Combo 4",28,"🦀"]],
-"BEBIDAS":[["Skol",5,"🍺"],["Brahma Chopp",5,"🍺"],["Brahma Puro Malte",5,"🍺"],["Heineken",9,"🍺"],["Corona Extra",9,"🍺"],["Terça amarela",7,"🍻"],["Terça prata",6,"🍻"],["Meio litro amarela",16,"🍺"],["Meio litro prata",15,"🍺"],["Balde Skol",50,"🪣"],["Balde Brahma",50,"🪣"],["Budweiser",7.5,"🍺"],["Caipirinha",15,"🍹"]],
+"BEBIDAS":[["Skol",5,"🍺"],["Litro da amarela",35,"🍺"],["Litro da prata",30,"🍺"],["Brahma Chopp",5,"🍺"],["Brahma Puro Malte",5,"🍺"],["Heineken",9,"🍺"],["Corona Extra",9,"🍺"],["Terça amarela",7,"🍻"],["Terça prata",6,"🍻"],["Meio litro amarela",16,"🍺"],["Meio litro prata",15,"🍺"],["Balde Skol",50,"🪣"],["Balde Brahma",50,"🪣"],["Budweiser",7.5,"🍺"],["Vinho",7,"🍷"],["Caipirinha",15,"🍹"]],
+"SUCOS":[["Suco Maracujá 400ml",8,"🧃"],["Suco Manga 400ml",7,"🧃"],["Suco Goiaba 400ml",7,"🧃"]],
 "REFRIGERANTES":[["Coca-Cola 1L",8,"🥤"],["Guaraná 1L",7,"🥤"],["Pepsi 1L",7,"🥤"],["Coca-Cola lata",5,"🥫"],["Fanta lata",5,"🥫"],["Sprite lata",6,"🥫"],["Água",3,"💧"],["Água com gás",4,"💧"]],
 "PETISCOS":[["Batata frita",15,"🍟"],["Calabresa acebolada",15,"🍳"],["Camarão (porção)",25,"🍤"]],
-"GUARNIÇÕES":[["Baião caseiro",8,"🍚"],["Baião cremoso",10,"🍲"]]
+"GUARNIÇÕES":[["Baião caseiro grande",8,"🍚"],["Baião caseiro pequeno",4,"🍚"],["Baião cremoso grande",10,"🍲"],["Baião cremoso pequeno",5,"🍲"]]
 };
 let comandas=JSON.parse(localStorage.getItem("bb_comandas"))||{};
 let historicoVendas=JSON.parse(localStorage.getItem("bb_historico"))||[];
@@ -97,7 +98,7 @@ function renderAtendimento(){
  document.getElementById("conteudo").innerHTML=`<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento e lançamento</p></div><span class="tag">${br(total)}</span></div></div>
  <div class="card people"><span><b>👥 Pessoas na mesa</b><br><small class="muted">Informe para divisão de conta</small></span><input id="pessoas" type="number" min="1" value="${pessoasTemp}" onchange="atualizarPessoas(this.value)"></div>
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i)=>s+i.qtd,0)} itens</span></div>
- <div class="cats">${Object.keys(cardapio).map(c=>`<button class="cat ${c===categoriaAtual?"active":""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":"🍚"} ${c}</button>`).join("")}</div>
+ <div class="cats">${Object.keys(cardapio).map(c=>`<button class="cat ${c===categoriaAtual?"active":""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":"🍚"} ${c}</button>`).join("")}</div>
  <div id="produtos" class="products"></div>`;
  renderProdutos();
 }
@@ -117,8 +118,8 @@ function dividirContaModal(num){
  document.getElementById("modalTitle").textContent=`Divisão da Mesa ${pad(num)}`;
  document.getElementById("modalBody").innerHTML=`
   <div style="text-align:center;margin-bottom:14px">
-    <div style="font-size:13px;color:#6c7a72">Total da Comanda</div>
-    <div style="font-size:24px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
+    <div style="font-size:13px;color:#6c7a72">Total Restante da Comanda</div>
+    <div id="valTotalComanda" style="font-size:24px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
   </div>
   <div class="card" style="background:#f4f7f5;padding:14px;margin-bottom:14px">
     <div style="display:flex;justify-content:space-between;align-items:center">
@@ -127,9 +128,10 @@ function dividirContaModal(num){
     </div>
   </div>
   <div id="resDivisao" class="card" style="background:#fff1f0;border-color:#f8d7d5;text-align:center;padding:16px;margin-bottom:14px">
-    <div style="font-size:13px;color:#8f241f;font-weight:800">VALOR POR PESSOA (${qtdPessoas}x)</div>
+    <div style="font-size:13px;color:#8f241f;font-weight:800">VALOR POR PESSOA</div>
     <div style="font-size:30px;font-weight:900;color:#b12f29;margin-top:4px">${br(porPessoa)}</div>
   </div>
+  <button class="primary" style="background:#2e7d32;margin-bottom:8px" onclick="pagarParteMesa(${num})">💵 Pagar 1 Pessoa (Abater do Total)</button>
   <button class="primary" onclick="fecharMesaDireto(${num})">✅ Fechar Mesa Completa (${br(c.total)})</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
@@ -139,12 +141,37 @@ function atualizarCalculoDivisao(total, qtd){
  let q=Math.max(1,parseInt(qtd)||1);
  let val=total/q;
  document.getElementById("resDivisao").innerHTML=`
-  <div style="font-size:13px;color:#8f241f;font-weight:800">VALOR POR PESSOA (${q}x)</div>
+  <div style="font-size:13px;color:#8f241f;font-weight:800">VALOR POR PESSOA</div>
   <div style="font-size:30px;font-weight:900;color:#b12f29;margin-top:4px">${br(val)}</div>`;
 }
 
 function fecharMesa(num){
  dividirContaModal(num);
+}
+
+function pagarParteMesa(num){
+ const c=comandas[num];if(!c)return;
+ let qtdPessoas=Math.max(1,parseInt(document.getElementById("divPessoas").value)||1);
+ let valorPorPessoa=c.total/qtdPessoas;
+
+ if(confirm(`Confirmar o recebimento de ${br(valorPorPessoa)} (1 pessoa)? O valor será enviado ao relatório e o restante continuará aberto na mesa.`)){
+   historicoVendas.push({mesa:num,total:valorPorPessoa,itens:[{nome:"Pagamento Parcial / Porção",qtd:1,preco:valorPorPessoa}],horario:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+   
+   c.total-=valorPorPessoa;
+   c.pessoas=Math.max(1,qtdPessoas-1);
+
+   if(c.total<=0.5){
+     delete comandas[num];
+     alert("Comanda totalmente quitada e fechada!");
+   } else {
+     persist();
+     alert(`Pagamento de ${br(valorPorPessoa)} registrado! Restam ${br(c.total)} na mesa.`);
+   }
+   
+   persist();
+   fecharModal();
+   renderizar();
+ }
 }
 
 function fecharMesaDireto(num){
