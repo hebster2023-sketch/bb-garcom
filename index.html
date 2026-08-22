@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>B.B GARÇOM – B.B CHURRASCO</title>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <style>
   :root { --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --primary: #b12f27; }
   body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
@@ -34,24 +33,23 @@
   </div>
 </div>
 
-<div id="appContéudo" style="display:none; padding:20px;">
-  <h1>Painel do Garçom</h1>
-  <button onclick="sairSair()" class="primary" style="padding:10px 20px;">Sair</button>
+<div id="appConteudo" style="display:none; padding:20px;">
+  <h1>Painel do Garçom - Logado com Sucesso!</h1>
+  <button onclick="fazerLogout()" class="primary" style="padding:10px 20px;">Sair</button>
 </div>
 
-<!-- SCRIPTS DE LOGIN -->
+<!-- SCRIPTS DE FIREBASE -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdo",
+    apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdoF1I7BcItfHEY",
     authDomain: "bbchurrasco-app.firebaseapp.com",
     projectId: "bbchurrasco-app",
     storageBucket: "bbchurrasco-app.firebasestorage.app",
-    messagingSenderId: "147065610967",
-    appId: "1:47065610967:web:f9c96614138138db5df63f",
+    messagingSenderId: "470656170967",
+    appId: "1:470656170967:web:f9c96614d411561ddfe992",
     measurementId: "G-C0KJ5GJKG2"
   };
 
@@ -60,14 +58,15 @@
   
   window.fbAuth = auth;
   window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+  window.signOut = signOut;
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
       document.getElementById("telaLogin").style.display = "none";
-      document.getElementById("appContéudo").style.display = "block";
+      document.getElementById("appConteudo").style.display = "block";
     } else {
       document.getElementById("telaLogin").style.display = "flex";
-      document.getElementById("appContéudo").style.display = "none";
+      document.getElementById("appConteudo").style.display = "none";
     }
   });
 </script>
@@ -88,6 +87,10 @@
       erroDiv.style.color = "red";
       erroDiv.textContent = "Erro: " + err.message;
     }
+  }
+
+  function fazerLogout() {
+    window.signOut(window.fbAuth);
   }
 </script>
 
