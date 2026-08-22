@@ -17,7 +17,7 @@ body{padding-bottom:92px}.app{max-width:760px;margin:auto;padding:14px 14px 100p
 .bottom{position:fixed;z-index:100;left:50%;bottom:0;transform:translateX(-50%);width:min(760px,100%);background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid #e7e9e7;display:grid;grid-template-columns:repeat(3,1fr);padding:9px 10px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -8px 25px rgba(0,0,0,.08)}
 .bottom button{border:0;background:none;color:#69716d;font-weight:800;font-size:12px;padding:7px 4px;border-radius:14px}.bottom button.active{color:var(--brand);background:#fff2f0}.bottom .ico{display:block;font-size:22px;line-height:23px;margin-bottom:2px}
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.table{min-height:116px;border-radius:20px;padding:15px 10px;border:2px solid #59bd69;background:#f0fbf2;color:#1f5130;box-shadow:0 5px 13px rgba(38,89,49,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.15s}.table:active{transform:scale(.97)}.table.busy{border-color:#df5a53;background:#fff3f2;color:#8d2823}.table .num{font-size:20px;font-weight:900}.table .status{font-size:12px;font-weight:900;margin-top:5px}.table .total{font-size:13px;font-weight:900;margin-top:5px}
-.card{background:#fff;border:1px solid #e8ece9;border-radius:20px;box-shadow:0 7px 20px rgba(26,38,30,.06)}.topbar{display:flex;gap:10px;align-items:center}.back{border:0;background:#eef1ef;border-radius:13px;padding:9px 12px;font-weight:900}.mesa-head{flex:1}.mesa-head h2{font-size:22px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:12px;color:#707973}
+.card{background:#fff;border:1px solid #e8ece9;border-radius:20px;box-shadow:0 7px 20px rgba(26,38,30,.06);padding:16px;margin-bottom:12px}.topbar{display:flex;gap:10px;align-items:center}.back{border:0;background:#eef1ef;border-radius:13px;padding:9px 12px;font-weight:900}.mesa-head{flex:1}.mesa-head h2{font-size:22px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:12px;color:#707973}
 .people{margin-top:12px;padding:12px;border-radius:16px;background:#f6f8f6;display:flex;align-items:center;justify-content:space-between}.people input{width:70px;border:1px solid #dfe5e0;border-radius:12px;padding:9px;text-align:center;font-weight:900;background:#fff}
 .cats{display:flex;gap:8px;overflow:auto;padding:4px 2px 10px;scrollbar-width:none;position:sticky;top:0;z-index:20;background:#f5f6f7}.cats::-webkit-scrollbar{display:none}.cat{white-space:nowrap;border:1px solid #e1e5e2;background:#fff;color:#4e5953;border-radius:999px;padding:9px 13px;font-weight:800;font-size:12px}.cat.active{background:var(--brand);color:#fff;border-color:var(--brand)}
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.product{overflow:hidden;border-radius:19px;background:#fff;border:1px solid #e8ebe9;box-shadow:0 5px 16px rgba(20,30,24,.055)}.prod-img{height:108px;display:grid;place-items:center;background:linear-gradient(135deg,#eee,#ddd);font-size:50px}.prod-body{padding:11px}.prod-name{font-size:14px;font-weight:900;line-height:1.2;min-height:34px}.price{font-size:13px;font-weight:900;color:var(--brand);margin:5px 0 9px}.qty{display:flex;align-items:center;justify-content:space-between;gap:6px}.qty button{width:34px;height:34px;border:0;border-radius:11px;background:#eef1ef;font-weight:900;font-size:18px}.qty button.plus{background:var(--brand);color:#fff}.qty span{font-weight:900;min-width:20px;text-align:center}.selected{outline:2px solid #6bc278;outline-offset:-2px}
@@ -44,7 +44,7 @@ body{padding-bottom:92px}.app{max-width:760px;margin:auto;padding:14px 14px 100p
 <nav class="bottom">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
- <button onclick="alert('Relatórios e usuários serão adicionados na próxima etapa.')"><span class="ico">📊</span>Relatórios</button>
+ <button id="navRelatorios" onclick="mudarTela('relatorios')"><span class="ico">📊</span>Relatórios</button>
 </nav>
 
 <div id="modal" class="modal" onclick="if(event.target===this)fecharModal()">
@@ -88,7 +88,7 @@ function renderProdutos(){
 }
 function renderAtendimento(){
  const c=comandas[mesaSelecionada], total=totalTemp();
- document.getElementById("conteudo").innerHTML=`<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento em andamento</p></div><span class="tag">${br(total)}</span></div></div>
+ document.getElementById("conteudo").innerHTML=`<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento e edição de itens</p></div><span class="tag">${br(total)}</span></div></div>
  <div class="card people"><span><b>👥 Pessoas na mesa</b><br><small class="muted">Quantidade de clientes</small></span><input id="pessoas" type="number" min="1" value="${pessoasTemp}" onchange="atualizarPessoas(this.value)"></div>
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i)=>s+i.qtd,0)} itens</span></div>
  <div class="cats">${Object.keys(cardapio).map(c=>`<button class="cat ${c===categoriaAtual?"active":""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":"🍚"} ${c}</button>`).join("")}</div>
@@ -112,11 +112,45 @@ function renderMesas(){
 function renderComandas(){
  let abertas=Object.entries(comandas).filter(([m,c])=>c?.itens?.length);
  document.getElementById("conteudo").innerHTML=`<div class="section-title"><div><h2>Comandas abertas</h2><span class="muted">${abertas.length} mesa${abertas.length===1?"":"s"} em atendimento</span></div></div>
- ${abertas.length?abertas.map(([m,c])=>`<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand)">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":""}</p>${c.itens.map(i=>`<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:13px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">➕ Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">Fechar mesa</button></div></div>`).join(""):`<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas com pedidos aparecerão aqui.</div>`}`;
+ ${abertas.length?abertas.map(([m,c])=>`<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand)">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":""}</p>${c.itens.map(i=>`<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:13px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">Fechar mesa</button></div></div>`).join(""):`<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas com pedidos aparecerão aqui.</div>`}`;
+}
+function renderRelatorios(){
+ let totalGeral=0, totalComandas=0, itensContador={};
+ Object.values(comandas).forEach(c=>{
+  if(c?.itens?.length){
+   totalComandas++;
+   totalGeral+=c.total||0;
+   c.itens.forEach(i=>{
+    if(!itensContador[i.nome])itensContador[i.nome]={qtd:0,preco:i.preco};
+    itensContador[i.nome].qtd+=i.qtd;
+   });
+  }
+ });
+ let listaItens=Object.entries(itensContador);
+ document.getElementById("conteudo").innerHTML=`
+  <div class="section-title"><div><h2>Relatório do Dia</h2><span class="muted">Resumo de vendas ativas</span></div></div>
+  <div class="card" style="background:linear-gradient(135deg,#b12f29,#8f241f);color:#fff">
+    <div style="font-size:13px;opacity:.9">Faturamento em Comandas Abertas</div>
+    <div style="font-size:28px;font-weight:900;margin-top:4px">${br(totalGeral)}</div>
+    <div style="margin-top:12px;display:flex;gap:15px;font-size:13px">
+      <div>📦 <b>${totalComandas}</b> mesas ativas</div>
+    </div>
+  </div>
+  <div class="section-title"><h2>Produtos nas Comandas</h2></div>
+  <div class="card">
+    ${listaItens.length?listaItens.map(([nome,info])=>`<div class="line"><div><b>${info.qtd}x ${nome}</b><br><small>${br(info.preco)} un</small></div><strong>${br(info.qtd*info.preco)}</strong></div>`).join(""):`<div class="empty" style="padding:15px">Nenhum produto registrado nas comandas abertas ainda.</div>`}
+  </div>`;
 }
 function renderizar(){
- const navM=document.getElementById("navMesas"),navC=document.getElementById("navComandas");navM.classList.toggle("active",telaAtual==="mesas"||telaAtual==="atendimento");navC.classList.toggle("active",telaAtual==="comandas");
- if(telaAtual==="mesas")renderMesas();else if(telaAtual==="atendimento")renderAtendimento();else renderComandas();atualizarBar();
+ const navM=document.getElementById("navMesas"),navC=document.getElementById("navComandas"),navR=document.getElementById("navRelatorios");
+ navM.classList.toggle("active",telaAtual==="mesas"||telaAtual==="atendimento");
+ navC.classList.toggle("active",telaAtual==="comandas");
+ navR.classList.toggle("active",telaAtual==="relatorios");
+ if(telaAtual==="mesas")renderMesas();
+ else if(telaAtual==="atendimento")renderAtendimento();
+ else if(telaAtual==="comandas")renderComandas();
+ else if(telaAtual==="relatorios")renderRelatorios();
+ atualizarBar();
 }
 renderizar();
 </script>
