@@ -25,7 +25,7 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 .people{margin-top:14px;padding:14px 16px;border-radius:18px;background:#f4f7f5;display:flex;align-items:center;justify-content:space-between}.people input{width:150px;border:1px solid #d4ddd8;border-radius:12px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:13px;outline:none}
 .cats{display:flex;gap:8px;overflow:auto;padding:4px 2px 12px;scrollbar-width:none;position:sticky;top:0;z-index:20;background:var(--bg)}.cats::-webkit-scrollbar{display:none}.cat{white-space:nowrap;border:1px solid var(--border);background:#fff;color:#526159;border-radius:999px;padding:10px 16px;font-weight:800;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.02);cursor:pointer}.cat.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px rgba(177,47,41,.3)}
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.product{overflow:hidden;border-radius:20px;background:#fff;border:1px solid var(--border);box-shadow:0 6px 18px rgba(20,30,20,.04)}
-.prod-img{height:110px;width:100%;display:flex;align-items:center;justify-content:center;background:#f4f7f5;overflow:hidden}.prod-img img{width:100%;height:100%;object-fit:cover}
+.prod-img{height:95px;width:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f4f7f5,#e8efe9)}
 .prod-body{padding:12px}.prod-name{font-size:14px;font-weight:900;line-height:1.25;min-height:35px}.price{font-size:13px;font-weight:900;color:var(--brand);margin:6px 0 10px}.qty{display:flex;align-items:center;justify-content:space-between;gap:6px}.qty button{width:36px;height:36px;border:0;border-radius:12px;background:#edf2ef;font-weight:900;font-size:18px;cursor:pointer}.qty button.plus{background:var(--brand);color:#fff}.qty span{font-weight:900;min-width:22px;text-align:center;font-size:15px}.selected{outline:2px solid #52b761;outline-offset:-2px}
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%);bottom:82px;width:min(720px,calc(100% - 24px));background:#14281e;color:#fff;border-radius:20px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 12px 30px rgba(20,40,30,.3)}.cartbar button{border:0;background:#fff;color:#14281e;border-radius:14px;padding:10px 16px;font-weight:900;cursor:pointer}
 .modal{position:fixed;inset:0;background:rgba(10,20,15,.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:end}.modal.show{display:flex}.sheet{background:#fff;width:100%;max-width:760px;margin:auto auto 0;border-radius:28px 28px 0 0;padding:20px;max-height:88vh;overflow:auto}.sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.sheet h2{font-size:20px;font-weight:900;color:var(--ink);margin:0}.close{border:0;background:#edf2ef;border-radius:12px;width:38px;height:38px;font-size:18px;cursor:pointer}.line{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f0f4f1}.line small{color:#6c7a72}.totalrow{display:flex;justify-content:space-between;font-size:19px;font-weight:900;padding:16px 0;border-top:2px dashed #edf2ef;margin-top:6px}.primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:16px;padding:15px;font-weight:900;font-size:15px;box-shadow:0 6px 18px rgba(177,47,41,.25);cursor:pointer}.secondary{width:100%;border:0;background:#edf2ef;color:#183625;border-radius:16px;padding:14px;font-weight:900;margin-top:8px;cursor:pointer}
@@ -96,56 +96,63 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
-// Cardápio limpo com categorias corretas (Caranguejo separado)
-const cardapio = {
-  "CHURRASCOS": [
-    ["Frango", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/frango.png"],
-    ["Porco", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/carne_porco.png"],
-    ["Linguiça", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/linguica.png"],
-    ["Coração de frango", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/coracao_galinha.png"],
-    ["Coração de boi", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/coracao_boi.png"],
-    ["Carne", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/carne.png"],
-    ["Tripa", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/tripa.png"]
-  ],
-  "PETISCOS": [
-    ["Batata frita", 15, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/batata_frita.png"],
-    ["Calabresa acebolada", 15, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/calabresa_acebolada.png"],
-    ["Camarão (porção)", 25, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/camarao.png"]
-  ],
-  "CARANGUEJO": [
-    ["Caranguejo (unidade)", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/caranguejo.png"]
-  ],
-  "BEBIDAS": [
-    ["Skol", 5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/skol_300ml.png"],
-    ["Litro da amarela", 35, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/balde_skol.png"],
-    ["Litro da prata", 30, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/ypioca_prata.png"],
-    ["Brahma Chopp", 5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/brahma_300ml.png"],
-    ["Brahma Puro Malte", 5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/balde_brahma.png"],
-    ["Heineken", 9, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/heineken.png"],
-    ["Corona Extra", 10, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/corona.png"],
-    ["Balde Skol", 50, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/balde_skol.png"],
-    ["Balde Brahma", 50, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/balde_brahma.png"],
-    ["Budweiser", 7.5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/budweiser.png"],
-    ["Ypióca Ouro", 35, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/ypioca_ouro.png"]
-  ],
-  "SUCOS": [
-    ["Suco Maracujá 400ml", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/sucos/maracuja.png"],
-    ["Suco Manga 400ml", 7, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/sucos/manga.png"],
-    ["Suco Goiaba 400ml", 7, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/sucos/goiaba.png"]
-  ],
-  "REFRIGERANTES": [
-    ["Coca-Cola 1L", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/coca_cola_lata.png"],
-    ["Guaraná 1L", 7, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/guarana_1l.png"],
-    ["Pepsi 1L", 7, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/pepsi_1l.png"],
-    ["Coca-Cola lata", 5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/coca_cola_lata.png"],
-    ["Fanta lata", 5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/fanta_laranja_lata.png"],
-    ["Sprite lata", 6, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/sprite_lata.png"],
-    ["São Braz", 6, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/sao_braz.png"]
-  ],
-  "GUARNIÇÕES": [
-    ["Baião cremoso grande", 10, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/acompanhamentos/baiao_cremoso.png"],
-    ["Baião normal", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/acompanhamentos/baiao_normal.png"]
-  ]
+// Ícones vetorizados embutidos (Zero dependência externa, carregamento instantâneo)
+const iconeGenerico = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12.01" y2="7"/></svg>`;
+const iconeCarne = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 5.5a3 3 0 1 0 4 4L12 17l-5.5-5.5a3 3 0 1 0 4-4L12 8l3.5-2.5z"/></svg>`;
+const iconeBebida = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M14 7.5c-1 0-2-.5-2-1.5s-1-1.5-2-1.5-2 .5-2 1.5"/><path d="M5 7h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/></svg>`;
+const iconePetisco = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 15l2-10h8l2 10"/><path d="M10 15v4"/><path d="M14 15v4"/></svg>`;
+
+const cardapio={
+"CHURRASCOS":[
+["Frango", 8, iconeCarne],
+["Porco", 8, iconeCarne],
+["Linguiça", 8, iconeCarne],
+["Coração de frango", 8, iconeCarne],
+["Coração de boi", 8, iconeCarne],
+["Carne", 8, iconeCarne],
+["Tripa", 8, iconeCarne]],
+"CARANGUEJO":[
+["Unidade", 8, iconePetisco],
+["Combo 4", 28, iconePetisco]],
+"BEBIDAS":[
+["Skol", 5, iconeBebida],
+["Litro da amarela", 35, iconeBebida],
+["Litro da prata", 30, iconeBebida],
+["Brahma Chopp", 5, iconeBebida],
+["Brahma Puro Malte", 5, iconeBebida],
+["Heineken", 9, iconeBebida],
+["Corona Extra", 10, iconeBebida],
+["Terça amarela", 7, iconeBebida],
+["Terça prata", 6, iconeBebida],
+["Meio litro amarela", 16, iconeBebida],
+["Meio litro prata", 15, iconeBebida],
+["Balde Skol", 50, iconeBebida],
+["Balde Brahma", 50, iconeBebida],
+["Budweiser", 7.5, iconeBebida],
+["Vinho", 7, iconeBebida],
+["Caipirinha", 15, iconeBebida]],
+"SUCOS":[
+["Suco Maracujá 400ml", 8, iconeBebida],
+["Suco Manga 400ml", 7, iconeBebida],
+["Suco Goiaba 400ml", 7, iconeBebida]],
+"REFRIGERANTES":[
+["Coca-Cola 1L", 8, iconeBebida],
+["Guaraná 1L", 7, iconeBebida],
+["Pepsi 1L", 7, iconeBebida],
+["Coca-Cola lata", 5, iconeBebida],
+["Fanta lata", 5, iconeBebida],
+["Sprite lata", 6, iconeBebida],
+["Água", 3, iconeBebida],
+["Água com gás", 4, iconeBebida]],
+"PETISCOS":[
+["Batata frita", 15, iconePetisco],
+["Calabresa acebolada", 15, iconePetisco],
+["Camarão (porção)", 25, iconePetisco]],
+"GUARNIÇÕES":[
+["Baião caseiro grande", 8, iconeGenerico],
+["Baião caseiro pequeno", 4, iconeGenerico],
+["Baião cremoso grande", 10, iconeGenerico],
+["Baião cremoso pequeno", 5, iconeGenerico]]
 };
 
 let comandas = {};
@@ -244,7 +251,7 @@ function abrirMesa(num){
 function atualizarPessoas(v){ pessoasTemp = Math.max(1, parseInt(v) || 1); }
 function atualizarGarcom(v){ garcomTemp = v.trim() || "Hebster"; }
 function alterarQtd(nome, delta){ pedidoTemp[nome] = (pedidoTemp[nome] || 0) + delta; if(pedidoTemp[nome] < 0) pedidoTemp[nome] = 0; renderProdutos(); atualizarBar(); }
-function produtosFlat(){ let a = []; for(const cat in cardapio) cardapio[cat].forEach(p => a.push({nome:p[0], preco:p[1], img:p[2], cat})); return a; }
+function produtosFlat(){ let a = []; for(const cat in cardapio) cardapio[cat].forEach(p => a.push({nome:p[0], preco:p[1], svg:p[2], cat})); return a; }
 function totalTemp(){ return produtosFlat().reduce((s,p) => s + (pedidoTemp[p.nome] || 0) * p.preco, 0); }
 function itensTemp(){ return produtosFlat().filter(p => (pedidoTemp[p.nome] || 0) > 0).map(p => ({nome:p.nome, qtd:pedidoTemp[p.nome], preco:p.preco})); }
 function atualizarBar(){
@@ -261,9 +268,9 @@ function setCategoria(cat){ categoriaAtual = cat; renderProdutos(); }
 function renderProdutos(){
  const el = document.getElementById("produtos"); if(!el) return;
  el.innerHTML = cardapio[categoriaAtual].map(p => {
-   const [nome, preco, img] = p, q = pedidoTemp[nome] || 0;
+   const [nome, preco, svg] = p, q = pedidoTemp[nome] || 0;
    return `<div class="product ${q ? "selected" : ""}">
-   <div class="prod-img"><img src="${img}" alt="${nome}" loading="lazy"></div><div class="prod-body"><div class="prod-name">${nome}</div><div class="price">${br(preco)}</div>
+   <div class="prod-img">${svg}</div><div class="prod-body"><div class="prod-name">${nome}</div><div class="price">${br(preco)}</div>
    <div class="qty"><button onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',-1)">−</button><span>${q}</span><button class="plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button></div></div></div>`;
  }).join("");
  document.querySelectorAll(".cat").forEach(x => x.classList.toggle("active", x.dataset.cat === categoriaAtual));
@@ -278,7 +285,7 @@ function renderAtendimento(){
    <input id="garcomInput" type="text" value="${garcomTemp}" placeholder="Ex: João, Maria..." oninput="atualizarGarcom(this.value)">
  </div>
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i) => s+i.qtd,0)} itens</span></div>
- <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="PETISCOS"?"🍟":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":"🍚"} ${c}</button>`).join("")}</div>
+ <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":"🍚"} ${c}</button>`).join("")}</div>
  <div id="produtos" class="products"></div>`;
  renderProdutos();
 }
@@ -326,7 +333,7 @@ function dividirContaModal(num){
 
   <div class="card" style="background:#fff9f8;border-color:#f8d7d5;padding:14px;margin-bottom:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <b>💵 Digitar Valor Específico:</b>
+      <b>💵 Digitar Valor Específico (Ex: que vai pagar agora):</b>
     </div>
     <div style="display:flex;gap:8px">
       <input id="valorPersonalizado" type="number" step="0.01" placeholder="Ex: 7.50" value="${porPessoa.toFixed(2)}" style="flex:1;border:1px solid #d4ddd8;border-radius:10px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:16px">
@@ -428,7 +435,7 @@ function limparRelatorios(){
         db.collection("cancelamentos").get().then(snapshot3 => {
           snapshot3.docs.forEach(doc => batch.delete(doc.ref));
           batch.commit().then(() => { 
-            alert("Relatórios and registros zerados com sucesso!");
+            alert("Relatórios e registros zerados com sucesso!");
             renderRelatorios(); 
           }).catch(err => alert("Erro ao zerar: " + err.message));
         });
