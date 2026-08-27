@@ -96,7 +96,7 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
-// Cardápio atualizado com as imagens do Supabase
+// Cardápio limpo com categorias corretas (Caranguejo separado)
 const cardapio = {
   "CHURRASCOS": [
     ["Frango", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/churrasco/frango.png"],
@@ -110,8 +110,10 @@ const cardapio = {
   "PETISCOS": [
     ["Batata frita", 15, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/batata_frita.png"],
     ["Calabresa acebolada", 15, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/calabresa_acebolada.png"],
-    ["Camarão (porção)", 25, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/camarao.png"],
-    ["Caranguejo", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/caranguejo.png"]
+    ["Camarão (porção)", 25, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/camarao.png"]
+  ],
+  "CARANGUEJO": [
+    ["Caranguejo (unidade)", 8, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/petiscos/caranguejo.png"]
   ],
   "BEBIDAS": [
     ["Skol", 5, "https://pmuingxevjrrqndzcowo.supabase.co/storage/v1/object/public/cardapio/bebidas/skol_300ml.png"],
@@ -276,7 +278,7 @@ function renderAtendimento(){
    <input id="garcomInput" type="text" value="${garcomTemp}" placeholder="Ex: João, Maria..." oninput="atualizarGarcom(this.value)">
  </div>
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i) => s+i.qtd,0)} itens</span></div>
- <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="PETISCOS"?"🍟":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":"🍚"} ${c}</button>`).join("")}</div>
+ <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="PETISCOS"?"🍟":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":"🍚"} ${c}</button>`).join("")}</div>
  <div id="produtos" class="products"></div>`;
  renderProdutos();
 }
