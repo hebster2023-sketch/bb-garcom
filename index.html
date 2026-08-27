@@ -264,7 +264,7 @@ function renderProdutos(){
  el.innerHTML = cardapio[categoriaAtual].map(p => {
    const [nome, preco, img] = p, q = pedidoTemp[nome] || 0;
    return `<div class="product ${q ? "selected" : ""}">
-   <div class="prod-img"><img src="${img}" alt="${nome}" loading="lazy"></div><div class="prod-body"><div class="prod-name">${nome}</div><div class="price">${br(preco)}</div>
+   <div class="prod-img"><img src="${img}" alt="${nome}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23b12f29\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z\'/><line x1=\'12\' y1=\'11\' x2=\'12\' y2=\'17\'/><line x1=\'12\' y1=\'7\' x2=\'12.01\' y2=\'7\'/></svg>';"></div><div class="prod-body"><div class="prod-name">${nome}</div><div class="price">${br(preco)}</div>
    <div class="qty"><button onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',-1)">−</button><span>${q}</span><button class="plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button></div></div></div>`;
  }).join("");
  document.querySelectorAll(".cat").forEach(x => x.classList.toggle("active", x.dataset.cat === categoriaAtual));
