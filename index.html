@@ -164,11 +164,10 @@ function iniciarOuvintesFirebase() {
     comandas = {};
     snapshot.forEach(doc => { 
       let id = doc.id;
-      // LIMPEZA AUTOMÁTICA: Se o ID não for um número de 1 a 30, deleta do banco na hora
       let num = parseInt(id);
       if(isNaN(num) || num < 1 || num > 30 || String(num) !== String(id).trim()){
         db.collection("comandas").doc(id).delete().catch(err => console.log("Erro ao limpar lixo:", err));
-        return; // Ignora e não carrega na memória
+        return;
       }
       comandas[id] = doc.data(); 
     });
