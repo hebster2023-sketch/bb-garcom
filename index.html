@@ -152,6 +152,7 @@ const cardapio={
 let comandas = {};
 let historicoVendas = [];
 let despesas = [];
+let cancelamentos = [];
 let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, pessoasTemp = 1, garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
 let usuarioLogadoEmail = "";
 
@@ -176,6 +177,12 @@ function iniciarOuvintesFirebase() {
     snapshot.forEach(doc => { despesas.push(doc.data()); });
     if(telaAtual === "relatorios") renderizar();
   }, err => console.error("Erro ouvindo despesas:", err));
+
+  db.collection("cancelamentos").onSnapshot(snapshot => {
+    cancelamentos = [];
+    snapshot.forEach(doc => { cancelamentos.push(doc.data()); });
+    if(telaAtual === "relatorios") renderizar();
+  }, err => console.error("Erro ouvindo cancelamentos:", err));
 }
 
 function handleLogin(e){
@@ -296,55 +303,63 @@ function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  let qtdPessoas = c.pessoas || 1;
  let porPessoa = c.total / qtdPessoas;
- document.getElementById("modalTitle").textContent = `Divisão da Mesa ${pad(num)}`;
+ document.getElementById("modalTitle").textContent = `Divisão e Pagamento - Mesa ${pad(num)}`;
  document.getElementById("modalBody").innerHTML = `
   <div style="text-align:center;margin-bottom:14px">
     <div style="font-size:13px;color:#6c7a72">Total Restante da Comanda</div>
     <div style="font-size:24px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
   </div>
   <div class="card" style="background:#f4f7f5;padding:14px;margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <b>Dividir entre quantas pessoas?</b>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b>Dividir igualmente por:</b>
       <input id="divPessoas" type="number" min="1" value="${qtdPessoas}" oninput="atualizarCalculoDivisao(${c.total},this.value)" style="width:70px;border:1px solid #d4ddd8;border-radius:10px;padding:8px;text-align:center;font-weight:900;background:#fff">
     </div>
+    <div id="resDivisao" style="font-size:13px;color:#6c7a72;text-align:center">Valor por pessoa: <b>${br(porPessoa)}</b></div>
   </div>
-  <div id="resDivisao" class="card" style="background:#fff1f0;border-color:#f8d7d5;text-align:center;padding:16px;margin-bottom:14px">
-    <div style="font-size:13px;color:#8f241f;font-weight:800">VALOR POR PESSOA</div>
-    <div style="font-size:30px;font-weight:900;color:#b12f29;margin-top:4px">${br(porPessoa)}</div>
+
+  <div class="card" style="background:#fff9f8;border-color:#f8d7d5;padding:14px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b>💵 Digitar Valor Específico (Ex: que vai pagar agora):</b>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input id="valorPersonalizado" type="number" step="0.01" placeholder="Ex: 7.50" value="${porPessoa.toFixed(2)}" style="flex:1;border:1px solid #d4ddd8;border-radius:10px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:16px">
+      <button class="primary" style="width:auto;padding:10px 16px;background:#2e7d32;margin:0" onclick="pagarValorLivre(${num})">Abater do Total</button>
+    </div>
   </div>
-  <button class="primary" style="background:#2e7d32;margin-bottom:8px" onclick="pagarParteMesa(${num})">💵 Pagar 1 Pessoa (Abater do Total)</button>
-  <button class="primary" onclick="fecharMesaDireto(${num})">✅ Fechar Mesa Completa (${br(c.total)})</button>
-  <button class="secondary" onclick="fecharModal()">Voltar</button>`;
+
+  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:8px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="secondary" style="background:#feeceb;color:#a92d25;border:0" onclick="cancelarComandaPrompt(${num})">🗑️ Cancelar/Excluir Comanda Inteira</button>
+  <button class="secondary" onclick="fecharModal()" style="margin-top:8px">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
 
 function atualizarCalculoDivisao(total, qtd){
  let q = Math.max(1, parseInt(qtd) || 1);
  let val = total / q;
- document.getElementById("resDivisao").innerHTML = `
-  <div style="font-size:13px;color:#8f241f;font-weight:800">VALOR POR PESSOA</div>
-  <div style="font-size:30px;font-weight:900;color:#b12f29;margin-top:4px">${br(val)}</div>`;
+ document.getElementById("resDivisao").innerHTML = `Valor por pessoa: <b>${br(val)}</b>`;
+ document.getElementById("valorPersonalizado").value = val.toFixed(2);
 }
 
 function fecharMesa(num){ dividirContaModal(num); }
 
-function pagarParteMesa(num){
+function pagarValorLivre(num){
  const c = comandas[num]; if(!c) return;
- let qtdPessoas = Math.max(1, parseInt(document.getElementById("divPessoas").value) || 1);
- let valorPorPessoa = c.total / qtdPessoas;
- if(confirm(`Confirmar o recebimento de ${br(valorPorPessoa)} (${qtdPessoas === 1 ? '1 pessoa' : '1 pessoa de ' + qtdPessoas})?`)){
-   const vendaParcial = { mesa: num, total: valorPorPessoa, garcom: c.garcom || "Geral", itens: [{nome:"Pagamento Parcial / Porção", qtd:1, preco:valorPorPessoa}], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+ let valInput = parseFloat(document.getElementById("valorPersonalizado").value.toString().replace(",","."));
+ if(isNaN(valInput) || valInput <= 0){ alert("Digite um valor válido para pagamento."); return; }
+ if(valInput > c.total + 0.5){ alert("O valor informado é maior que o total restante da mesa."); return; }
+
+ if(confirm(`Confirmar o recebimento de ${br(valInput)} (pagamento parcial)?`)){
+   const vendaParcial = { mesa: num, total: valInput, garcom: c.garcom || "Geral", itens: [{nome:"Pagamento Parcial / Personalizado", qtd:1, preco:valInput}], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
    
    db.collection("historico").add(vendaParcial).then(() => {
-     let novoTotal = c.total - valorPorPessoa;
-     let novasPessoas = Math.max(1, qtdPessoas - 1);
+     let novoTotal = c.total - valInput;
      if(novoTotal <= 0.5){
        db.collection("comandas").doc(String(num)).delete().then(() => {
          fecharModal(); alert("Comanda totalmente quitada e fechada!"); renderizar();
        }).catch(err => alert("Erro ao apagar comanda: " + err.message));
      } else {
-       db.collection("comandas").doc(String(num)).update({ total: novoTotal, pessoas: novasPessoas }).then(() => {
-         fecharModal(); alert(`Pagamento de ${br(valorPorPessoa)} registrado! Restam ${br(novoTotal)} na mesa.`); renderizar();
+       db.collection("comandas").doc(String(num)).update({ total: novoTotal }).then(() => {
+         fecharModal(); alert(`Pagamento de ${br(valInput)} registrado! Restam ${br(novoTotal)} na mesa.`); renderizar();
        }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
      }
    }).catch(err => alert("Erro ao salvar histórico parcial: " + err.message));
@@ -366,6 +381,31 @@ function fecharMesaDireto(num){
  }
 }
 
+function cancelarComandaPrompt(num){
+ const c = comandas[num]; if(!c) return;
+ let motivo = prompt(`ATENÇÃO: Deseja cancelar/excluir a Mesa ${pad(num)} (${br(c.total)})?\n\nInforme o motivo do cancelamento para auditoria do Admin:`);
+ if(motivo === null) return; // clicou em cancelar
+ if(!motivo.trim()){ alert("É obrigatório informar o motivo para cancelar a comanda."); return; }
+
+ const registroCancelamento = {
+   mesa: num,
+   totalPerdido: c.total,
+   garcomResponsavel: c.garcom || "Geral",
+   motivo: motivo.trim(),
+   usuarioCancelou: usuarioLogadoEmail || "Desconhecido",
+   horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+   dataTimestamp: Date.now()
+ };
+
+ db.collection("cancelamentos").add(registroCancelamento).then(() => {
+   db.collection("comandas").doc(String(num)).delete().then(() => {
+     fecharModal();
+     alert(`Mesa ${pad(num)} cancelada com sucesso. O Admin foi alertado.`);
+     renderizar();
+   }).catch(err => alert("Erro ao apagar comanda: " + err.message));
+ }).catch(err => alert("Erro ao registrar cancelamento: " + err.message));
+}
+
 function adicionarDespesa(){
   let desc = prompt("Nome da despesa (ex: Gelo, Carvão, Carne):"); if(!desc) return;
   let valor = prompt("Valor da despesa em R$ (ex: 45.00):"); if(!valor) return;
@@ -379,16 +419,19 @@ function adicionarDespesa(){
 }
 
 function limparRelatorios(){
-  if(confirm("Deseja zerar todo o histórico de vendas e despesas do dia?")){
+  if(confirm("Deseja zerar todo o histórico de vendas, despesas e alertas de cancelamento do dia?")){
     const batch = db.batch();
     db.collection("historico").get().then(snapshot => {
       snapshot.docs.forEach(doc => batch.delete(doc.ref));
       db.collection("despesas").get().then(snapshot2 => {
         snapshot2.docs.forEach(doc => batch.delete(doc.ref));
-        batch.commit().then(() => { 
-          alert("Relatórios zerados com sucesso!");
-          renderRelatorios(); 
-        }).catch(err => alert("Erro ao zerar: " + err.message));
+        db.collection("cancelamentos").get().then(snapshot3 => {
+          snapshot3.docs.forEach(doc => batch.delete(doc.ref));
+          batch.commit().then(() => { 
+            alert("Relatórios e registros zerados com sucesso!");
+            renderRelatorios(); 
+          }).catch(err => alert("Erro ao zerar: " + err.message));
+        });
       });
     }).catch(err => alert("Erro ao buscar dados para zerar: " + err.message));
   }
@@ -403,7 +446,7 @@ function renderMesas(){
 function renderComandas(){
  let abertas = Object.entries(comandas).filter(([m,c]) => c?.itens?.length);
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
- ${abertas.length ? abertas.map(([m,c]) => `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b> • 👥 ${c.pessoas||1} pes. • Média: ${br(c.total/(c.pessoas||1))}</p>${(c.itens||[]).map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Fechar</button></div></div>`).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
+ ${abertas.length ? abertas.map(([m,c]) => `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b> • 👥 ${c.pessoas||1} pes. • Média: ${br(c.total/(c.pessoas||1))}</p>${(c.itens||[]).map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Pagar</button></div></div>`).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
 }
 
 function renderRelatorios(){
@@ -427,6 +470,22 @@ function renderRelatorios(){
       <div>📉 Total Gastos: <br><b style="font-size:14px">${br(totalDespesas)}</b></div>
     </div>
   </div>
+
+  ${cancelamentos.length ? `
+    <div style="margin-bottom:14px;background:#fff1f0;border:2px solid #b12f29;border-radius:20px;padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;color:#b12f29;font-weight:900;font-size:15px;margin-bottom:10px">
+        <span>⚠️</span> ALERTA: Comandas Canceladas (${cancelamentos.length})
+      </div>
+      ${cancelamentos.map(can => `
+        <div style="background:#fff;border-radius:12px;padding:10px;margin-bottom:8px;font-size:13px;border:1px solid #f8d7d5">
+          <div><b>Mesa ${pad(can.mesa)}</b> — Valor perdido: <b style="color:#b12f29">${br(can.totalPerdido)}</b></div>
+          <div style="color:#6c7a72;margin:2px 0">Motivo: <b>${can.motivo}</b></div>
+          <div style="font-size:11px;color:#999">Atendente: ${can.garcomResponsavel} | Cancelado por: ${can.usuarioCancelou} às ${can.horario}</div>
+        </div>
+      `).join("")}
+    </div>
+  ` : ''}
+
   <div style="margin-bottom:14px"><button class="primary" onclick="adicionarDespesa()">➕ Registrar Gasto / Despesa</button></div>
   <div class="section-title"><h2>Gastos Registrados</h2></div>
   <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:#b12f29">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:15px">Nenhum gasto registrado hoje.</div>`}</div>
