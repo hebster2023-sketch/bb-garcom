@@ -158,25 +158,24 @@ let usuarioLogadoEmail = "";
 const br = v => v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
 
-// Sincronização em tempo real com o Firestore
 function iniciarOuvintesFirebase() {
   db.collection("comandas").onSnapshot(snapshot => {
     comandas = {};
     snapshot.forEach(doc => { comandas[doc.id] = doc.data(); });
     if(telaAtual === "mesas" || telaAtual === "comandas") renderizar();
-  });
+  }, err => console.error("Erro ouvindo comandas:", err));
 
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
     if(telaAtual === "relatorios") renderizar();
-  });
+  }, err => console.error("Erro ouvindo historico:", err));
 
   db.collection("despesas").onSnapshot(snapshot => {
     despesas = [];
     snapshot.forEach(doc => { despesas.push(doc.data()); });
     if(telaAtual === "relatorios") renderizar();
-  });
+  }, err => console.error("Erro ouvindo despesas:", err));
 }
 
 function handleLogin(e){
@@ -337,49 +336,56 @@ function pagarParteMesa(num){
      if(novoTotal <= 0.5){
        db.collection("comandas").doc(String(num)).delete().then(() => {
          fecharModal(); alert("Comanda totalmente quitada e fechada!"); renderizar();
-       });
+       }).catch(err => alert("Erro ao apagar comanda: " + err.message));
      } else {
        db.collection("comandas").doc(String(num)).update({ total: novoTotal, pessoas: novasPessoas }).then(() => {
          fecharModal(); alert(`Pagamento de ${br(valorPorPessoa)} registrado! Restam ${br(novoTotal)} na mesa.`); renderizar();
-       });
+       }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
      }
-   });
+   }).catch(err => alert("Erro ao salvar histórico parcial: " + err.message));
  }
 }
 
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
  if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar ${br(c.total)} para o Relatório do Dia?`)){
-   const vendaCompleta = { mesa: num, total: c.total, itens: c.itens, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+   const vendaCompleta = { mesa: num, total: c.total, itens: c.itens || [], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
    
    db.collection("historico").add(vendaCompleta).then(() => {
      db.collection("comandas").doc(String(num)).delete().then(() => {
-       fecharModal(); renderizar();
-     });
-   });
+       fecharModal();
+       alert(`Mesa ${pad(num)} fechada com sucesso!`);
+       renderizar();
+     }).catch(err => alert("Erro ao apagar comanda do Firestore: " + err.message));
+   }).catch(err => alert("Erro ao salvar histórico de vendas: " + err.message));
  }
 }
 
 function adicionarDespesa(){
   let desc = prompt("Nome da despesa (ex: Gelo, Carvão, Carne):"); if(!desc) return;
-  let valor = prompt("Valor da despesa em R$ (ex: 45.00):"); valor = parseFloat(valor.replace(",","."));
+  let valor = prompt("Valor da despesa em R$ (ex: 45.00):"); if(!valor) return;
+  valor = parseFloat(valor.replace(",","."));
   if(isNaN(valor) || valor <= 0){ alert("Valor inválido."); return; }
   let novaDespesa = { desc, valor, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
   
-  db.collection("despesas").add(novaDespesa).then(() => { renderRelatorios(); });
+  db.collection("despesas").add(novaDespesa).then(() => { 
+    renderRelatorios(); 
+  }).catch(err => alert("Erro ao salvar despesa: " + err.message));
 }
 
 function limparRelatorios(){
   if(confirm("Deseja zerar todo o histórico de vendas e despesas do dia?")){
-    // Apaga os documentos das coleções no Firebase
     const batch = db.batch();
     db.collection("historico").get().then(snapshot => {
       snapshot.docs.forEach(doc => batch.delete(doc.ref));
       db.collection("despesas").get().then(snapshot2 => {
         snapshot2.docs.forEach(doc => batch.delete(doc.ref));
-        batch.commit().then(() => { renderRelatorios(); });
+        batch.commit().then(() => { 
+          alert("Relatórios zerados com sucesso!");
+          renderRelatorios(); 
+        }).catch(err => alert("Erro ao zerar: " + err.message));
       });
-    });
+    }).catch(err => alert("Erro ao buscar dados para zerar: " + err.message));
   }
 }
 
@@ -392,7 +398,7 @@ function renderMesas(){
 function renderComandas(){
  let abertas = Object.entries(comandas).filter(([m,c]) => c?.itens?.length);
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
- ${abertas.length ? abertas.map(([m,c]) => `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":''} • Média por pessoa: ${br(c.total/(c.pessoas||1))}</p>${c.itens.map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Fechar</button></div></div>`).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
+ ${abertas.length ? abertas.map(([m,c]) => `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👥 ${c.pessoas||1} pessoa${(c.pessoas||1)>1?"s":''} • Média por pessoa: ${br(c.total/(c.pessoas||1))}</p>${(c.itens||[]).map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Fechar</button></div></div>`).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
 }
 
 function renderRelatorios(){
