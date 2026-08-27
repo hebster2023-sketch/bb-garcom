@@ -437,13 +437,16 @@ function renderMesas(){
  }).length;
 
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas === 1 ? "" : "s"} no salão</span></div><span class="tag">30 mesas</span></div>
- <div class="tables">${Array.from({length:30},(_,i) => { let n = i+1, c = comandas[n], busy = c?.itens?.length; return `<div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy ? "OCUPADA" : "LIVRE"}</div>${busy ? `<div class="total">${br(c.total)}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}</div>`; }).join("")}</div>`;
+ <div class="tables">${Array.from({length:30},(_,i) => { 
+   let n = i+1, c = comandas[n], busy = c?.itens?.length; 
+   return `<div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy ? "OCUPADA" : "LIVRE"}</div>${busy ? `<div class="total">${br(c.total)}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}</div>`; 
+ }).join("")}</div>`;
 }
 
 function renderComandas(){
  let abertas = Object.entries(comandas).filter(([m,c]) => {
    let numMesa = parseInt(m);
-   return !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30 && c?.itens?.length;
+   return !isNaN(numMesa) && String(numMesa) === String(m).trim() && numMesa >= 1 && numMesa <= 30 && c?.itens?.length;
  });
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b> • 👥 ${c.pessoas||1} pes. • Média: ${br(c.total/(c.pessoas||1))}</p>${(c.itens||[]).map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Pagar</button></div></div>`).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
