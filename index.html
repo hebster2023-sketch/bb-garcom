@@ -384,7 +384,7 @@ function fecharMesaDireto(num){
 function cancelarComandaPrompt(num){
  const c = comandas[num]; if(!c) return;
  let motivo = prompt(`ATENÇÃO: Deseja cancelar/excluir a Mesa ${pad(num)} (${br(c.total)})?\n\nInforme o motivo do cancelamento para auditoria do Admin:`);
- if(motivo === null) return; // clicou em cancelar
+ if(motivo === null) return;
  if(!motivo.trim()){ alert("É obrigatório informar o motivo para cancelar a comanda."); return; }
 
  const registroCancelamento = {
@@ -444,7 +444,10 @@ function renderMesas(){
 }
 
 function renderComandas(){
- let abertas = Object.entries(comandas).filter(([m,c]) => c?.itens?.length);
+ let abertas = Object.entries(comandas).filter(([m,c]) => {
+   let numMesa = parseInt(m);
+   return c?.itens?.length && !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30;
+ });
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(c.total)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b> • 👥 ${c.pessoas||1} pes. • Média: ${br(c.total/(c.pessoas||1))}</p>${(c.itens||[]).map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Pagar</button></div></div>`).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b><br>As mesas em atendimento aparecerão aqui.</div>`}`;
 }
