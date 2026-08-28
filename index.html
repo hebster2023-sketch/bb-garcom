@@ -315,29 +315,38 @@ function fecharModal(){ document.getElementById("modal").classList.remove("show"
 
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
- let qtdPessoas = c.pessoas || 1;
- let porPessoa = c.total / qtdPessoas;
  document.getElementById("modalTitle").textContent = `Divisão e Pagamento - Mesa ${pad(num)}`;
  document.getElementById("modalBody").innerHTML = `
   <div style="text-align:center;margin-bottom:14px">
     <div style="font-size:13px;color:#6c7a72">Total Restante da Comanda</div>
     <div style="font-size:24px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
   </div>
+
   <div class="card" style="background:#f4f7f5;padding:14px;margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <b>Dividir igualmente por:</b>
-      <input id="divPessoas" type="number" min="1" value="${qtdPessoas}" oninput="atualizarCalculoDivisao(${c.total},this.value)" style="width:70px;border:1px solid #d4ddd8;border-radius:10px;padding:8px;text-align:center;font-weight:900;background:#fff">
+    <div style="font-weight:900;margin-bottom:8px">☑️ Selecionar Itens para Pagar/Abater:</div>
+    <div style="max-height:160px;overflow:auto;display:flex;flex-direction:column;gap:6px">
+      ${(c.itens || []).map((i, idx) => `
+        <label style="display:flex;align-items:center;justify-content:space-between;background:#fff;padding:8px 12px;border-radius:10px;border:1px solid #d4ddd8;cursor:pointer;font-size:13px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" class="chk-item-pagar" data-index="${idx}" data-preco="${i.preco}" data-nome="${i.nome}" data-qtd="${i.qtd}" onchange="calcularValorSelecionado(${c.total})" style="width:18px;height:18px;accent-color:var(--brand)">
+            <span><b>${i.qtd}x</b> ${i.nome}</span>
+          </div>
+          <b>${br(i.qtd * i.preco)}</b>
+        </label>
+      `).join("")}
     </div>
-    <div id="resDivisao" style="font-size:13px;color:#6c7a72;text-align:center">Valor por pessoa: <b>${br(porPessoa)}</b></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid #d4ddd8">
+      <span>Total Selecionado:</span>
+      <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
+    </div>
+    <button class="primary" style="margin-top:12px;background:#2e7d32" onclick="pagarItensSelecionados(${num})">✅ Baixar / Pagar Itens Selecionados</button>
   </div>
 
   <div class="card" style="background:#fff9f8;border-color:#f8d7d5;padding:14px;margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <b>💵 Digitar Valor Específico:</b>
-    </div>
+    <div style="font-weight:900;margin-bottom:8px">💵 Digitar Valor Específico em R$:</div>
     <div style="display:flex;gap:8px">
-      <input id="valorPersonalizado" type="number" step="0.01" placeholder="Ex: 7.50" value="${porPessoa.toFixed(2)}" style="flex:1;border:1px solid #d4ddd8;border-radius:10px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:16px">
-      <button class="primary" style="width:auto;padding:10px 16px;background:#2e7d32;margin:0" onclick="pagarValorLivre(${num})">Abater do Total</button>
+      <input id="valorPersonalizado" type="number" step="0.01" placeholder="Ex: 63.00" style="flex:1;border:1px solid #d4ddd8;border-radius:10px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:16px">
+      <button class="primary" style="width:auto;padding:10px 16px;background:#b12f29;margin:0" onclick="pagarValorLivre(${num})">Abater do Total</button>
     </div>
   </div>
 
@@ -345,6 +354,57 @@ function dividirContaModal(num){
   <button class="secondary" style="background:#feeceb;color:#a92d25;border:0" onclick="cancelarComandaPrompt(${num})">🗑️ Cancelar/Excluir Comanda Inteira</button>
   <button class="secondary" onclick="fecharModal()" style="margin-top:8px">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
+}
+
+function calcularValorSelecionado(totalTotal){
+  let totalSel = 0;
+  document.querySelectorAll('.chk-item-pagar:checked').forEach(chk => {
+    totalSel += parseFloat(chk.dataset.preco) * parseInt(chk.dataset.qtd);
+  });
+  document.getElementById('lblTotalSelecionado').textContent = br(totalSel);
+}
+
+function pagarItensSelecionados(num){
+  const c = comandas[num]; if(!c) return;
+  let checks = document.querySelectorAll('.chk-item-pagar:checked');
+  if(!checks.length){ alert("Selecione pelo menos um item para pagar."); return; }
+
+  let valTotalSel = 0;
+  let itensPagos = [];
+  checks.forEach(chk => {
+    let preco = parseFloat(chk.dataset.preco);
+    let qtd = parseInt(chk.dataset.qtd);
+    let nome = chk.dataset.nome;
+    valTotalSel += preco * qtd;
+    itensPagos.push({nome, qtd, preco});
+  });
+
+  if(confirm(`Confirmar o pagamento dos itens selecionados totalizando ${br(valTotalSel)}?`)){
+    const vendaParcial = { mesa: num, total: valTotalSel, garcom: c.garcom || "Geral", itens: itensPagos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+    
+    // Atualiza os itens restantes da comanda
+    let novosItens = [];
+    c.itens.forEach((it, idx) => {
+      let chk = document.querySelector(`.chk-item-pagar[data-index="${idx}"]`);
+      if(!chk || !chk.checked){
+        novosItens.push(it);
+      }
+    });
+
+    let novoTotal = c.total - valTotalSel;
+
+    db.collection("historico").add(vendaParcial).then(() => {
+      if(novoTotal <= 0.5 || !novosItens.length){
+        db.collection("comandas").doc(String(num)).delete().then(() => {
+          fecharModal(); alert("Todos os itens foram pagos! Comanda fechada."); renderizar();
+        }).catch(err => alert("Erro ao fechar comanda: " + err.message));
+      } else {
+        db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens }).then(() => {
+          fecharModal(); alert(`Itens baixados com sucesso! Restam ${br(novoTotal)} na mesa.`); renderizar();
+        }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
+      }
+    }).catch(err => alert("Erro ao salvar histórico: " + err.message));
+  }
 }
 
 function fecharMesa(num){ dividirContaModal(num); }
@@ -355,7 +415,7 @@ function pagarValorLivre(num){
  if(isNaN(valInput) || valInput <= 0){ alert("Digite um valor válido para pagamento."); return; }
  if(valInput > c.total + 0.5){ alert("O valor informado é maior que o total restante da mesa."); return; }
 
- if(confirm(`Confirmar o recebimento de ${br(valInput)} (pagamento parcial)?`)){
+ if(confirm(`Confirmar o abatimento de ${br(valInput)} (pagamento parcial)?`)){
    const vendaParcial = { mesa: num, total: valInput, garcom: c.garcom || "Geral", itens: [{nome:"Pagamento Parcial / Personalizado", qtd:1, preco:valInput}], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
    
    db.collection("historico").add(vendaParcial).then(() => {
