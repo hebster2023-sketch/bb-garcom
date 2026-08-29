@@ -25,8 +25,8 @@ body{padding-bottom:110px}.app{max-width:760px;margin:auto;padding:16px 16px 110
 .people{margin-top:14px;padding:14px 16px;border-radius:18px;background:#f4f7f5;display:flex;align-items:center;justify-content:space-between}.people input{width:150px;border:1px solid #d4ddd8;border-radius:12px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:13px;outline:none}
 .cats{display:flex;gap:8px;overflow:auto;padding:4px 2px 12px;scrollbar-width:none;position:sticky;top:0;z-index:20;background:var(--bg)}.cats::-webkit-scrollbar{display:none}.cat{white-space:nowrap;border:1px solid var(--border);background:#fff;color:#526159;border-radius:999px;padding:10px 16px;font-weight:800;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.02);cursor:pointer}.cat.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px rgba(177,47,41,.3)}
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.product{overflow:hidden;border-radius:20px;background:#fff;border:1px solid var(--border);box-shadow:0 6px 18px rgba(20,30,20,.04)}
-.prod-img{height:95px;width:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f4f7f5,#e8efe9)}
-.prod-body{padding:12px}.prod-name{font-size:14px;font-weight:900;line-height:1.25;min-height:35px}.price{font-size:13px;font-weight:900;color:var(--brand);margin:6px 0 10px}.qty{display:flex;align-items:center;justify-content:space-between;gap:6px}.qty button{width:36px;height:36px;border:0;border-radius:12px;background:#edf2ef;font-weight:900;font-size:18px;cursor:pointer}.qty button.plus{background:var(--brand);color:#fff}.qty span{font-weight:900;min-width:22px;text-align:center;font-size:15px}.selected{outline:2px solid #52b761;outline-offset:-2px}
+.prod-img{height:85px;width:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f4f7f5,#e8efe9)}
+.prod-body{padding:12px}.prod-name{font-size:14px;font-weight:900;line-height:1.25;min-height:35px}.prod-desc{font-size:10px;color:#6c7a72;margin-top:2px;font-weight:600;line-height:1.2}.price{font-size:13px;font-weight:900;color:var(--brand);margin:6px 0 10px}.qty{display:flex;align-items:center;justify-content:space-between;gap:6px}.qty button{width:36px;height:36px;border:0;border-radius:12px;background:#edf2ef;font-weight:900;font-size:18px;cursor:pointer}.qty button.plus{background:var(--brand);color:#fff}.qty span{font-weight:900;min-width:22px;text-align:center;font-size:15px}.selected{outline:2px solid #52b761;outline-offset:-2px}
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%);bottom:82px;width:min(720px,calc(100% - 24px));background:#14281e;color:#fff;border-radius:20px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 12px 30px rgba(20,40,30,.3)}.cartbar button{border:0;background:#fff;color:#14281e;border-radius:14px;padding:10px 16px;font-weight:900;cursor:pointer}
 .modal{position:fixed;inset:0;background:rgba(10,20,15,.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:end}.modal.show{display:flex}.sheet{background:#fff;width:100%;max-width:760px;margin:auto auto 0;border-radius:28px 28px 0 0;padding:20px;max-height:88vh;overflow:auto}.sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.sheet h2{font-size:20px;font-weight:900;color:var(--ink);margin:0}.close{border:0;background:#edf2ef;border-radius:12px;width:38px;height:38px;font-size:18px;cursor:pointer}.line{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f0f4f1}.line small{color:#6c7a72}.totalrow{display:flex;justify-content:space-between;font-size:19px;font-weight:900;padding:16px 0;border-top:2px dashed #edf2ef;margin-top:6px}.primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:16px;padding:15px;font-weight:900;font-size:15px;box-shadow:0 6px 18px rgba(177,47,41,.25);cursor:pointer}.secondary{width:100%;border:0;background:#edf2ef;color:#183625;border-radius:16px;padding:14px;font-weight:900;margin-top:8px;cursor:pointer}
 .empty{padding:40px 20px;text-align:center;color:#75857c;font-weight:700}.command{padding:18px;margin-bottom:12px}.command .row{display:flex;justify-content:space-between;gap:10px}.command h3{margin:0;font-size:17px;font-weight:900;color:var(--ink)}.tag{font-size:11px;font-weight:900;border-radius:999px;padding:5px 10px;background:#fff1f0;color:var(--brand)}
@@ -95,12 +95,14 @@ const firebaseConfig = {
 };
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
+// Ativa persistência offline para evitar perda de dados em quedas de sinal
+db.enablePersistence().catch((err) => { console.log("Modo offline não suportado ou em uso simultâneo."); });
 
 // Ícones vetorizados embutidos
-const iconeGenerico = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12.01" y2="7"/></svg>`;
-const iconeCarne = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 5.5a3 3 0 1 0 4 4L12 17l-5.5-5.5a3 3 0 1 0 4-4L12 8l3.5-2.5z"/></svg>`;
-const iconeBebida = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M14 7.5c-1 0-2-.5-2-1.5s-1-1.5-2-1.5-2 .5-2 1.5"/><path d="M5 7h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/></svg>`;
-const iconePetisco = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 15l2-10h8l2 10"/><path d="M10 15v4"/><path d="M14 15v4"/></svg>`;
+const iconeGenerico = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12.01" y2="7"/></svg>`;
+const iconeCarne = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 5.5a3 3 0 1 0 4 4L12 17l-5.5-5.5a3 3 0 1 0 4-4L12 8l3.5-2.5z"/></svg>`;
+const iconeBebida = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M14 7.5c-1 0-2-.5-2-1.5s-1-1.5-2-1.5-2 .5-2 1.5"/><path d="M5 7h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/></svg>`;
+const iconePetisco = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 15l2-10h8l2 10"/><path d="M10 15v4"/><path d="M14 15v4"/></svg>`;
 
 const cardapio={
 "CHURRASCOS":[
@@ -130,7 +132,11 @@ const cardapio={
 ["Balde Brahma", 50, iconeBebida],
 ["Budweiser", 7.5, iconeBebida],
 ["Vinho", 7, iconeBebida],
-["Caipirinha", 15, iconeBebida]],
+["Caipirinha", 15, iconeBebida],
+["Energético Red bull", 10, iconeBebida, "Lata"],
+["Kit gin", 80, iconeBebida, "Gin rock’s / energético Baly / Gelo"],
+["Stella gold", 11, iconeBebida],
+["Ice cabaré", 9, iconeBebida]],
 "SUCOS":[
 ["Suco Maracujá 400ml", 8, iconeBebida],
 ["Suco Manga 400ml", 7, iconeBebida],
@@ -152,7 +158,12 @@ const cardapio={
 ["Baião caseiro grande", 8, iconeGenerico],
 ["Baião caseiro pequeno", 4, iconeGenerico],
 ["Baião cremoso grande", 10, iconeGenerico],
-["Baião cremoso pequeno", 5, iconeGenerico]]
+["Baião cremoso pequeno", 5, iconeGenerico],
+["Feijão verde", 25, iconeGenerico, "Combo"],
+["Panelada", 18, iconeGenerico, "Arroz / farofa de cuscuz"]],
+"DIVERSOS":[
+["Cigarro", 7, iconeGenerico, "Carteira"],
+["Partilha halls", 3, iconeGenerico]]
 };
 
 let comandas = {};
@@ -248,12 +259,48 @@ function abrirMesa(num){
   mudarTela("atendimento", num);
 }
 
-function atualizarPessoas(v){ pessoasTemp = Math.max(1, parseInt(v) || 1); }
-function atualizarGarcom(v){ garcomTemp = v.trim() || "Hebster"; }
-function alterarQtd(nome, delta){ pedidoTemp[nome] = (pedidoTemp[nome] || 0) + delta; if(pedidoTemp[nome] < 0) pedidoTemp[nome] = 0; renderProdutos(); atualizarBar(); }
-function produtosFlat(){ let a = []; for(const cat in cardapio) cardapio[cat].forEach(p => a.push({nome:p[0], preco:p[1], svg:p[2], cat})); return a; }
+function atualizarPessoas(v){ 
+  pessoasTemp = Math.max(1, parseInt(v) || 1); 
+  salvarRascunhoAutomatico();
+}
+function atualizarGarcom(v){ 
+  garcomTemp = v.trim() || "Hebster"; 
+  salvarRascunhoAutomatico();
+}
+
+// SALVAMENTO AUTOMÁTICO EM TEMPO REAL (Evita perda de dados por travamento ou recarga)
+function salvarRascunhoAutomatico(){
+  if(telaAtual !== "atendimento" || !mesaSelecionada) return;
+  const itens = itensTemp();
+  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
+  
+  // Se a mesa estiver vazia e não tiver itens, não cria comanda vazia
+  if(!itens.length && !comandas[mesaSelecionada]) return;
+
+  const dadosMesa = { 
+    pessoas: pessoasTemp, 
+    garcom: garcomTemp, 
+    itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
+    total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
+    atualizadoEm: Date.now() 
+  };
+
+  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
+    .catch(err => console.log("Aviso de sincronização automática:", err));
+}
+
+function alterarQtd(nome, delta){ 
+  pedidoTemp[nome] = (pedidoTemp[nome] || 0) + delta; 
+  if(pedidoTemp[nome] < 0) pedidoTemp[nome] = 0; 
+  renderProdutos(); 
+  atualizarBar(); 
+  salvarRascunhoAutomatico(); // Salva instantaneamente a cada clique!
+}
+
+function produtosFlat(){ let a = []; for(const cat in cardapio) cardapio[cat].forEach(p => a.push({nome:p[0], preco:p[1], svg:p[2], desc:p[3], cat})); return a; }
 function totalTemp(){ return produtosFlat().reduce((s,p) => s + (pedidoTemp[p.nome] || 0) * p.preco, 0); }
 function itensTemp(){ return produtosFlat().filter(p => (pedidoTemp[p.nome] || 0) > 0).map(p => ({nome:p.nome, qtd:pedidoTemp[p.nome], preco:p.preco})); }
+
 function atualizarBar(){
   const items = Object.values(pedidoTemp).reduce((a,b) => a+b, 0), total = totalTemp();
   const bar = document.getElementById("cartBar");
@@ -268,9 +315,9 @@ function setCategoria(cat){ categoriaAtual = cat; renderProdutos(); }
 function renderProdutos(){
  const el = document.getElementById("produtos"); if(!el) return;
  el.innerHTML = cardapio[categoriaAtual].map(p => {
-   const [nome, preco, svg] = p, q = pedidoTemp[nome] || 0;
+   const [nome, preco, svg, desc] = p, q = pedidoTemp[nome] || 0;
    return `<div class="product ${q ? "selected" : ""}">
-   <div class="prod-img">${svg}</div><div class="prod-body"><div class="prod-name">${nome}</div><div class="price">${br(preco)}</div>
+   <div class="prod-img">${svg}</div><div class="prod-body"><div class="prod-name">${nome}</div>${desc ? `<div class="prod-desc">${desc}</div>` : ''}<div class="price">${br(preco)}</div>
    <div class="qty"><button onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',-1)">−</button><span>${q}</span><button class="plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button></div></div></div>`;
  }).join("");
  document.querySelectorAll(".cat").forEach(x => x.classList.toggle("active", x.dataset.cat === categoriaAtual));
@@ -279,13 +326,13 @@ function renderProdutos(){
 
 function renderAtendimento(){
  const total = totalTemp();
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento e lançamento</p></div><span class="tag">${br(total)}</span></div></div>
+ document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento seguro (Salvo Auto)</p></div><span class="tag">${br(total)}</span></div></div>
  <div class="card people"><span><b>👥 Pessoas na mesa</b><br><small class="muted">Informe para divisão</small></span><input id="pessoas" type="number" min="1" value="${pessoasTemp}" onchange="atualizarPessoas(this.value)"></div>
  <div class="card people"><span><b>👤 Garçom Responsável</b><br><small class="muted">Nome de quem atende</small></span>
    <input id="garcomInput" type="text" value="${garcomTemp}" placeholder="Ex: João, Maria..." oninput="atualizarGarcom(this.value)">
  </div>
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTemp().reduce((s,i) => s+i.qtd,0)} itens</span></div>
- <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":"🍚"} ${c}</button>`).join("")}</div>
+ <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":c==="GUARNIÇÕES"?"🍚":"🛒"} ${c}</button>`).join("")}</div>
  <div id="produtos" class="products"></div>`;
  renderProdutos();
 }
@@ -307,7 +354,7 @@ function salvarComanda(){
 function abrirCarrinho(){
  const itens = itensTemp();
  document.getElementById("modalTitle").textContent = `Mesa ${pad(mesaSelecionada)} — Pedido`;
- document.getElementById("modalBody").innerHTML = `${itens.map(i => `<div class="line"><div><b>${i.qtd}x ${i.nome}</b><br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Salvar comanda</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
+ document.getElementById("modalBody").innerHTML = `${itens.map(i => `<div class="line"><div><b>${i.qtd}x ${i.nome}</b><br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Confirmar e Fechar Resumo</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
 
@@ -316,7 +363,7 @@ function fecharModal(){ document.getElementById("modal").classList.remove("show"
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
 
- document.getElementById("modalTitle").textContent = `Divisão e Pagamento - Mesa ${pad(num)}`;
+ document.getElementById("modalTitle").textContent = `Baixa e Pagamento - Mesa ${pad(num)}`;
  document.getElementById("modalBody").innerHTML = `
   <div style="text-align:center;margin-bottom:14px">
     <div style="font-size:13px;color:#6c7a72">Total Restante da Comanda</div>
@@ -324,35 +371,37 @@ function dividirContaModal(num){
   </div>
 
   <div class="card" style="background:#f4f7f5;padding:14px;margin-bottom:14px">
-    <div style="font-weight:900;margin-bottom:8px">🔢 Ajustar Quantidade para Pagar/Abater:</div>
-    <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:900;margin-bottom:4px">🎯 Quantidades a Baixar / Pagar:</div>
+    <div style="font-size:12px;color:#6c7a72;margin-bottom:12px">Ajuste quantos itens deseja abater agora. O restante continua na mesa.</div>
+    
+    <div style="max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:8px">
       ${(c.itens || []).map((i, idx) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;padding:10px 12px;border-radius:12px;border:1px solid #d4ddd8">
-          <div style="flex:1">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;padding:10px 12px;border-radius:14px;border:1px solid #d4ddd8">
+          <div style="flex:1;padding-right:8px">
             <div style="font-weight:900;font-size:14px">${i.nome}</div>
-            <div style="font-size:11px;color:#6c7a72">Disponível: <b>${i.qtd}x</b> (${br(i.preco)} cada)</div>
+            <div style="font-size:11px;color:#6c7a72">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <button onclick="mudarQtdPagamento(${idx}, -1, ${i.qtd})" style="width:32px;height:32px;border:0;border-radius:10px;background:#edf2ef;font-weight:900;cursor:pointer">−</button>
-            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" style="font-weight:900;width:24px;text-align:center;font-size:14px">0</span>
-            <button onclick="mudarQtdPagamento(${idx}, 1, ${i.qtd})" style="width:32px;height:32px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:900;cursor:pointer">+</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onclick="mudarQtdPagamento(${idx}, -1, ${i.qtd})" style="width:34px;height:34px;border:0;border-radius:10px;background:#edf2ef;font-weight:900;font-size:18px;cursor:pointer">−</button>
+            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" style="font-weight:900;width:26px;text-align:center;font-size:15px">0</span>
+            <button onclick="mudarQtdPagamento(${idx}, 1, ${i.qtd})" style="width:34px;height:34px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:900;font-size:18px;cursor:pointer">+</button>
           </div>
         </div>
       `).join("")}
     </div>
     
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid #d4ddd8">
-      <span>Total Selecionado:</span>
-      <b id="lblTotalSelecionado" style="color:var(--brand);font-size:17px">R$ 0,00</b>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #d4ddd8">
+      <span style="font-weight:700">Total Selecionado:</span>
+      <b id="lblTotalSelecionado" style="color:var(--brand);font-size:18px">R$ 0,00</b>
     </div>
-    <button class="primary" style="margin-top:12px;background:#2e7d32" onclick="pagarItensSelecionados(${num})">✅ Baixar / Pagar Quantidades Selecionadas</button>
+    <button class="primary" style="margin-top:12px;background:#2e7d32" onclick="pagarItensSelecionados(${num})">✅ Confirmar Baixa / Pagar Selecionados</button>
   </div>
 
   <div class="card" style="background:#fff9f8;border-color:#f8d7d5;padding:14px;margin-bottom:14px">
     <div style="font-weight:900;margin-bottom:8px">💵 Digitar Valor Específico em R$:</div>
     <div style="display:flex;gap:8px">
       <input id="valorPersonalizado" type="number" step="0.01" placeholder="Ex: 63.00" style="flex:1;border:1px solid #d4ddd8;border-radius:10px;padding:10px;text-align:center;font-weight:900;background:#fff;font-size:16px">
-      <button class="primary" style="width:auto;padding:10px 16px;background:#b12f29;margin:0" onclick="pagarValorLivre(${num})">Abater do Total</button>
+      <button class="primary" style="width:auto;padding:10px 16px;background:#b12f29;margin:0" onclick="pagarValorLivre(${num})">Abater</button>
     </div>
   </div>
 
@@ -401,7 +450,7 @@ function pagarItensSelecionados(num){
     }
   });
 
-  if(!temSelecao){ alert("Selecione pelo menos a quantidade de um item para pagar."); return; }
+  if(!temSelecao){ alert("Selecione pelo menos a quantidade de um item nos botões + para pagar."); return; }
 
   if(confirm(`Confirmar o pagamento dos itens selecionados totalizando ${br(valTotalSel)}?`)){
     let itensPagosParaHistorico = [];
