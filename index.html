@@ -255,6 +255,12 @@ function abrirMesa(num){
   if(comandas[num]){
     pessoasTemp = comandas[num].pessoas || 1;
     garcomTemp = comandas[num].garcom || "Hebster";
+    // Pré-carrega os itens atuais da mesa para que o garçom veja o que já foi pedido
+    if(comandas[num].itens){
+      comandas[num].itens.forEach(it => {
+        pedidoTemp[it.nome] = (pedidoTemp[it.nome] || 0) + it.qtd;
+      });
+    }
   }
   mudarTela("atendimento", num);
 }
@@ -471,7 +477,6 @@ function pagarItensSelecionados(num){
       if(qtdBaixada > 0){
         itensPagosParaHistorico.push({ nome: it.nome, qtd: qtdBaixada, preco: it.preco });
         
-        // Acumula na lista de itens já pagos para exibir de forma limpa na mesa
         let jaExiste = itensPagosAcumulados.find(ip => ip.nome === it.nome);
         if(jaExiste){ jaExiste.qtd += qtdBaixada; }
         else { itensPagosAcumulados.push({ nome: it.nome, qtd: qtdBaixada, preco: it.preco }); }
@@ -532,9 +537,6 @@ function pagarValorLivre(num){
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
  if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar o valor restante de ${br(c.total)} para o Relatório do Dia?`)){
-   // ATENÇÃO: Envia para o histórico apenas os itens não pagos ainda (c.itens e c.total).
-   // Os itens já pagos (c.itensPagos) já foram registrados no caixa financeiro no momento em que foram pagos!
-   
    const vendaFinal = { mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: c.itens || [], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
    
    db.collection("historico").add(vendaFinal).then(() => {
