@@ -255,7 +255,6 @@ function abrirMesa(num){
   if(comandas[num]){
     pessoasTemp = comandas[num].pessoas || 1;
     garcomTemp = comandas[num].garcom || "Hebster";
-    // Nota: itens já pagos saem da tela da mesa aberta por padrão para manter a agilidade
   }
   mudarTela("atendimento", num);
 }
@@ -532,17 +531,16 @@ function pagarValorLivre(num){
 
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
- if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar ${br(c.total)} para o Relatório do Dia?`)){
-   // Combina itens pendentes e itens já pagos para o relatório completo da mesa
-   let todosOsItensDaMesa = [...(c.itens || [])];
-   if(c.itensPagos){ c.itensPagos.forEach(ip => todosOsItensDaMesa.push(ip)); }
-
-   const vendaCompleta = { mesa: num, total: c.total + (c.itensPagos ? c.itensPagos.reduce((s,i)=>s+(i.qtd*i.preco),0) : 0), garcom: c.garcom || "Geral", itens: todosOsItensDaMesa, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+ if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar o valor restante de ${br(c.total)} para o Relatório do Dia?`)){
+   // ATENÇÃO: Envia para o histórico apenas os itens não pagos ainda (c.itens e c.total).
+   // Os itens já pagos (c.itensPagos) já foram registrados no caixa financeiro no momento em que foram pagos!
    
-   db.collection("historico").add(vendaCompleta).then(() => {
+   const vendaFinal = { mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: c.itens || [], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+   
+   db.collection("historico").add(vendaFinal).then(() => {
      db.collection("comandas").doc(String(num)).delete().then(() => {
        fecharModal();
-       alert(`Mesa ${pad(num)} fechada com sucesso!`);
+       alert(`Mesa ${pad(num)} fechada com sucesso! O valor restante foi contabilizado.`);
        renderizar();
      }).catch(err => alert("Erro ao apagar comanda do Firestore: " + err.message));
    }).catch(err => alert("Erro ao salvar histórico de vendas: " + err.message));
@@ -551,7 +549,7 @@ function fecharMesaDireto(num){
 
 function cancelarComandaPrompt(num){
  const c = comandas[num]; if(!c) return;
- let motivo = prompt(`ATENÇÃO: Deseja cancelar/excluir a Mesa ${pad(num)} (${br(c.total)})?\n\nInforme o motivo do cancelamento para auditoria do Admin:`);
+ let motivo = prompt(`ATENÇÃO: Deseja cancelar/excluir a Mesa ${pad(num)} (Perda de ${br(c.total)})?\n\nInforme o motivo do cancelamento para auditoria do Admin:`);
  if(motivo === null) return;
  if(!motivo.trim()){ alert("É obrigatório informar o motivo para cancelar a comanda."); return; }
 
@@ -614,8 +612,8 @@ function renderMesas(){
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas === 1 ? "" : "s"} no salão</span></div><span class="tag">30 mesas</span></div>
  <div class="tables">${Array.from({length:30},(_,i) => { 
    let n = i+1, c = comandas[n], busy = c?.itens?.length || c?.itensPagos?.length; 
-   let totalTotal = (c?.total || 0) + (c?.itensPagos ? c.itensPagos.reduce((s,ip)=>s+(ip.qtd*ip.preco),0) : 0);
-   return `<div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy ? "OCUPADA" : "LIVRE"}</div>${busy ? `<div class="total">${br(totalTotal)}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}</div>`; 
+   let totalRestante = c?.total || 0; 
+   return `<div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy ? "OCUPADA" : "LIVRE"}</div>${busy ? `<div class="total">${br(totalRestante)}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}</div>`; 
  }).join("")}</div>`;
 }
 
@@ -626,8 +624,8 @@ function renderComandas(){
  });
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => {
-   let totalGeral = (c.total || 0) + (c.itensPagos ? c.itensPagos.reduce((s,ip)=>s+(ip.qtd*ip.preco),0) : 0);
-   return `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(totalGeral)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b> • 👥 ${c.pessoas||1} pes.</p>
+   let totalRestante = c.total || 0; 
+   return `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:18px">${br(totalRestante)}</strong></div><p class="muted" style="font-size:12px;margin:4px 0 12px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b> • 👥 ${c.pessoas||1} pes.</p>
    ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:11px;color:#2e7d32;margin-bottom:6px"><b>Itens já pagos:</b> ${c.itensPagos.map(ip=>`${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
    ${(c.itens||[]).map(i => `<div class="row" style="font-size:13px;margin:5px 0"><span>${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}
    <div style="display:flex;gap:8px;margin-top:14px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar / Adicionar</button><button class="primary" style="background:#b12f29" onclick="fecharMesa(${m})">💰 Dividir / Pagar</button></div></div>`;
