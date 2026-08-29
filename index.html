@@ -255,7 +255,6 @@ function abrirMesa(num){
   if(comandas[num]){
     pessoasTemp = comandas[num].pessoas || 1;
     garcomTemp = comandas[num].garcom || "Hebster";
-    // Pré-carrega os itens atuais da mesa para que o garçom veja o que já foi pedido
     if(comandas[num].itens){
       comandas[num].itens.forEach(it => {
         pedidoTemp[it.nome] = (pedidoTemp[it.nome] || 0) + it.qtd;
@@ -537,7 +536,17 @@ function pagarValorLivre(num){
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
  if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar o valor restante de ${br(c.total)} para o Relatório do Dia?`)){
-   const vendaFinal = { mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: c.itens || [], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+   // Agrupa todos os itens atuais mais os já pagos anteriormente para garantir que tudo vá para o histórico de produtos vendidos
+   let todosOsItensDaMesa = [...(c.itens || [])];
+   if(c.itensPagos && c.itensPagos.length){
+     c.itensPagos.forEach(ip => {
+       let achado = todosOsItensDaMesa.find(x => x.nome === ip.nome);
+       if(achado) { achado.qtd += ip.qtd; }
+       else { todosOsItensDaMesa.push({ nome: ip.nome, qtd: ip.qtd, preco: ip.preco }); }
+     });
+   }
+
+   const vendaFinal = { mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: todosOsItensDaMesa, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
    
    db.collection("historico").add(vendaFinal).then(() => {
      db.collection("comandas").doc(String(num)).delete().then(() => {
@@ -638,6 +647,7 @@ function renderRelatorios(){
  let totalFaturamento = historicoVendas.reduce((s,v) => s + v.total, 0);
  let totalDespesas = despesas.reduce((s,d) => s + d.valor, 0);
  let lucroLiquido = totalFaturamento - totalDespesas;
+ 
  let itensContador = {};
  historicoVendas.forEach(v => (v.itens || []).forEach(i => {
   if(!itensContador[i.nome]) itensContador[i.nome] = {qtd:0, preco:i.preco};
@@ -674,6 +684,20 @@ function renderRelatorios(){
   <div style="margin-bottom:14px"><button class="primary" onclick="adicionarDespesa()">➕ Registrar Gasto / Despesa</button></div>
   <div class="section-title"><h2>Gastos Registrados</h2></div>
   <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:#b12f29">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:15px">Nenhum gasto registrado hoje.</div>`}</div>
+  
+  <div class="section-title"><h2>Mesas Encerradas / Fechadas (Extrato)</h2></div>
+  <div class="card">
+    ${historicoVendas.length ? historicoVendas.map(v => `
+      <div class="line" style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><b>Mesa ${pad(v.mesa)}</b> <span style="font-size:11px;background:#edf2ef;padding:2px 6px;border-radius:6px;font-weight:800">👤 ${v.garcom}</span></div>
+          <strong style="color:var(--brand);font-size:15px">${br(v.total)}</strong>
+        </div>
+        <div style="font-size:11px;color:#6c7a72">Fechado às ${v.horario} • Itens: ${(v.itens||[]).map(i=>`${i.qtd}x ${i.nome}`).join(", ")}</div>
+      </div>
+    `).join("") : `<div class="empty" style="padding:15px">Nenhuma mesa fechada hoje.</div>`}
+  </div>
+
   <div class="section-title"><h2>Produtos Vendidos (Histórico)</h2></div>
   <div class="card">${listaItens.length ? listaItens.map(([nome,info]) => `<div class="line"><div><b>${info.qtd}x ${nome}</b></div><strong>${br(info.qtd*info.preco)}</strong></div>`).join("") : `<div class="empty" style="padding:15px">Nenhuma venda finalizada ainda.</div>`}</div>`;
 }
