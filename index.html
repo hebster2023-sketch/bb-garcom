@@ -114,14 +114,16 @@ const cardapio={
 ["Tripa", 8, iconeCarne]],
 "CARANGUEJO":[
 ["Caranguejo Unidade", 8, iconePetisco],
-["Combo 4 Caranguejos", 28, iconePetisco]],
+["Combo 4 Caranguejos", 28, iconePetisco],
+["Caldo de caranguejo", 4, iconePetisco]],
 "BEBIDAS":[
 ["Skol", 5, iconeBebida],
 ["Brahma Chopp", 5, iconeBebida],
 ["Brahma Puro Malte", 5, iconeBebida],
+["Império", 9, iconeBebida],
 ["Heineken", 9, iconeBebida],
 ["Corona Extra", 10, iconeBebida],
-["Budweiser", 7.5, iconeBebida],
+["Budweiser", 8, iconeBebida],
 ["Vinho", 7, iconeBebida],
 ["Caipirinha", 15, iconeBebida],
 ["Energético Red bull", 10, iconeBebida, "Lata"],
@@ -536,7 +538,6 @@ function pagarValorLivre(num){
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
  if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar o valor restante de ${br(c.total)} para o Relatório do Dia?`)){
-   // Agrupa todos os itens atuais mais os já pagos anteriormente para garantir que tudo vá para o histórico de produtos vendidos
    let todosOsItensDaMesa = [...(c.itens || [])];
    if(c.itensPagos && c.itensPagos.length){
      c.itensPagos.forEach(ip => {
