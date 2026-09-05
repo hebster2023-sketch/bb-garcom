@@ -419,7 +419,7 @@ function dividirContaModal(num){
     </div>
   </div>
 
-  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:8px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:8px;background:#184a27">🚪 Liberar / Fechar Mesa Definitivamente</button>
   <button class="secondary" style="background:#feeceb;color:#a92d25;border:0" onclick="cancelarComandaPrompt(${num})">🗑️ Cancelar/Excluir Comanda Inteira</button>
   <button class="secondary" onclick="fecharModal()" style="margin-top:8px">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
@@ -487,22 +487,20 @@ function pagarItensSelecionados(num){
     });
 
     const vendaParcial = { mesa: num, total: valTotalSel, garcom: c.garcom || "Geral", itens: itensPagosParaHistorico, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-    let novoTotal = c.total - valTotalSel;
+    let novoTotal = Math.max(0, c.total - valTotalSel);
 
     db.collection("historico").add(vendaParcial).then(() => {
-      if(novoTotal <= 0.5 && !novosItens.length){
-        db.collection("comandas").doc(String(num)).delete().then(() => {
-          fecharModal(); alert("Todos os itens foram quitados! Comanda fechada."); renderizar();
-        }).catch(err => alert("Erro ao fechar comanda: " + err.message));
-      } else {
-        db.collection("comandas").doc(String(num)).update({ 
-          total: novoTotal, 
-          itens: novosItens,
-          itensPagos: itensPagosAcumulados
-        }).then(() => {
-          fecharModal(); alert(`Pagamento de ${br(valTotalSel)} registrado! O valor entrou no caixa e a mesa continua aberta.`); renderizar();
-        }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
-      }
+      // CORREÇÃO: A mesa nunca é fechada/removida automaticamente aqui. Ela continua aberta mesmo que o total chegue a 0.
+      db.collection("comandas").doc(String(num)).update({ 
+        total: novoTotal, 
+        itens: novosItens,
+        itensPagos: itensPagosAcumulados,
+        atualizadoEm: Date.now()
+      }).then(() => {
+        fecharModal(); 
+        alert(`Pagamento de ${br(valTotalSel)} registrado! O valor entrou no relatório e a mesa continua aberta.`); 
+        renderizar();
+      }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
     }).catch(err => alert("Erro ao salvar histórico: " + err.message));
   }
 }
@@ -519,24 +517,22 @@ function pagarValorLivre(num){
    const vendaParcial = { mesa: num, total: valInput, garcom: c.garcom || "Geral", itens: [{nome:"Pagamento Parcial / Antecipado", qtd:1, preco:valInput}], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
    
    db.collection("historico").add(vendaParcial).then(() => {
-     let novoTotal = c.total - valInput;
-     if(novoTotal <= 0.5){
-       db.collection("comandas").doc(String(num)).delete().then(() => {
-         fecharModal(); alert("Comanda totalmente quitada e fechada!"); renderizar();
-       }).catch(err => alert("Erro ao apagar comanda: " + err.message));
-     } else {
-       db.collection("comandas").doc(String(num)).update({ total: novoTotal }).then(() => {
-         fecharModal(); alert(`Pagamento de ${br(valInput)} registrado! Restam ${br(novoTotal)} na mesa.`); renderizar();
-       }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
-     }
+     let novoTotal = Math.max(0, c.total - valInput);
+     db.collection("comandas").doc(String(num)).update({ 
+       total: novoTotal,
+       atualizadoEm: Date.now()
+     }).then(() => {
+       fecharModal(); 
+       alert(`Pagamento de ${br(valInput)} registrado! Restam ${br(novoTotal)} na mesa.`); 
+       renderizar();
+     }).catch(err => alert("Erro ao atualizar comanda: " + err.message));
    }).catch(err => alert("Erro ao salvar histórico parcial: " + err.message));
  }
 }
 
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
- if(confirm(`Deseja realmente fechar a Mesa ${pad(num)} e enviar o valor restante de ${br(c.total)} para o Relatório do Dia?`)){
-   // Agrupa todos os itens atuais mais os já pagos anteriormente para garantir que tudo vá para o histórico de produtos vendidos
+ if(confirm(`Deseja realmente liberar e encerrar definitivamente a Mesa ${pad(num)}?`)){
    let todosOsItensDaMesa = [...(c.itens || [])];
    if(c.itensPagos && c.itensPagos.length){
      c.itensPagos.forEach(ip => {
@@ -546,12 +542,15 @@ function fecharMesaDireto(num){
      });
    }
 
-   const vendaFinal = { mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: todosOsItensDaMesa, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-   
-   db.collection("historico").add(vendaFinal).then(() => {
+   // Se ainda houver saldo pendente na mesa ao fechar definitivamente, envia para o histórico
+   const promessaHistorico = c.total > 0 && todosOsItensDaMesa.length > 0 ? 
+     db.collection("historico").add({ mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: todosOsItensDaMesa, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) :
+     Promise.resolve();
+
+   promessaHistorico.then(() => {
      db.collection("comandas").doc(String(num)).delete().then(() => {
        fecharModal();
-       alert(`Mesa ${pad(num)} fechada com sucesso! O valor restante foi contabilizado.`);
+       alert(`Mesa ${pad(num)} liberada e fechada com sucesso!`);
        renderizar();
      }).catch(err => alert("Erro ao apagar comanda do Firestore: " + err.message));
    }).catch(err => alert("Erro ao salvar histórico de vendas: " + err.message));
@@ -617,12 +616,12 @@ function limparRelatorios(){
 function renderMesas(){
  let abertas = Object.keys(comandas).filter(k => {
    let numMesa = parseInt(k);
-   return !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30 && (comandas[k]?.itens?.length || comandas[k]?.itensPagos?.length);
+   return !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30 && (comandas[k]?.itens?.length || comandas[k]?.itensPagos?.length || comandas[k]?.total >= 0);
  }).length;
 
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Mesas</h2><span class="muted">${abertas} aberta${abertas === 1 ? "" : "s"} no salão</span></div><span class="tag">30 mesas</span></div>
  <div class="tables">${Array.from({length:30},(_,i) => { 
-   let n = i+1, c = comandas[n], busy = c?.itens?.length || c?.itensPagos?.length; 
+   let n = i+1, c = comandas[n], busy = c && (c.itens?.length || c.itensPagos?.length || c.total >= 0); 
    let totalRestante = c?.total || 0; 
    return `<div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${n})"><div class="num">Mesa ${pad(n)}</div><div class="status">${busy ? "OCUPADA" : "LIVRE"}</div>${busy ? `<div class="total">${br(totalRestante)}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}</div>`; 
  }).join("")}</div>`;
@@ -631,7 +630,7 @@ function renderMesas(){
 function renderComandas(){
  let abertas = Object.entries(comandas).filter(([m,c]) => {
    let numMesa = parseInt(m);
-   return !isNaN(numMesa) && String(numMesa) === String(m).trim() && numMesa >= 1 && numMesa <= 30 && (c?.itens?.length || c?.itensPagos?.length);
+   return !isNaN(numMesa) && String(numMesa) === String(m).trim() && numMesa >= 1 && numMesa <= 30 && (c?.itens?.length || c?.itensPagos?.length || c?.total >= 0);
  });
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => {
