@@ -583,6 +583,7 @@ function dividirContaModal(num){
   </div>
 
   <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(239,68,68,0.15);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -688,6 +689,31 @@ function abaterValorEspecifico(num){
       });
     });
   }
+}
+
+function cancelarComandaModal(num){
+  const c = comandas[num]; if(!c) return;
+  let motivo = prompt(`Motivo do cancelamento da Mesa ${pad(num)}:`, "Desistência do cliente / Erro no pedido");
+  if(motivo === null) return;
+  
+  let registroCancelamento = {
+    mesa: num,
+    garcom: c.garcom || "Desconhecido",
+    totalCancelado: c.total,
+    motivo: motivo.trim() || "Não informado",
+    horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    itens: c.itens || []
+  };
+
+  db.collection("cancelamentos").add(registroCancelamento).then(() => {
+    db.collection("comandas").doc(String(num)).delete().then(() => {
+      fecharModal();
+      showToast("Comanda cancelada e registrada com sucesso!", true);
+      renderizar();
+    });
+  }).catch(err => {
+    showToast("Erro ao registrar cancelamento: " + err.message, true);
+  });
 }
 
 function fecharMesa(num){ dividirContaModal(num); }
@@ -844,14 +870,29 @@ function renderRelatorios(){
  let totalFaturamento = historicoVendas.reduce((s,v) => s + v.total, 0);
  let totalDespesas = despesas.reduce((s,d) => s + d.valor, 0);
  let lucroLiquido = totalFaturamento - totalDespesas;
- let itensContador = {};
- historicoVendas.forEach(v => (v.itens || []).forEach(i => {
-  if(!itensContador[i.nome]) itensContador[i.nome] = {qtd:0, preco:i.preco};
-  itensContador[i.nome].qtd += i.qtd;
- }));
+ 
+ // Agregação consolidada dos produtos vendidos
+ let itensConsolidados = {};
+ historicoVendas.forEach(v => {
+   if(v.itens && Array.isArray(v.itens)){
+     v.itens.forEach(i => {
+       let nomeProd = i.nome;
+       let qtdProd = i.qtd || 1;
+       if(itensConsolidados[nomeProd]){
+         itensConsolidados[nomeProd] += qtdProd;
+       } else {
+         itensConsolidados[nomeProd] = qtdProd;
+       }
+     });
+   }
+ });
+
+ // Ordenar produtos do mais vendido para o menos vendido
+ let produtosOrdenados = Object.entries(itensConsolidados).sort((a,b) => b[1] - a[1]);
 
  document.getElementById("conteudo").innerHTML = `
   <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo</span></div><button onclick="limparRelatorios()" style="border:0;background:rgba(239, 68, 68, 0.15);color:var(--brand);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🗑️ Resetar</button></div>
+  
   <div class="card" style="background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff">
     <div style="font-size:12px;opacity:.85">Lucro Líquido</div>
     <div style="font-size:26px;font-weight:900;margin-top:2px">${br(lucroLiquido)}</div>
@@ -860,10 +901,39 @@ function renderRelatorios(){
       <div>📉 Gastos: <br><b style="font-size:13px">${br(totalDespesas)}</b></div>
     </div>
   </div>
+
   <div style="margin-bottom:10px"><button class="primary" onclick="adicionarDespesa()" style="font-size:13px;padding:12px">➕ Registrar Gasto</button></div>
+
+  <!-- SEÇÃO DE PRODUTOS VENDIDOS CONSOLIDADOS -->
+  <div class="section-title"><h2>📦 Total Consolidado de Produtos</h2></div>
+  <div class="card">
+    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd]) => `
+      <div class="line">
+        <span>${nome}</span>
+        <strong style="color:var(--brand)">${qtd}x</strong>
+      </div>
+    `).join("") : `<div class="empty" style="padding:10px">Nenhum produto vendido ainda.</div>`}
+  </div>
+
+  <!-- SEÇÃO DE CANCELAMENTOS -->
+  <div class="section-title"><h2>⚠️ Registro de Cancelamentos</h2></div>
+  <div class="card">
+    ${cancelamentos.length ? cancelamentos.map(c => `
+      <div class="line" style="flex-direction:column;align-items:flex-start;gap:2px">
+        <div style="display:flex;justify-content:space-width;width:100%;justify-content:space-between">
+          <strong style="color:var(--brand)">Mesa ${pad(c.mesa)} (${c.garcom})</strong>
+          <span style="font-size:11px;color:var(--muted)">${c.horario}</span>
+        </div>
+        <div style="font-size:12px"><b>Motivo:</b> ${c.motivo}</div>
+        <div style="font-size:11px;color:var(--muted)">Valor estornado/cancelado: <b>${br(c.totalCancelado)}</b></div>
+      </div>
+    `).join("") : `<div class="empty" style="padding:10px">Nenhum cancelamento registrado.</div>`}
+  </div>
+
   <div class="section-title"><h2>Gastos</h2></div>
   <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:var(--brand)">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhum gasto.</div>`}</div>
-  <div class="section-title"><h2>Histórico de Vendas</h2></div>
+  
+  <div class="section-title"><h2>Histórico de Vendas por Comanda</h2></div>
   <div class="card">${historicoVendas.length ? historicoVendas.map(v => `<div class="line"><div><b>Mesa ${pad(v.mesa)}</b> (${v.garcom})<br><small>${v.horario} • ${(v.itens||[]).map(i=>`[${i.cliente}] ${i.qtd}x ${i.nome}`).join(", ")}</small></div><strong style="color:var(--brand)">${br(v.total)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhuma venda.</div>`}</div>`;
 }
 
