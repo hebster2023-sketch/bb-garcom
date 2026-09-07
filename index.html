@@ -59,13 +59,14 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 
 /* Grid de Mesas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.table{min-height:120px;border-radius:20px;padding:12px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 12px rgba(0,0,0,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+.table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 12px rgba(0,0,0,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
 .table:active{transform:scale(.96)}
 .table.busy{border-color:rgba(239, 68, 68, 0.4);background:rgba(239, 68, 68, 0.05)}
 .table .num{font-size:15px;font-weight:900}
 .table .status{font-size:9px;font-weight:900;margin-top:2px;letter-spacing:.3px;opacity:.7}
-.table .total{font-size:12px;font-weight:900;margin-top:4px;color:var(--brand)}
-.table .garcom-tag{font-size:9px;background:var(--border);padding:2px 6px;border-radius:6px;margin-top:4px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.table .total{font-size:12px;font-weight:900;margin-top:2px;color:var(--brand)}
+.table .timer{font-size:9px;color:var(--muted);margin-top:1px;font-weight:700}
+.table .garcom-tag{font-size:9px;background:var(--border);padding:2px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Cards Genéricos */
 .card{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.04);padding:16px;margin-bottom:12px}
@@ -434,6 +435,7 @@ function salvarRascunhoAutomatico(){
     garcom: garcomTemp, 
     itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
     total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
+    criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
     atualizadoEm: Date.now() 
   };
 
@@ -521,7 +523,8 @@ function salvarComanda(){
  const itens = itensTempComClientes(); if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
  const itensPagosAntigos = comandas[mesaSelecionada]?.itensPagos || [];
- const dadosMesa = { garcom: garcomTemp, itens, itensPagos: itensPagosAntigos, total, atualizadoEm: Date.now() };
+ const criadoEmOriginal = comandas[mesaSelecionada]?.criadoEm || Date.now();
+ const dadosMesa = { garcom: garcomTemp, itens, itensPagos: itensPagosAntigos, total, criadoEm: criadoEmOriginal, atualizadoEm: Date.now() };
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
@@ -541,6 +544,78 @@ function abrirCarrinho(){
 
 function fecharModal(){ document.getElementById("modal").classList.remove("show"); }
 
+// MODO DE TRANSFERÊNCIA DE MESAS
+function abrirModalTransferencia(numOrigem){
+  const c = comandas[numOrigem];
+  if(!c){ showToast("Esta mesa está vazia para transferir.", true); return; }
+  
+  let opcoesMesas = "";
+  for(let i=1; i<=30; i++){
+    if(i !== numOrigem){
+      let ocupadaStr = comandas[i] ? " (Ocupada)" : " (Livre)";
+      opcoesMesas += `<option value="${i}">Mesa ${pad(i)}${ocupadaStr}</option>`;
+    }
+  }
+
+  document.getElementById("modalTitle").textContent = `Transferir Mesa ${pad(numOrigem)}`;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Selecione para qual mesa deseja transferir todos os itens e o saldo da Mesa ${pad(numOrigem)}:</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Mesa de Destino</label>
+      <select id="selectMesaDestino" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">${opcoesMesas}</select>
+    </div>
+    <button class="primary" onclick="executarTransferencia(${numOrigem})">🔄 Confirmar Transferência</button>
+    <button class="secondary" onclick="fecharModal()">Voltar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+function executarTransferencia(numOrigem){
+  const destSelect = document.getElementById("selectMesaDestino");
+  if(!destSelect) return;
+  const numDestino = parseInt(destSelect.value);
+  const dadosOrigem = comandas[numOrigem];
+
+  if(!dadosOrigem) return;
+
+  const dadosDestinoExistente = comandas[numDestino];
+  
+  let itensCombinados = [...(dadosOrigem.itens || [])];
+  let itensPagosCombinados = [...(dadosOrigem.itensPagos || [])];
+  let totalCombinado = dadosOrigem.total || 0;
+  let garcomNovo = dadosOrigem.garcom;
+  let criadoEmNovo = dadosOrigem.criadoEm || Date.now();
+
+  if(dadosDestinoExistente){
+    itensCombinados = [...(dadosDestinoExistente.itens || []), ...itensCombinados];
+    itensPagosCombinados = [...(dadosDestinoExistente.itensPagos || []), ...itensPagosCombinados];
+    totalCombinado += (dadosDestinoExistente.total || 0);
+  }
+
+  const batch = db.batch();
+  const refDestino = db.collection("comandas").doc(String(numDestino));
+  const refOrigem = db.collection("comandas").doc(String(numOrigem));
+
+  batch.set(refDestino, {
+    garcom: garcomNovo,
+    itens: itensCombinados,
+    itensPagos: itensPagosCombinados,
+    total: totalCombinado,
+    criadoEm: criadoEmNovo,
+    atualizadoEm: Date.now()
+  });
+
+  batch.delete(refOrigem);
+
+  batch.commit().then(() => {
+    fecharModal();
+    showToast(`Mesa ${pad(numOrigem)} transferida com sucesso para a Mesa ${pad(numDestino)}!`);
+    renderizar();
+  }).catch(err => {
+    showToast("Erro ao transferir: " + err.message, true);
+  });
+}
+
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  document.getElementById("modalTitle").textContent = `Baixa e Pagamento - Mesa ${pad(num)}`;
@@ -549,6 +624,17 @@ function dividirContaModal(num){
     <div style="font-size:12px;color:var(--muted)">Total Restante da Comanda</div>
     <div style="font-size:22px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
   </div>
+
+  <div style="margin-bottom:12px">
+    <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💳 Forma de Pagamento</label>
+    <select id="formaPagamentoSelect" style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
+      <option value="Pix">Pix</option>
+      <option value="Cartão de Crédito">Cartão de Crédito</option>
+      <option value="Cartão de Débito">Cartão de Débito</option>
+      <option value="Dinheiro">Dinheiro</option>
+    </select>
+  </div>
+
   <div class="card" style="padding:14px;margin-bottom:12px">
     <div style="font-weight:900;margin-bottom:4px;font-size:13px">🎯 Quantidades a Baixar / Pagar na Hora:</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Selecione os itens pagos agora. Eles vão para o relatório e saem da tela da mesa, mantendo a mesa aberta para novos pedidos.</div>
@@ -611,6 +697,7 @@ function calcularValorSelecionadoComControle(){
 
 function pagarItensSelecionados(num){
   const c = comandas[num]; if(!c) return;
+  const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
   let valTotalSel = 0;
   let baixas = {};
   let temSelecao = false;
@@ -630,7 +717,7 @@ function pagarItensSelecionados(num){
 
   if(!temSelecao){ showToast("Selecione a quantidade de um item.", true); return; }
 
-  if(confirm(`Confirmar pagamento de ${br(valTotalSel)}?`)){
+  if(confirm(`Confirmar pagamento de ${br(valTotalSel)} via ${formaPagamento}?`)){
     let itensPagosParaHistorico = [];
     let novosItens = [];
     let itensPagosAcumulados = c.itensPagos ? [...c.itensPagos] : [];
@@ -650,13 +737,13 @@ function pagarItensSelecionados(num){
       if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
-    const vendaParcial = { mesa: num, total: valTotalSel, garcom: c.garcom || "Geral", itens: itensPagosParaHistorico, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+    const vendaParcial = { mesa: num, total: valTotalSel, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: itensPagosParaHistorico, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
     let novoTotal = Math.max(0, c.total - valTotalSel);
 
     db.collection("historico").add(vendaParcial).then(() => {
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
         fecharModal(); 
-        showToast(`Baixa de ${br(valTotalSel)} realizada!`); 
+        showToast(`Baixa de ${br(valTotalSel)} (${formaPagamento}) realizada!`); 
         renderizar();
       });
     });
@@ -666,6 +753,7 @@ function pagarItensSelecionados(num){
 function abaterValorEspecifico(num){
   const c = comandas[num]; if(!c) return;
   const input = document.getElementById('inputValorAbater');
+  const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
   if(!input) return;
   let valorAbater = parseFloat(input.value);
   if(isNaN(valorAbater) || valorAbater <= 0){
@@ -677,14 +765,14 @@ function abaterValorEspecifico(num){
     return;
   }
 
-  if(confirm(`Confirmar abatimento/pagamento parcial de ${br(valorAbater)} na Mesa ${pad(num)}?`)){
-    const vendaParcial = { mesa: num, total: valorAbater, garcom: c.garcom || "Geral", itens: [{ cliente: "Geral", nome: "Pagamento por Valor Específico", qtd: 1, preco: valorAbater }], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+  if(confirm(`Confirmar abatimento de ${br(valorAbater)} via ${formaPagamento} na Mesa ${pad(num)}?`)){
+    const vendaParcial = { mesa: num, total: valorAbater, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: [{ cliente: "Geral", nome: "Pagamento por Valor Específico", qtd: 1, preco: valorAbater }], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
     let novoTotal = Math.max(0, c.total - valorAbater);
 
     db.collection("historico").add(vendaParcial).then(() => {
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, atualizadoEm: Date.now() }).then(() => {
         fecharModal();
-        showToast(`Abatimento de ${br(valorAbater)} realizado com sucesso!`);
+        showToast(`Abatimento de ${br(valorAbater)} realizado!`);
         renderizar();
       });
     });
@@ -720,11 +808,12 @@ function fecharMesa(num){ dividirContaModal(num); }
 
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
- if(confirm(`Deseja fechar e liberar completamente a Mesa ${pad(num)} (${br(c.total)})?`)){
+ const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
+ if(confirm(`Deseja fechar e liberar completamente a Mesa ${pad(num)} (${br(c.total)}) via ${formaPagamento}?`)){
    let todos = [...(c.itens || [])];
    if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco }));
 
-   const pHist = c.total > 0 && todos.length ? db.collection("historico").add({ mesa: num, total: c.total, garcom: c.garcom || "Geral", itens: todos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) : Promise.resolve();
+   const pHist = c.total > 0 && todos.length ? db.collection("historico").add({ mesa: num, total: c.total, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: todos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) : Promise.resolve();
 
    pHist.then(() => {
      db.collection("comandas").doc(String(num)).delete().then(() => {
@@ -771,6 +860,16 @@ function mudarFiltroMesa(f){
   renderMesas();
 }
 
+function calcularTempoDecorrido(timestampCriacao){
+  if(!timestampCriacao) return "Aberto agora";
+  let diffMinutos = Math.floor((Date.now() - timestampCriacao) / 60000);
+  if(diffMinutos < 1) return "Há instantes";
+  if(diffMinutos < 60) return `Há ${diffMinutos} min`;
+  let horas = Math.floor(diffMinutos / 60);
+  let mins = diffMinutos % 60;
+  return `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`;
+}
+
 function renderMesas(){
  let totalAbertas = 0;
  let arrayMesasHTML = [];
@@ -784,11 +883,13 @@ function renderMesas(){
    if(filtroMesaAtual === 'ocupadas' && !busy) continue;
 
    let totalRestante = c?.total || 0;
+   let tempoAberto = busy ? calcularTempoDecorrido(c.criadoEm) : "";
+
    arrayMesasHTML.push(`
      <div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
        <div class="status">${busy ? "OCUPADA" : "LIVRE"}</div>
-       ${busy ? `<div class="total">${br(totalRestante)}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
+       ${busy ? `<div class="total">${br(totalRestante)}</div><div class="timer">⏱️ ${tempoAberto}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
      </div>
    `);
  }
@@ -816,10 +917,24 @@ function renderComandas(){
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => {
    let totalRestante = c.total || 0; 
-   return `<div class="card command"><div class="row"><h3>Mesa ${pad(m)}</h3><strong style="color:var(--brand);font-size:16px">${br(totalRestante)}</strong></div><p class="muted" style="font-size:11px;margin:3px 0 10px">👤 Atendente: <b>${c.garcom || 'Hebster'}</b></p>
-   ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:10px;color:#10b981;margin-bottom:4px"><b>Pagos:</b> ${c.itensPagos.map(ip=>`[${ip.cliente}] ${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
-   ${(c.itens||[]).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}
-   <div style="display:flex;gap:6px;margin-top:12px"><button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar</button><button class="primary" onclick="fecharMesa(${m})">💰 Dividir / Pagar</button></div></div>`;
+   let tempoAberto = calcularTempoDecorrido(c.criadoEm);
+   return `<div class="card command">
+     <div class="row">
+       <h3>Mesa ${pad(m)}</h3>
+       <strong style="color:var(--brand);font-size:16px">${br(totalRestante)}</strong>
+     </div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin:3px 0 10px">
+       <p class="muted" style="font-size:11px;margin:0">👤 Atendente: <b>${c.garcom || 'Hebster'}</b></p>
+       <span class="tag" style="background:var(--input-bg);color:var(--muted)">⏱️ ${tempoAberto}</span>
+     </div>
+     ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:10px;color:#10b981;margin-bottom:4px"><b>Pagos:</b> ${c.itensPagos.map(ip=>`[${ip.cliente}] ${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
+     ${(c.itens||[]).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}
+     <div style="display:flex;gap:6px;margin-top:12px">
+       <button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar</button>
+       <button class="secondary" style="margin:0;background:rgba(239,68,68,0.1);color:var(--brand);border-color:var(--brand)" onclick="abrirModalTransferencia(${m})">🔄 Transferir</button>
+       <button class="primary" onclick="fecharMesa(${m})">💰 Pagar</button>
+     </div>
+   </div>`;
  }).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b></div>`}`;
 }
 
@@ -830,7 +945,7 @@ function renderAtendimento(){
  let clientesLista = Object.keys(pedidoTemp);
  if(!clientesLista.length) clientesLista = ["Cliente 1"];
 
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento por Cliente</p></div><span class="tag">${br(total)}</span></div></div>
+ document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento por Cliente</p></div><button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:0;background:var(--card);border:1px solid var(--border);color:var(--brand);border-radius:10px;padding:6px 10px;font-weight:900;font-size:11px;cursor:pointer">🔄 Mudar Mesa</button></div></div>
  
  ${itensJaPagosNaMesa.length ? `
  <div class="card" style="border-color:#10b981;padding:10px;margin-bottom:12px">
@@ -871,6 +986,13 @@ function renderRelatorios(){
  let totalDespesas = despesas.reduce((s,d) => s + d.valor, 0);
  let lucroLiquido = totalFaturamento - totalDespesas;
  
+ // Agregação de Formas de Pagamento
+ let pagamentosTotais = {};
+ historicoVendas.forEach(v => {
+   let meio = v.pagamento || "Pix";
+   pagamentosTotais[meio] = (pagamentosTotais[meio] || 0) + v.total;
+ });
+
  // Agregação consolidada dos produtos vendidos
  let itensConsolidados = {};
  historicoVendas.forEach(v => {
@@ -887,7 +1009,6 @@ function renderRelatorios(){
    }
  });
 
- // Ordenar produtos do mais vendido para o menos vendido
  let produtosOrdenados = Object.entries(itensConsolidados).sort((a,b) => b[1] - a[1]);
 
  document.getElementById("conteudo").innerHTML = `
@@ -903,6 +1024,17 @@ function renderRelatorios(){
   </div>
 
   <div style="margin-bottom:10px"><button class="primary" onclick="adicionarDespesa()" style="font-size:13px;padding:12px">➕ Registrar Gasto</button></div>
+
+  <!-- SEÇÃO DE FORMAS DE PAGAMENTO -->
+  <div class="section-title"><h2>💳 Faturamento por Forma de Pagamento</h2></div>
+  <div class="card">
+    ${Object.keys(pagamentosTotais).length ? Object.entries(pagamentosTotais).map(([meio, val]) => `
+      <div class="line">
+        <span><b>${meio}</b></span>
+        <strong style="color:var(--brand)">${br(val)}</strong>
+      </div>
+    `).join("") : `<div class="empty" style="padding:10px">Nenhum pagamento registrado.</div>`}
+  </div>
 
   <!-- SEÇÃO DE PRODUTOS VENDIDOS CONSOLIDADOS -->
   <div class="section-title"><h2>📦 Total Consolidado de Produtos</h2></div>
@@ -934,7 +1066,7 @@ function renderRelatorios(){
   <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:var(--brand)">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhum gasto.</div>`}</div>
   
   <div class="section-title"><h2>Histórico de Vendas por Comanda</h2></div>
-  <div class="card">${historicoVendas.length ? historicoVendas.map(v => `<div class="line"><div><b>Mesa ${pad(v.mesa)}</b> (${v.garcom})<br><small>${v.horario} • ${(v.itens||[]).map(i=>`[${i.cliente}] ${i.qtd}x ${i.nome}`).join(", ")}</small></div><strong style="color:var(--brand)">${br(v.total)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhuma venda.</div>`}</div>`;
+  <div class="card">${historicoVendas.length ? historicoVendas.map(v => `<div class="line"><div><b>Mesa ${pad(v.mesa)}</b> (${v.garcom} • ${v.pagamento || 'Pix'})<br><small>${v.horario} • ${(v.itens||[]).map(i=>`[${i.cliente}] ${i.qtd}x ${i.nome}`).join(", ")}</small></div><strong style="color:var(--brand)">${br(v.total)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhuma venda.</div>`}</div>`;
 }
 
 function renderizar(){
