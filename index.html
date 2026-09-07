@@ -270,7 +270,8 @@ const cardapio={
 ["Tripa", 8, iconeCarne]],
 "CARANGUEJO":[
 ["Caranguejo Unidade", 8, iconePetisco],
-["Combo 4 Caranguejos", 28, iconePetisco]],
+["Combo 4 Caranguejos", 28, iconePetisco],
+["Caldo de Caranguejo", 5, iconePetisco]],
 "BEBIDAS":[
 ["Skol", 5, iconeBebida],
 ["Brahma Chopp", 5, iconeBebida],
@@ -278,7 +279,7 @@ const cardapio={
 ["Império", 9, iconeBebida],
 ["Heineken", 9, iconeBebida],
 ["Corona Extra", 10, iconeBebida],
-["Budweiser", 7.5, iconeBebida],
+["Budweiser", 8, iconeBebida],
 ["Vinho", 7, iconeBebida],
 ["Caipirinha", 15, iconeBebida],
 ["Energético Red bull", 10, iconeBebida, "Lata"],
@@ -293,10 +294,19 @@ const cardapio={
 ["Meio litro prata", 15, iconeBebida],
 ["Litro da amarela", 35, iconeBebida],
 ["Litro da prata", 30, iconeBebida]],
-"SUCOS":[
-["Suco Maracujá 400ml", 8, iconeBebida],
-["Suco Manga 400ml", 7, iconeBebida],
-["Suco Goiaba 400ml", 7, iconeBebida]],
+"GUARNIÇÕES":[
+["Baião caseiro grande", 8, iconeGenerico],
+["Baião caseiro pequeno", 4, iconeGenerico],
+["Baião cremoso grande", 10, iconeGenerico],
+["Baião cremoso pequeno", 5, iconeGenerico],
+["Feijão verde", 25, iconeGenerico, "Combo"],
+["Panelada", 18, iconeGenerico, "Arroz / farofa de cuscuz"]],
+"PETISCOS":[
+["Batata frita", 15, iconePetisco],
+["Calabresa acebolada", 15, iconePetisco],
+["Camarão (porção)", 25, iconePetisco],
+["Bolinha carne do sol", 18, iconePetisco],
+["Bolinha de queijo", 15, iconePetisco]],
 "REFRIGERANTES":[
 ["Coca-Cola 1L", 8, iconeBebida],
 ["Guaraná 1L", 7, iconeBebida],
@@ -306,19 +316,10 @@ const cardapio={
 ["Sprite lata", 6, iconeBebida],
 ["Água", 3, iconeBebida],
 ["Água com gás", 4, iconeBebida]],
-"PETISCOS":[
-["Batata frita", 15, iconePetisco],
-["Calabresa acebolada", 15, iconePetisco],
-["Camarão (porção)", 25, iconePetisco],
-["Bolinha carne do sol", 18, iconePetisco],
-["Bolinha de queijo", 15, iconePetisco]],
-"GUARNIÇÕES":[
-["Baião caseiro grande", 8, iconeGenerico],
-["Baião caseiro pequeno", 4, iconeGenerico],
-["Baião cremoso grande", 10, iconeGenerico],
-["Baião cremoso pequeno", 5, iconeGenerico],
-["Feijão verde", 25, iconeGenerico, "Combo"],
-["Panelada", 18, iconeGenerico, "Arroz / farofa de cuscuz"]],
+"SUCOS":[
+["Suco Maracujá 400ml", 8, iconeBebida],
+["Suco Manga 400ml", 7, iconeBebida],
+["Suco Goiaba 400ml", 7, iconeBebida]],
 "DIVERSOS":[
 ["Cigarro", 7, iconeGenerico, "Carteira"],
 ["Partilha halls", 3, iconeGenerico]]
@@ -1008,7 +1009,7 @@ function renderAtendimento(){
  </div>
 
  <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTempComClientes().reduce((s,i) => s+i.qtd,0)} itens no total</span></div>
- <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":c==="GUARNIÇÕES"?"🍚":"🛒"} ${c}</button>`).join("")}</div>
+ <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="GUARNIÇÕES"?"🍚":c==="PETISCOS"?"🍟":c==="REFRIGERANTES"?"🥤":c==="SUCOS"?"🧃":"🛒"} ${c}</button>`).join("")}</div>
  <div id="produtos" class="products"></div>`;
  renderProdutos();
 }
