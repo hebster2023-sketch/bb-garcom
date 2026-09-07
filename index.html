@@ -63,7 +63,7 @@ body{padding-bottom:130px}.app{max-width:760px;margin:auto;padding:16px 16px 130
 .qty span{font-weight:900;min-width:20px;text-align:center;font-size:14px}
 .selected{outline:2px solid #52b761;outline-offset:-2px}
 
-/* Barra Flutuante de Carrinho Posicionada acima da navbar */
+/* Barra Flutuante de Carrinho */
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%);bottom:76px;width:min(700px,calc(100% - 24px));background:#14281e;color:#fff;border-radius:18px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 25px rgba(20,40,30,.25)}
 .cartbar button{border:0;background:#fff;color:#14281e;border-radius:12px;padding:8px 14px;font-weight:900;cursor:pointer;font-size:13px}
 
@@ -148,7 +148,7 @@ const firebaseConfig = {
 };
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
-db.enablePersistence().catch((err) => { console.log("Modo offline não suportado ou em uso simultâneo."); });
+db.enablePersistence().catch(() => {});
 
 const iconeGenerico = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12.01" y2="7"/></svg>`;
 const iconeCarne = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b12f29" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 5.5a3 3 0 1 0 4 4L12 17l-5.5-5.5a3 3 0 1 0 4-4L12 8l3.5-2.5z"/></svg>`;
@@ -236,7 +236,7 @@ function iniciarOuvintesFirebase() {
       let id = doc.id;
       let num = parseInt(id);
       if(isNaN(num) || num < 1 || num > 30 || String(num) !== String(id).trim()){
-        db.collection("comandas").doc(id).delete().catch(err => console.log("Erro:", err));
+        db.collection("comandas").doc(id).delete().catch(()=>{});
         return;
       }
       comandas[id] = doc.data(); 
@@ -324,8 +324,25 @@ function atualizarGarcom(v){
 
 function mudarClienteAtual(novoCli){
   clienteAtual = novoCli.trim() || "Cliente 1";
-  renderProdutos();
-  atualizarBar();
+  renderAtendimento();
+}
+
+function renomearClienteAtual(){
+  let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
+  if(!novoNome || !novoNome.trim()) return;
+  novoNome = novoNome.trim();
+  if(novoNome === clienteAtual) return;
+  
+  if(pedidoTemp[novoNome]){
+    alert("Já existe uma pessoa com esse nome.");
+    return;
+  }
+  
+  pedidoTemp[novoNome] = pedidoTemp[clienteAtual] || {};
+  delete pedidoTemp[clienteAtual];
+  clienteAtual = novoNome;
+  renderAtendimento();
+  salvarRascunhoAutomatico();
 }
 
 function salvarRascunhoAutomatico(){
@@ -444,13 +461,14 @@ function dividirContaModal(num){
     <div style="font-size:22px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
   </div>
   <div class="card" style="background:#f8faf9;padding:14px;margin-bottom:12px">
-    <div style="font-weight:900;margin-bottom:4px;font-size:13px">🎯 Selecione os itens por pessoa:</div>
-    <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px">
+    <div style="font-weight:900;margin-bottom:4px;font-size:13px">🎯 Quantidades a Baixar / Pagar na Hora:</div>
+    <div style="font-size:11px;color:#6c7a72;margin-bottom:10px">Selecione os itens pagos agora. Eles vão para o relatório e saem da tela da mesa, mantendo a mesa aberta para novos pedidos.</div>
+    <div style="max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px">
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
             <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente || 'Cliente 1'}]</span> ${i.nome}</div>
-            <div style="font-size:10px;color:#6c7a72">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)})</div>
+            <div style="font-size:10px;color:#6c7a72">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <button onclick="mudarQtdPagamento(${idx}, -1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:#edf2ef;font-weight:900;font-size:16px;cursor:pointer">−</button>
@@ -464,9 +482,18 @@ function dividirContaModal(num){
       <span style="font-weight:700">Total Selecionado:</span>
       <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
     </div>
-    <button class="primary" style="margin-top:10px;background:#2e7d32;font-size:13px;padding:12px" onclick="pagarItensSelecionados(${num})">✅ Pagar Selecionados (Dar Baixa)</button>
+    <button class="primary" style="margin-top:10px;background:#2e7d32;font-size:13px;padding:12px" onclick="pagarItensSelecionados(${num})">✅ Pagar na Hora (Manter Mesa Aberta)</button>
   </div>
-  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:#184a27;font-size:13px;padding:12px">🚪 Liberar Mesa Completa</button>
+
+  <div class="card" style="background:#f8faf9;padding:14px;margin-bottom:12px">
+    <div style="font-weight:900;margin-bottom:4px;font-size:13px">💵 Digitar Valor Específico em R$:</div>
+    <div style="display:flex;gap:8px">
+      <input type="number" id="inputValorAbater" placeholder="Ex: 63.00" step="0.01" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:700;outline:none;background:#fff">
+      <button onclick="abaterValorEspecifico(${num})" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:10px 16px;font-weight:900;font-size:13px;cursor:pointer">Abater</button>
+    </div>
+  </div>
+
+  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:#b12f29;font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -546,11 +573,39 @@ function pagarItensSelecionados(num){
   }
 }
 
+function abaterValorEspecifico(num){
+  const c = comandas[num]; if(!c) return;
+  const input = document.getElementById('inputValorAbater');
+  if(!input) return;
+  let valorAbater = parseFloat(input.value);
+  if(isNaN(valorAbater) || valorAbater <= 0){
+    alert("Digite um valor válido para abater.");
+    return;
+  }
+  if(valorAbater > c.total){
+    alert("O valor a abater não pode ser maior que o total restante da comanda.");
+    return;
+  }
+
+  if(confirm(`Confirmar abatimento/pagamento parcial de ${br(valorAbater)} na Mesa ${pad(num)}?`)){
+    const vendaParcial = { mesa: num, total: valorAbater, garcom: c.garcom || "Geral", itens: [{ cliente: "Geral", nome: "Pagamento por Valor Específico", qtd: 1, preco: valorAbater }], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
+    let novoTotal = Math.max(0, c.total - valorAbater);
+
+    db.collection("historico").add(vendaParcial).then(() => {
+      db.collection("comandas").doc(String(num)).update({ total: novoTotal, atualizadoEm: Date.now() }).then(() => {
+        fecharModal();
+        alert(`Abatimento de ${br(valorAbater)} realizado com sucesso!`);
+        renderizar();
+      });
+    });
+  }
+}
+
 function fecharMesa(num){ dividirContaModal(num); }
 
 function fecharMesaDireto(num){
  const c = comandas[num]; if(!c) return;
- if(confirm(`Deseja liberar a Mesa ${pad(num)}?`)){
+ if(confirm(`Deseja fechar e liberar completamente a Mesa ${pad(num)} (${br(c.total)})?`)){
    let todos = [...(c.itens || [])];
    if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco }));
 
@@ -559,7 +614,7 @@ function fecharMesaDireto(num){
    pHist.then(() => {
      db.collection("comandas").doc(String(num)).delete().then(() => {
        fecharModal();
-       alert(`Mesa ${pad(num)} liberada!`);
+       alert(`Mesa ${pad(num)} fechada e liberada!`);
        renderizar();
      });
    });
@@ -635,20 +690,23 @@ function renderAtendimento(){
  </div>` : ''}
 
  <div class="card" style="background:#f8faf9;padding:12px">
-   <div style="font-weight:900;margin-bottom:6px;font-size:12px">👤 Cliente / Pessoa Atual:</div>
+   <div style="font-weight:900;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+     <span>👤 Selecione a pessoa que está pedindo agora:</span>
+     <button onclick="renomearClienteAtual()" style="border:0;background:#edf2ef;color:var(--ink);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:900;cursor:pointer">✏️ Renomear "${clienteAtual}"</button>
+   </div>
    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
      ${clientesLista.map(cli => `<button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:10px;border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};background:${cli===clienteAtual?'var(--brand)':'#fff'};color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>`).join("")}
      <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:#fff;color:var(--brand);font-weight:900;font-size:11px;cursor:pointer">+ Nova Pessoa</button>
    </div>
-   <div style="font-size:11px;color:#6c7a72">Lançando para: <b style="color:var(--brand)">${clienteAtual}</b></div>
+   <div style="font-size:11px;color:#6c7a72">Lançando produtos na conta de: <b style="color:var(--brand)">${clienteAtual}</b></div>
  </div>
 
  <div class="card" style="padding:12px;display:flex;align-items:center;justify-content:space-between">
-   <div style="font-size:12px"><b>👤 Garçom</b></div>
+   <div style="font-size:12px"><b>👤 Garçom Responsável</b></div>
    <input id="garcomInput" type="text" value="${garcomTemp}" style="width:130px;border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;font-weight:900;background:#f8faf9;font-size:12px;outline:none" oninput="atualizarGarcom(this.value)">
  </div>
 
- <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTempComClientes().reduce((s,i) => s+i.qtd,0)} itens</span></div>
+ <div class="section-title"><h2>Cardápio</h2><span class="muted">${itensTempComClientes().reduce((s,i) => s+i.qtd,0)} itens no total</span></div>
  <div class="cats">${Object.keys(cardapio).map(c => `<button class="cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">${c==="CHURRASCOS"?"🔥":c==="CARANGUEJO"?"🦀":c==="BEBIDAS"?"🍺":c==="SUCOS"?"🧃":c==="REFRIGERANTES"?"🥤":c==="PETISCOS"?"🍟":c==="GUARNIÇÕES"?"🍚":"🛒"} ${c}</button>`).join("")}</div>
  <div id="produtos" class="products"></div>`;
  renderProdutos();
@@ -663,7 +721,6 @@ function renderRelatorios(){
   if(!itensContador[i.nome]) itensContador[i.nome] = {qtd:0, preco:i.preco};
   itensContador[i.nome].qtd += i.qtd;
  }));
- let listaItens = Object.entries(itensContador);
 
  document.getElementById("conteudo").innerHTML = `
   <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo</span></div><button onclick="limparRelatorios()" style="border:0;background:#fff1f0;color:#b12f29;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🗑️ Resetar</button></div>
