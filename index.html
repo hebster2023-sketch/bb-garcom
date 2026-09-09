@@ -37,8 +37,10 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 /* Header */
 .header{background:linear-gradient(135deg,var(--brand),var(--brand-hover));color:#fff;border-radius:24px;padding:20px 18px;box-shadow:0 12px 30px rgba(239, 68, 68, 0.25);position:relative;overflow:hidden;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
 .header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0}.header p{margin:4px 0 0;font-size:11px;opacity:.9}
-.theme-btn{background:rgba(255,255,255,.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
-.theme-btn:active{transform:scale(.85)}
+.header-actions{display:flex;gap:8px;align-items:center}
+.theme-btn, .sound-btn{background:rgba(255,255,255,.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.theme-btn:active, .sound-btn:active{transform:scale(.85)}
+.sound-btn.active{background:rgba(16, 185, 129, 0.4);border:1px solid #10b981}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
@@ -184,7 +186,10 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
     <h1>B.B CHURRASCO</h1>
     <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
   </div>
-  <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
+  <div class="header-actions">
+    <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
+    <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
+  </div>
 </header>
 <div id="conteudo"></div>
 </div>
@@ -220,6 +225,64 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 db.enablePersistence().catch(() => {});
+
+// Sistema de Alerta Sonoro Inteligente (Text-to-Speech)
+let somAtivo = false;
+let comandasAnteriores = {};
+let primeiraCargaFirebase = true;
+
+function toggleSound(){
+  somAtivo = !somAtivo;
+  const btn = document.getElementById('soundToggleBtn');
+  if(somAtivo){
+    btn.classList.add('active');
+    btn.textContent = '🔊';
+    showToast("Alerta sonoro ativado com sucesso!");
+    falarTexto("Sistema de alerta de pedidos ativado.");
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '🔔';
+    showToast("Alerta sonoro desativado.");
+  }
+}
+
+function falarTexto(texto){
+  if(!somAtivo || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel(); // Cancela falas anteriores para não acumular
+  const utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = 'pt-BR';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  window.speechSynthesis.speak(utterance);
+}
+
+function verificarNovosPedidos(novasComandas){
+  if(primeiraCargaFirebase){
+    comandasAnteriores = JSON.parse(JSON.stringify(novasComandas));
+    primeiraCargaFirebase = false;
+    return;
+  }
+
+  for(const mesaId in novasComandas){
+    const atual = novasComandas[mesaId];
+    const anterior = comandasAnteriores[mesaId];
+
+    // Se a mesa é nova ou teve aumento no total/itens, dispara o alerta
+    if(!anterior || (atual.total > (anterior.total || 0)) || ((atual.itens?.length || 0) > (anterior.itens?.length || 0))){
+      // Pega o último item adicionado ou resume
+      const ultItem = atual.itens && atual.itens.length ? atual.itens[atual.itens.length - 1] : null;
+      const descItem = ultItem ? `${ultItem.qtd} ${ultItem.nome}` : "Novo pedido";
+      const garcom = atual.garcom || "Garçom";
+
+      const mensagemAlerta = `Atenção! Novo pedido na Mesa ${mesaId}, atendido por ${garcom}. ${descItem}.`;
+      
+      showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
+      falarTexto(mensagemAlerta);
+    }
+  }
+
+  comandasAnteriores = JSON.parse(JSON.stringify(novasComandas));
+}
 
 // Sistema de Tema Claro/Escuro
 function toggleTheme(){
@@ -280,9 +343,9 @@ const cardapio={
 ["Heineken", 9, iconeBebida],
 ["Corona Extra", 10, iconeBebida],
 ["Budweiser", 8, iconeBebida],
-["Vinho", 8, iconeBebida],
+["Vinho", 7, iconeBebida],
 ["Caipirinha", 15, iconeBebida],
-["Energético Red bull", 12, iconeBebida, "Lata"],
+["Energético Red bull", 10, iconeBebida, "Lata"],
 ["Kit gin", 80, iconeBebida, "Gin rock’s / energético Baly / Gelo"],
 ["Stella gold", 11, iconeBebida],
 ["Ice cabaré", 9, iconeBebida],
@@ -339,7 +402,7 @@ const pad = n => String(n).padStart(2,"0");
 
 function iniciarOuvintesFirebase() {
   db.collection("comandas").onSnapshot(snapshot => {
-    comandas = {};
+    let novasComandas = {};
     snapshot.forEach(doc => { 
       let id = doc.id;
       let num = parseInt(id);
@@ -347,8 +410,12 @@ function iniciarOuvintesFirebase() {
         db.collection("comandas").doc(id).delete().catch(()=>{});
         return;
       }
-      comandas[id] = doc.data(); 
+      novasComandas[id] = doc.data(); 
     });
+    
+    verificarNovosPedidos(novasComandas);
+    comandas = novasComandas;
+
     if(telaAtual === "mesas" || telaAtual === "comandas") renderizar();
   }, err => console.error(err));
 
