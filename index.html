@@ -1716,135 +1716,52 @@ function renderRelatorios(){
   <div class="section-title"><h2>💳 Faturamento por Forma de Pagamento</h2></div>
   <div class="card">
     ${Object.keys(pagamentosTotais).length ? Object.entries(pagamentosTotais).map(([meio, val]) => `
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
         <span><b>${meio}</b></span>
-        <b style="color:var(--brand)">${br(val)}</b>
+        <b>${br(val)}</b>
       </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhum pagamento registrado hoje</div>'}
+    `).join('') : '<div class="empty">Nenhum pagamento registrado hoje</div>'}
   </div>
 
   <div class="section-title"><h2>🏆 Produtos Mais Vendidos</h2></div>
   <div class="card">
-    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd], index) => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:900;color:var(--brand)">#${index+1}</span>
-          <span><b>${nome}</b></span>
-        </div>
-        <span class="tag" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border)">${qtd} un</span>
+    ${produtosOrdenados.length ? produtosOrdenados.map(([nomeProd, qtd]) => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span><b>${nomeProd}</b></span>
+        <span style="color:var(--brand);font-weight:900">${qtd} un</span>
       </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhuma venda registrada</div>'}
+    `).join('') : '<div class="empty">Nenhuma venda registrada</div>'}
   </div>
 
   <div class="section-title"><h2>📉 Despesas Registradas</h2></div>
   <div class="card">
     ${despesas.length ? despesas.map(d => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <div><b>${d.desc}</b><br><small style="color:var(--muted)">Às ${d.horario || 'Recente'}</small></div>
-        <b style="color:#d32f2f">− ${br(d.valor)}</b>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span><b>${d.desc}</b> <small>(${d.horario || ''})</small></span>
+        <b style="color:#d32f2f">- ${br(d.valor)}</b>
       </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhuma despesa cadastrada</div>'}
+    `).join('') : '<div class="empty">Nenhuma despesa registrada</div>'}
   </div>
 
-  <div class="section-title"><h2>⚠️ Comandas Canceladas</h2></div>
+  <div class="section-title"><h2>⚠️ Comandas Canceladas / Estornadas</h2></div>
   <div class="card">
     ${cancelamentos.length ? cancelamentos.map(c => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
         <div style="display:flex;justify-content:space-between">
-          <b>Mesa ${pad(c.mesa)} (${c.garcom})</b>
-          <span style="color:#d32f2f;font-weight:900">− ${br(c.totalCancelado)}</span>
+          <span><b>Mesa ${pad(c.mesa)}</b> (${c.garcom})</span>
+          <b style="color:#d32f2f">${br(c.totalCancelado)}</b>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Motivo: <b>${c.motivo}</b> às ${c.horario || 'Recente'}</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">Motivo: ${c.motivo} • ${c.horario || ''}</div>
       </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhum cancelamento registrado</div>'}
-  </div>
-`;
+    `).join('') : '<div class="empty">Nenhum cancelamento registrado</div>'}
+  </div>`;
 }
 
 function renderizar(){
-  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  if(telaAtual === 'mesas') {
-    document.getElementById('navMesas')?.classList.add('active');
-    renderMesas();
-  } else if(telaAtual === 'comandas') {
-    document.getElementById('navComandas')?.classList.add('active');
-    renderComandas();
-  } else if(telaAtual === 'atendimento') {
-    renderAtendimento();
-  } else if(telaAtual === 'relatorios') {
-    document.getElementById('navRelatorios')?.classList.add('active');
-    renderRelatorios();
-  }
-}
-
-// Funções utilitárias adicionais integradas
-async function adicionarItemNaMesaTransacao(mesaId, produto) {
-    if (isProcessandoPedido) return;
-    isProcessandoPedido = true;
-
-    try {
-        const mesaRef = db.collection('mesas').doc(mesaId);
-        
-        const novoItem = {
-            idUnico: '_' + Math.random().toString(36).substr(2, 9),
-            produtoId: produto.id,
-            nome: produto.nome,
-            preco: Number(produto.preco),
-            quantidade: 1,
-            observacao: produto.observacao || '',
-            hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        await db.runTransaction(async (transaction) => {
-            const doc = await transaction.get(mesaRef);
-            if (!doc.exists) throw "Mesa não encontrada!";
-
-            let dadosMesa = doc.data();
-            let itensAtuais = dadosMesa.itens || [];
-            
-            itensAtuais.push(novoItem);
-
-            let novoTotalCalculado = itensAtuais.reduce((acc, item) => acc + (Number(item.preco) * Number(item.quantidade)), 0);
-
-            transaction.update(mesaRef, {
-                itens: itensAtuais,
-                totalMesa: novoTotalCalculado,
-                status: 'ocupada'
-            });
-        });
-
-        showToast("Item adicionado com sucesso!");
-    } catch (error) {
-        console.error("Erro ao adicionar item:", error);
-        showToast("Erro ao adicionar item. Tente novamente.", true);
-    } finally {
-        setTimeout(() => { isProcessandoPedido = false; }, 500);
-    }
-}
-
-function calcularTotalVisualizacao(itens) {
-    if (!itens || !Array.isArray(itens)) return 0;
-    return itens.reduce((soma, item) => {
-        const preco = Number(item.preco) || 0;
-        const qtd = Number(item.quantidade) || 1;
-        return soma + (preco * qtd);
-    }, 0);
-}
-
-async function corrigirMesaComBug(mesaId) {
-    const mesaRef = db.collection('mesas').doc(mesaId);
-    const doc = await mesaRef.get();
-    if (!doc.exists) return;
-
-    const dados = doc.data();
-    const itens = dados.itens || [];
-
-    const totalReal = itens.reduce((acc, i) => acc + (Number(i.preco) * Number(i.quantidade)), 0);
-
-    await mesaRef.update({
-        totalMesa: totalReal
-    });
-    showToast("Mesa corrigida e recalibrada com sucesso!");
+  if(telaAtual === "mesas") renderMesas();
+  else if(telaAtual === "comandas") renderComandas();
+  else if(telaAtual === "atendimento") renderAtendimento();
+  else if(telaAtual === "relatorios") renderRelatorios();
 }
 </script>
 </body>
