@@ -459,16 +459,24 @@ function processarAlertaPedido(mesaId, atual) {
     return;
   }
 
-  if (atual && atual.novoPedidoAlerta && Array.isArray(atual.lotes) && atual.lotes.length > 0) {
-    let textoFalar = `Novo pedido na Mesa ${mesaId}`;
-    showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
+  // MODIFICADO: A voz e o som só disparam se a origem do pedido for explicitamente do "cliente" (Cardápio Digital)
+  if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente' && Array.isArray(atual.lotes) && atual.lotes.length > 0) {
+    let textoFalar = `Novo pedido na Mesa ${mesaId} feito pelo cliente`;
+    showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
     falarTexto(textoFalar);
 
     db.collection('comandas').doc(String(mesaId)).update({ 
-      novoPedidoAlerta: false 
+      novoPedidoAlerta: false,
+      origemPedido: null 
     }).catch(error => {
       console.error("Erro ao limpar flag de novo pedido:", error);
     });
+  } else if (atual && atual.novoPedidoAlerta) {
+    // Se for alteração gerada internamente pelo garçom, apenas limpa a flag silenciosamente sem falar nada
+    db.collection('comandas').doc(String(mesaId)).update({ 
+      novoPedidoAlerta: false,
+      origemPedido: null 
+    }).catch(()=>{});
   }
 }
 
@@ -881,7 +889,8 @@ function abrirMesa(num){
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
       novoPedidoAlerta: false,
-      pediuContaAlerta: false
+      pediuContaAlerta: false,
+      origemPedido: null
     }).catch(()=>{});
   }
 
@@ -939,7 +948,8 @@ function salvarRascunhoAutomatico(){
     itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
     total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
     criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
-    atualizadoEm: Date.now() 
+    atualizadoEm: Date.now(),
+    origemPedido: 'garcom' // Registra que a alteração foi feita pelo garçom internamente
   };
 
   db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(()=>{});
@@ -1093,7 +1103,8 @@ function salvarComanda(){
    total: totalGeralAcumulado, 
    criadoEm: criadoEmOriginal, 
    atualizadoEm: Date.now(), 
-   novoPedidoAlerta: true 
+   novoPedidoAlerta: true,
+   origemPedido: 'garcom' // Garante que foi o garçom salvando no sistema
  };
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
@@ -1510,25 +1521,22 @@ function renderComandas(){
    let tempoInfo = calcularTempoDecorrido(c.criadoEm);
    let avisoContaOuNovo = "";
    if(c.pediuContaAlerta) avisoContaOuNovo = `<div style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(245,158,11,0.4)">⚠️ ESTA MESA PEDIU A CONTA!</div>`;
-   else if(c.novoPedidoAlerta) avisoContaOuNovo = `<div style="background:rgba(56,189,248,0.2);color:#38bdf8;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(56,189,248,0.4)">🔔 HÁ UM NOVO PEDIDO NESTA MESA!</div>`;
+   else if(c.novoPedidoAlerta && c.origemPedido === 'cliente') avisoContaOuNovo = `<div style="background:rgba(56,189,248,0.2);color:#38bdf8;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(56,189,248,0.4)">🔔 HÁ UM NOVO PEDIDO DIGITAL NESTA MESA!</div>`;
 
    let lotesHTML = "";
    if (c.lotes && c.lotes.length > 0) {
      let lotesInvertidos = [...c.lotes].reverse();
      lotesHTML = lotesInvertidos.map(lote => {
-       // 2. AGRUPAMENTO INTELIGENTE DE ITENS REPETIDOS NO LOTE
        let itensAgrupadosLote = {};
        (lote.itens || []).forEach(item => {
          let chave = (item.cliente || 'Cliente 1') + "_" + item.nome;
          if(!itensAgrupadosLote[chave]) {
            itensAgrupadosLote[chave] = { cliente: item.cliente || 'Cliente 1', nome: item.nome, qtdTotal: 0, precoTotal: 0 };
          }
-         // Extraindo quantidade numérica string ex: "4x Frango"
          let matchQtd = String(item.nome).match(/^(\d+)x\s*(.*)$/);
          let q = matchQtd ? parseInt(matchQtd[1]) : 1;
          let nomeReal = matchQtd ? matchQtd[2] : item.nome;
          
-         // Atualizando nome sem repetir contagem anterior se já vier formatado
          itensAgrupadosLote[chave].nome = nomeReal;
          itensAgrupadosLote[chave].qtdTotal += q;
        });
@@ -1551,7 +1559,6 @@ function renderComandas(){
        `;
      }).join('');
    } else {
-     // Agrupamento geral consolidado
      let agrupadosGeral = {};
      (c.itens || []).forEach(i => {
        let cli = i.cliente || 'Cliente 1';
@@ -1619,7 +1626,6 @@ function renderAtendimento(){
      <span style="font-size:10px;color:var(--muted)">Clique no nome abaixo para renomear</span>
    </div>
    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-     <!-- 1. BOTÃO DO CLIENTE CLICÁVEL DIRETAMENTE PARA RENOMEAR -->
      ${clientesLista.map(cli => `
        <div style="display:inline-flex;align-items:center;background:${cli===clienteAtual?'var(--brand)':'var(--card)'};border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};border-radius:10px;overflow:hidden">
          <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 10px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>
