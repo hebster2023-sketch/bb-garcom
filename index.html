@@ -61,22 +61,19 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .filter-tab{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;transition:all .2s}
 .filter-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px rgba(239,68,68,0.3)}
 
-/* Grid de Mesas com Cores de Alerta Diferentes */
+/* Grid de Mesas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--ink);box-shadow:0 6px 16px rgba(0,0,0,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
 .table:hover{border-color:rgba(239,68,68,0.3);transform:translateY(-2px)}
 .table:active{transform:scale(0.95)}
 .table.busy{border-color:rgba(239, 68, 68, 0.35);background:linear-gradient(135deg, rgba(239, 68, 68, 0.08), var(--card))}
 
-/* Estado 1: Novo Pedido (Cor Azulada/Ciano Destacada) */
 .table.novo-pedido-ativo{border-color:#38bdf8 !important;background:linear-gradient(135deg, rgba(56, 189, 248, 0.2), var(--card)) !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.4) !important;animation: pulseNovo 1.5s infinite}
 @keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
 
-/* Estado 2: Pediu a Conta (Cor Amarela/Dourada Forte e Pulsante) */
 .table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.25), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.5) !important;animation: pulseConta 1.2s infinite}
 @keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
 
-/* Badges de Status Modernos */
 .table .num{font-size:15px;font-weight:900}
 .badge-status{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
 .badge-status.livre{background:rgba(16, 185, 129, 0.15);color:#10b981;border:1px solid rgba(16, 185, 129, 0.3)}
@@ -89,7 +86,6 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .timer.tempo-verde{background:rgba(16, 185, 129, 0.15);color:#10b981}
 .timer.tempo-amarelo{background:rgba(245, 158, 11, 0.15);color:#f59e0b}
 .timer.tempo-vermelho{background:rgba(239, 68, 68, 0.15);color:#ef4444}
-
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Cards Genéricos */
@@ -114,7 +110,7 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .cat.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 14px rgba(239,68,68,0.3);transform:translateY(-1px)}
 .cat:active{transform:scale(0.92)}
 
-/* Cards de Produtos Modernos com Barra de Destaque */
+/* Produtos */
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .product{overflow:hidden;border-radius:18px;background:var(--card);backdrop-filter:blur(12px);border:1px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.03);transition:all .2s;position:relative}
 .product.selected{border-color:var(--brand);box-shadow:0 6px 20px rgba(239,68,68,0.15)}
@@ -130,6 +126,40 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .qty button:active{transform:scale(0.8)}
 .qty button.plus{background:var(--brand);color:#fff;box-shadow:0 3px 10px rgba(239,68,68,0.3)}
 .qty span{font-weight:900;min-width:20px;text-align:center;font-size:14px;color:var(--ink)}
+
+/* Lotes nas Comandas (Soluções Integradas) */
+.lote-pedido {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: var(--card);
+    transition: all 0.3s ease;
+}
+.lote-pedido.novo {
+    border-color: var(--brand);
+    background-color: rgba(239, 68, 68, 0.05);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+.lote-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--muted);
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+.badge-novo {
+    background-color: var(--brand);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 900;
+}
 
 /* Barra Flutuante de Carrinho */
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(30, 41, 59, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
@@ -262,20 +292,17 @@ function falarTexto(texto){
   window.speechSynthesis.speak(utterance);
 }
 
-// Verificação inteligente de alertas diferenciados (Novo Pedido vs Pedir Conta)
 function processarAlertaPedido(mesaId, atual) {
   if (!somAtivo) return;
 
-  // 1. Alerta de Pedir a Conta (Prioridade máxima / Cor amarela)
   if (atual && atual.pediuContaAlerta) {
     let textoFalar = `Atenção! A Mesa ${mesaId} solicitou a conta.`;
     showToast(`⚠️ Mesa ${pad(mesaId)} pediu a conta!`);
     falarTexto(textoFalar);
-    return; // Evita conflito com o aviso de novo pedido comum
+    return;
   }
 
-  // 2. Alerta de Novo Pedido (Cor azul/ciano)
-  if (atual && atual.novoPedidoAlerta && Array.isArray(atual.itens) && atual.itens.length > 0) {
+  if (atual && atual.novoPedidoAlerta && Array.isArray(atual.lotes) && atual.lotes.length > 0) {
     let textoFalar = `Novo pedido na Mesa ${mesaId}`;
     showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
     falarTexto(textoFalar);
@@ -300,7 +327,6 @@ function verificarNovosPedidos(novasComandas){
   }
 }
 
-// Tema Claro/Escuro
 function toggleTheme(){
   const html = document.documentElement;
   const current = html.getAttribute('data-theme');
@@ -495,7 +521,6 @@ function mudarTela(t, num=null){
 function abrirMesa(num){
   mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; garcomTemp = "Hebster"; termoBuscaProduto = "";
   
-  // Ao abrir a mesa, limpa os alertas pendentes (novo pedido ou pediu conta)
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
       novoPedidoAlerta: false,
@@ -640,14 +665,45 @@ function adicionarNovoClientePrompt(){
   renderAtendimento();
 }
 
+// SALVAR COM COMANDAS AGRUPADAS POR LOTES (SOLUÇÕES 1, 2 e 3)
 function salvarComanda(){
  const itens = itensTempComClientes(); if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
- const itensPagosAntigos = comandas[mesaSelecionada]?.itensPagos || [];
- const criadoEmOriginal = comandas[mesaSelecionada]?.criadoEm || Date.now();
+ const comandaAtual = comandas[mesaSelecionada] || {};
  
- // Ativa a flag novoPedidoAlerta = true para destacar na tela do garçom
- const dadosMesa = { garcom: garcomTemp, itens, itensPagos: itensPagosAntigos, total, criadoEm: criadoEmOriginal, atualizadoEm: Date.now(), novoPedidoAlerta: true };
+ const itensPagosAntigos = comandaAtual.itensPagos || [];
+ const criadoEmOriginal = comandaAtual.criadoEm || Date.now();
+ 
+ // Marcar todos os lotes antigos como 'isNovo: false'
+ let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
+ 
+ // Criar o novo lote atual com horário legível (Soluções 1 e 3)
+ let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+ let novoLote = {
+   id: Date.now(),
+   horario: horaAtualStr,
+   isNovo: true,
+   itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
+ };
+
+ let lotesAtualizados = [...lotesAntigos, novoLote];
+
+ // Somar ao total geral existente se houver outros itens na mesa
+ let totalGeralAcumulado = total + (comandaAtual.total || 0);
+
+ // Para retrocompatibilidade com a lista geral de itens
+ let todosItensAcumulados = [...(comandaAtual.itens || []), ...itens];
+
+ const dadosMesa = { 
+   garcom: garcomTemp, 
+   itens: todosItensAcumulados, 
+   lotes: lotesAtualizados,
+   itensPagos: itensPagosAntigos, 
+   total: totalGeralAcumulado, 
+   criadoEm: criadoEmOriginal, 
+   atualizadoEm: Date.now(), 
+   novoPedidoAlerta: true 
+ };
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
@@ -661,7 +717,7 @@ function salvarComanda(){
 function abrirCarrinho(){
  const itens = itensTempComClientes();
  document.getElementById("modalTitle").textContent = `Mesa ${pad(mesaSelecionada)} — Pedido por Pessoa`;
- document.getElementById("modalBody").innerHTML = `${itens.map(i => `<div class="line"><div><b>[${i.cliente}]</b> ${i.qtd}x ${i.nome}<br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total da Mesa</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Confirmar e Salvar Pedido</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
+ document.getElementById("modalBody").innerHTML = `${itens.map(i => `<div class="line"><div><b>[${i.cliente}]</b> ${i.qtd}x ${i.nome}<br><small>${br(i.preco)} cada</small></div><strong>${br(i.qtd*i.preco)}</strong></div>`).join("")}<div class="totalrow"><span>Total da Mesa</span><span>${br(totalTemp())}</span></div><button class="primary" onclick="salvarComanda()">💾 Confirmar e Enviar Pedido</button><button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
 
@@ -703,6 +759,7 @@ function executarTransferencia(numOrigem){
   const dadosDestinoExistente = comandas[numDestino];
   
   let itensCombinados = [...(dadosOrigem.itens || [])];
+  let lotesCombinados = [...(dadosOrigem.lotes || [])];
   let itensPagosCombinados = [...(dadosOrigem.itensPagos || [])];
   let totalCombinado = dadosOrigem.total || 0;
   let garcomNovo = dadosOrigem.garcom;
@@ -710,6 +767,7 @@ function executarTransferencia(numOrigem){
 
   if(dadosDestinoExistente){
     itensCombinados = [...(dadosDestinoExistente.itens || []), ...itensCombinados];
+    lotesCombinados = [...(dadosDestinoExistente.lotes || []), ...lotesCombinados];
     itensPagosCombinados = [...(dadosDestinoExistente.itensPagos || []), ...itensPagosCombinados];
     totalCombinado += (dadosDestinoExistente.total || 0);
   }
@@ -721,6 +779,7 @@ function executarTransferencia(numOrigem){
   batch.set(refDestino, {
     garcom: garcomNovo,
     itens: itensCombinados,
+    lotes: lotesCombinados,
     itensPagos: itensPagosCombinados,
     total: totalCombinado,
     criadoEm: criadoEmNovo,
@@ -759,7 +818,6 @@ function dividirContaModal(num){
 
   <div class="card" style="padding:14px;margin-bottom:12px">
     <div style="font-weight:900;margin-bottom:4px;font-size:13px">🎯 Quantidades a Baixar / Pagar na Hora:</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Selecione os itens pagos agora. Eles vão para o relatório e saem da tela da mesa, mantendo a mesa aberta para novos pedidos.</div>
     <div style="max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px">
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
@@ -780,14 +838,6 @@ function dividirContaModal(num){
       <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
     </div>
     <button class="primary" style="margin-top:10px;background:#10b981;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="pagarItensSelecionados(${num})">✅ Pagar na Hora (Manter Mesa Aberta)</button>
-  </div>
-
-  <div class="card" style="padding:14px;margin-bottom:12px">
-    <div style="font-weight:900;margin-bottom:4px;font-size:13px">💵 Digitar Valor Específico em R$:</div>
-    <div style="display:flex;gap:8px">
-      <input type="number" id="inputValorAbater" placeholder="Ex: 63.00" step="0.01" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:700;outline:none;background:var(--input-bg);color:var(--ink)">
-      <button onclick="abaterValorEspecifico(${num})" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:10px 16px;font-weight:900;font-size:13px;cursor:pointer">Abater</button>
-    </div>
   </div>
 
   <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
@@ -866,35 +916,6 @@ function pagarItensSelecionados(num){
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
         fecharModal(); 
         showToast(`Baixa de ${br(valTotalSel)} (${formaPagamento}) realizada!`); 
-        renderizar();
-      });
-    });
-  }
-}
-
-function abaterValorEspecifico(num){
-  const c = comandas[num]; if(!c) return;
-  const input = document.getElementById('inputValorAbater');
-  const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
-  if(!input) return;
-  let valorAbater = parseFloat(input.value);
-  if(isNaN(valorAbater) || valorAbater <= 0){
-    showToast("Digite um valor válido para abater.", true);
-    return;
-  }
-  if(valorAbater > c.total){
-    showToast("O valor a abater não pode ser maior que o total restante da comanda.", true);
-    return;
-  }
-
-  if(confirm(`Confirmar abatimento de ${br(valorAbater)} via ${formaPagamento} na Mesa ${pad(num)}?`)){
-    const vendaParcial = { mesa: num, total: valorAbater, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: [{ cliente: "Geral", nome: "Pagamento por Valor Específico", qtd: 1, preco: valorAbater }], horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-    let novoTotal = Math.max(0, c.total - valorAbater);
-
-    db.collection("historico").add(vendaParcial).then(() => {
-      db.collection("comandas").doc(String(num)).update({ total: novoTotal, atualizadoEm: Date.now() }).then(() => {
-        fecharModal();
-        showToast(`Abatimento de ${br(valorAbater)} realizado!`);
         renderizar();
       });
     });
@@ -1011,7 +1032,6 @@ function renderMesas(){
    let totalRestante = c?.total || 0;
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
 
-   // Definir classes de destaque visual com base nos novos alertas pendentes
    let classeDestaque = "";
    let badgeTexto = "OCUPADA";
    let badgeClasse = "ocupada";
@@ -1052,11 +1072,13 @@ function renderMesas(){
  <div class="tables">${arrayMesasHTML.join("")}</div>`;
 }
 
+// RENDERIZAR COMANDAS APLICANDO AS SOLUÇÕES (LOTES, ORDEM INVERSA E DESTAQUE NOVO)
 function renderComandas(){
  let abertas = Object.entries(comandas).filter(([m,c]) => {
    let numMesa = parseInt(m);
    return !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30 && (c?.itens?.length || c?.itensPagos?.length || c?.total >= 0);
  });
+
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => {
    let totalRestante = c.total || 0; 
@@ -1064,6 +1086,33 @@ function renderComandas(){
    let avisoContaOuNovo = "";
    if(c.pediuContaAlerta) avisoContaOuNovo = `<div style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(245,158,11,0.4)">⚠️ ESTA MESA PEDIU A CONTA!</div>`;
    else if(c.novoPedidoAlerta) avisoContaOuNovo = `<div style="background:rgba(56,189,248,0.2);color:#38bdf8;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(56,189,248,0.4)">🔔 HÁ UM NOVO PEDIDO NESTA MESA!</div>`;
+
+   // GERAÇÃO DOS LOTES COM ORDEM INVERSA (.reverse()) E DESTAQUE
+   let lotesHTML = "";
+   if (c.lotes && c.lotes.length > 0) {
+     let lotesInvertidos = [...c.lotes].reverse();
+     lotesHTML = lotesInvertidos.map(lote => {
+       let itensLoteHTML = lote.itens.map(item => `
+         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+           <span><b>[${item.cliente || 'Cliente 1'}]</b> ${item.nome}</span>
+           <span>${item.preco}</span>
+         </div>
+       `).join('');
+
+       return `
+         <div class="lote-pedido ${lote.isNovo ? 'novo' : ''}">
+           <div class="lote-header">
+             <span>📦 Pedido às ${lote.horario || 'Recente'}</span>
+             ${lote.isNovo ? '<span class="badge-novo">NOVO 🚀</span>' : ''}
+           </div>
+           <div>${itensLoteHTML}</div>
+         </div>
+       `;
+     }).join('');
+   } else {
+     // Fallback caso a mesa antiga não tenha lotes salvos
+     lotesHTML = (c.itens || []).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("");
+   }
 
    return `<div class="card command" style="${c.pediuContaAlerta?'border-color:#f59e0b':c.novoPedidoAlerta?'border-color:#38bdf8':''}">
      ${avisoContaOuNovo}
@@ -1075,8 +1124,10 @@ function renderComandas(){
        <p class="muted" style="font-size:11px;margin:0">👤 Atendente: <b>${c.garcom || 'Hebster'}</b></p>
        <span class="tag ${tempoInfo.classe}" style="background:var(--input-bg);color:var(--muted)">⏱️ ${tempoInfo.texto}</span>
      </div>
-     ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:10px;color:#10b981;margin-bottom:4px"><b>Pagos:</b> ${c.itensPagos.map(ip=>`[${ip.cliente}] ${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
-     ${(c.itens||[]).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("")}
+     ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:10px;color:#10b981;margin-bottom:6px"><b>Pagos:</b> ${c.itensPagos.map(ip=>`[${ip.cliente}] ${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
+     
+     <div style="margin: 8px 0;">${lotesHTML}</div>
+
      <div style="display:flex;gap:6px;margin-top:12px">
        <button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar</button>
        <button class="secondary" style="margin:0;background:rgba(239,68,68,0.1);color:var(--brand);border-color:var(--brand)" onclick="abrirModalTransferencia(${m})">🔄 Transferir</button>
