@@ -200,7 +200,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 }
 .prod-desc-text {
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--text-gray, var(--muted));
   margin: 0 0 3px 0;
   font-weight: 600;
   display: -webkit-box;
@@ -219,6 +219,18 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   align-items: center;
   gap: 8px;
 }
+.btn {
+  background-color: var(--brand);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform .15s ease;
+}
+.btn:hover { opacity: 0.9; }
+.btn:active { transform: scale(0.92); }
 
 .btn-circle-plus {
   width: 38px;
@@ -257,7 +269,9 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   cursor: pointer;
   display: grid;
   place-items: center;
+  transition: transform .15s ease;
 }
+.qty-control-inline button:active { transform: scale(0.85); }
 .qty-control-inline span {
   font-weight: 900;
   font-size: 13px;
@@ -265,7 +279,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   text-align: center;
 }
 
-/* Lotes nas Comandas */
+/* Lotes nas Comandas & Novo Item */
 .lote-pedido {
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -297,6 +311,11 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
     border-radius: 4px;
     font-size: 0.7rem;
     font-weight: 900;
+}
+.novo-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* Barra Flutuante de Carrinho */
@@ -889,6 +908,7 @@ function mudarClienteAtual(novoCli){
   renderAtendimento();
 }
 
+// 1. RENOMEAÇÃO DIRETA DO CLIENTE (CLICANDO NO PRÓPRIO NOME)
 function renomearClienteAtual(){
   let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
   if(!novoNome || !novoNome.trim()) return;
@@ -905,6 +925,7 @@ function renomearClienteAtual(){
   clienteAtual = novoNome;
   renderAtendimento();
   salvarRascunhoAutomatico();
+  showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
 function salvarRascunhoAutomatico(){
@@ -1039,6 +1060,7 @@ function adicionarNovoClientePrompt(){
   if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
   clienteAtual = nomeCli;
   renderAtendimento();
+  showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
 function salvarComanda(){
@@ -1077,7 +1099,7 @@ function salvarComanda(){
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
      fecharModal();
-     showToast(`Mesa ${pad(mesaSelecionada)} salva com sucesso!`);
+     showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(mesaSelecionada)}!`);
      mudarTela("mesas");
    })
    .catch(err => { showToast("Erro ao salvar: " + err.message, true); });
@@ -1098,7 +1120,7 @@ function abrirCarrinho(){
    htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--brand);margin-top:10px;margin-bottom:4px">👤 ${cli}</div>`;
    htmlCarrinho += itensPorPessoa[cli].map(i => `
      <div class="line" style="align-items:center">
-       <div><b>${i.nome}</b><br><small>${br(i.preco)} cada</small></div>
+       <div><b>${i.name || i.nome}</b><br><small>${br(i.preco)} cada</small></div>
        <div style="display:flex;align-items:center;gap:8px">
          <div class="qty-control-inline">
            <button onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', -1)">−</button>
@@ -1494,10 +1516,27 @@ function renderComandas(){
    if (c.lotes && c.lotes.length > 0) {
      let lotesInvertidos = [...c.lotes].reverse();
      lotesHTML = lotesInvertidos.map(lote => {
-       let itensLoteHTML = lote.itens.map(item => `
+       // 2. AGRUPAMENTO INTELIGENTE DE ITENS REPETIDOS NO LOTE
+       let itensAgrupadosLote = {};
+       (lote.itens || []).forEach(item => {
+         let chave = (item.cliente || 'Cliente 1') + "_" + item.nome;
+         if(!itensAgrupadosLote[chave]) {
+           itensAgrupadosLote[chave] = { cliente: item.cliente || 'Cliente 1', nome: item.nome, qtdTotal: 0, precoTotal: 0 };
+         }
+         // Extraindo quantidade numérica string ex: "4x Frango"
+         let matchQtd = String(item.nome).match(/^(\d+)x\s*(.*)$/);
+         let q = matchQtd ? parseInt(matchQtd[1]) : 1;
+         let nomeReal = matchQtd ? matchQtd[2] : item.nome;
+         
+         // Atualizando nome sem repetir contagem anterior se já vier formatado
+         itensAgrupadosLote[chave].nome = nomeReal;
+         itensAgrupadosLote[chave].qtdTotal += q;
+       });
+
+       let itensLoteHTML = Object.values(itensAgrupadosLote).map(item => `
          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
-           <span><b>[${item.cliente || 'Cliente 1'}]</b> ${item.nome}</span>
-           <span>${item.preco}</span>
+           <span><b>[${item.cliente}]</b> ${item.qtdTotal}x ${item.nome}</span>
+           <span>${item.precoTotal ? br(item.precoTotal) : ''}</span>
          </div>
        `).join('');
 
@@ -1505,14 +1544,22 @@ function renderComandas(){
          <div class="lote-pedido ${lote.isNovo ? 'novo' : ''}">
            <div class="lote-header">
              <span>📦 Pedido às ${lote.horario || 'Recente'}</span>
-             ${lote.isNovo ? '<span class="badge-novo">NOVO 🚀</span>' : ''}
+             ${lote.isNovo ? '<span class="badge-novo novo-item">🔵 NOVO 🚀</span>' : ''}
            </div>
            <div>${itensLoteHTML}</div>
          </div>
        `;
      }).join('');
    } else {
-     lotesHTML = (c.itens || []).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("");
+     // Agrupamento geral consolidado
+     let agrupadosGeral = {};
+     (c.itens || []).forEach(i => {
+       let cli = i.cliente || 'Cliente 1';
+       let chave = cli + "_" + i.nome;
+       if(!agrupadosGeral[chave]) agrupadosGeral[chave] = { cliente: cli, nome: i.nome, qtd: 0, preco: i.preco };
+       agrupadosGeral[chave].qtd += i.qtd;
+     });
+     lotesHTML = Object.values(agrupadosGeral).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("");
    }
 
    return `<div class="card command" style="${c.pediuContaAlerta?'border-color:#f59e0b':c.novoPedidoAlerta?'border-color:#38bdf8':''}">
@@ -1569,10 +1616,16 @@ function renderAtendimento(){
  <div class="card" style="padding:12px">
    <div style="font-weight:900;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
      <span>👤 Pessoa pedindo agora:</span>
-     <button onclick="renomearClienteAtual()" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:900;cursor:pointer">✏️ Renomear "${clienteAtual}"</button>
+     <span style="font-size:10px;color:var(--muted)">Clique no nome abaixo para renomear</span>
    </div>
    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-     ${clientesLista.map(cli => `<button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:10px;border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};background:${cli===clienteAtual?'var(--brand)':'var(--card)'};color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>`).join("")}
+     <!-- 1. BOTÃO DO CLIENTE CLICÁVEL DIRETAMENTE PARA RENOMEAR -->
+     ${clientesLista.map(cli => `
+       <div style="display:inline-flex;align-items:center;background:${cli===clienteAtual?'var(--brand)':'var(--card)'};border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};border-radius:10px;overflow:hidden">
+         <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 10px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>
+         <button onclick="renomearClienteAtual()" title="Renomear ${cli}" style="padding:6px 8px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--muted)'};font-weight:900;font-size:10px;cursor:pointer">✏️</button>
+       </div>
+     `).join("")}
      <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:var(--card);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer">+ Nova Pessoa</button>
    </div>
    <div style="font-size:11px;color:var(--muted)">Lançando produtos na conta de: <b style="color:var(--brand)">${clienteAtual}</b></div>
