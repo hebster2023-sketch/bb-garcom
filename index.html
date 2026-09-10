@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -423,6 +423,7 @@ db.enablePersistence().catch(() => {});
 
 let somAtivo = false;
 let primeiraCargaFirebase = true;
+let salvandoPedidoEmAndamento = false; // Trava global de segurança para evitar duplo clique
 
 function toggleSound(){
   somAtivo = !somAtivo;
@@ -459,7 +460,6 @@ function processarAlertaPedido(mesaId, atual) {
     return;
   }
 
-  // MODIFICADO: A voz e o som só disparam se a origem do pedido for explicitamente do "cliente" (Cardápio Digital)
   if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente' && Array.isArray(atual.lotes) && atual.lotes.length > 0) {
     let textoFalar = `Novo pedido na Mesa ${mesaId} feito pelo cliente`;
     showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
@@ -472,7 +472,6 @@ function processarAlertaPedido(mesaId, atual) {
       console.error("Erro ao limpar flag de novo pedido:", error);
     });
   } else if (atual && atual.novoPedidoAlerta) {
-    // Se for alteração gerada internamente pelo garçom, apenas limpa a flag silenciosamente sem falar nada
     db.collection('comandas').doc(String(mesaId)).update({ 
       novoPedidoAlerta: false,
       origemPedido: null 
@@ -917,7 +916,6 @@ function mudarClienteAtual(novoCli){
   renderAtendimento();
 }
 
-// 1. RENOMEAÇÃO DIRETA DO CLIENTE (CLICANDO NO PRÓPRIO NOME)
 function renomearClienteAtual(){
   let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
   if(!novoNome || !novoNome.trim()) return;
@@ -949,7 +947,7 @@ function salvarRascunhoAutomatico(){
     total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
     criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
     atualizadoEm: Date.now(),
-    origemPedido: 'garcom' // Registra que a alteração foi feita pelo garçom internamente
+    origemPedido: 'garcom'
   };
 
   db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(()=>{});
@@ -1074,7 +1072,13 @@ function adicionarNovoClientePrompt(){
 }
 
 function salvarComanda(){
- const itens = itensTempComClientes(); if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+ const itens = itensTempComClientes(); 
+ if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+ 
+ // TRAVA DE SEGURANÇA: Se já estiver salvando, ignora novos cliques
+ if(salvandoPedidoEmAndamento) return;
+ salvandoPedidoEmAndamento = true;
+
  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
  const comandaAtual = comandas[mesaSelecionada] || {};
  
@@ -1104,16 +1108,20 @@ function salvarComanda(){
    criadoEm: criadoEmOriginal, 
    atualizadoEm: Date.now(), 
    novoPedidoAlerta: true,
-   origemPedido: 'garcom' // Garante que foi o garçom salvando no sistema
+   origemPedido: 'garcom'
  };
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
+     salvandoPedidoEmAndamento = false; // Libera a trava no sucesso
      fecharModal();
      showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(mesaSelecionada)}!`);
      mudarTela("mesas");
    })
-   .catch(err => { showToast("Erro ao salvar: " + err.message, true); });
+   .catch(err => { 
+     salvandoPedidoEmAndamento = false; // Libera a trava mesmo se der erro
+     showToast("Erro ao salvar: " + err.message, true); 
+   });
 }
 
 function abrirCarrinho(){
