@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -1082,7 +1082,6 @@ function salvarComanda(){
  const comandaAtual = comandas[mesaSelecionada] || {};
  const criadoEmOriginal = comandaAtual.criadoEm || Date.now();
  
- // Prepara o novo lote com horário
  let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
  let novoLote = {
    id: Date.now(),
@@ -1091,14 +1090,11 @@ function salvarComanda(){
    itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
  };
 
- // Mantém os lotes antigos marcando isNovo como false
  let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
  let lotesAtualizados = [...lotesAntigos, novoLote];
 
- // Consolida todos os itens da comanda unificando por Cliente + Nome para evitar repetição visual e duplicação de dados
  let mapaItensConsolidados = {};
  
- // Primeiro adiciona os itens que já estavam salvos no banco
  (comandaAtual.itens || []).forEach(it => {
    let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
    if(!mapaItensConsolidados[chave]) {
@@ -1107,7 +1103,6 @@ function salvarComanda(){
    mapaItensConsolidados[chave].qtd += Number(it.qtd);
  });
 
- // Depois soma os novos itens que estão sendo enviados agora
  itens.forEach(it => {
    let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
    if(!mapaItensConsolidados[chave]) {
@@ -1134,7 +1129,7 @@ function salvarComanda(){
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
      salvandoPedidoEmAndamento = false;
-     pedidoTemp = {}; // Limpa o rascunho temporário atual após salvar com sucesso
+     pedidoTemp = {}; 
      fecharModal();
      showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(mesaSelecionada)}!`);
      mudarTela("mesas");
