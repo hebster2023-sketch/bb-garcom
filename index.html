@@ -61,22 +61,31 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .filter-tab{background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;transition:all .2s}
 .filter-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px rgba(239,68,68,0.3)}
 
-/* Grid de Mesas com Badges e Feedback Tátil */
+/* Grid de Mesas com Cores de Alerta Diferentes */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--ink);box-shadow:0 6px 16px rgba(0,0,0,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
 .table:hover{border-color:rgba(239,68,68,0.3);transform:translateY(-2px)}
 .table:active{transform:scale(0.95)}
 .table.busy{border-color:rgba(239, 68, 68, 0.35);background:linear-gradient(135deg, rgba(239, 68, 68, 0.08), var(--card))}
 
+/* Estado 1: Novo Pedido (Cor Azulada/Ciano Destacada) */
+.table.novo-pedido-ativo{border-color:#38bdf8 !important;background:linear-gradient(135deg, rgba(56, 189, 248, 0.2), var(--card)) !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.4) !important;animation: pulseNovo 1.5s infinite}
+@keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
+
+/* Estado 2: Pediu a Conta (Cor Amarela/Dourada Forte e Pulsante) */
+.table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.25), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.5) !important;animation: pulseConta 1.2s infinite}
+@keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
+
 /* Badges de Status Modernos */
 .table .num{font-size:15px;font-weight:900}
 .badge-status{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
 .badge-status.livre{background:rgba(16, 185, 129, 0.15);color:#10b981;border:1px solid rgba(16, 185, 129, 0.3)}
 .badge-status.ocupada{background:rgba(239, 68, 68, 0.15);color:var(--brand);border:1px solid rgba(239, 68, 68, 0.3)}
+.badge-status.novo{background:rgba(56, 189, 248, 0.2);color:#38bdf8;border:1px solid rgba(56, 189, 248, 0.4)}
+.badge-status.conta{background:rgba(245, 158, 11, 0.2);color:#f59e0b;border:1px solid rgba(245, 158, 11, 0.4)}
 
 .table .total{font-size:12px;font-weight:900;margin-top:3px;color:var(--brand)}
 .table .timer{font-size:9px;margin-top:2px;font-weight:800;padding:1px 6px;border-radius:6px}
-/* Indicadores Visuais de Tempo Graduais */
 .timer.tempo-verde{background:rgba(16, 185, 129, 0.15);color:#10b981}
 .timer.tempo-amarelo{background:rgba(245, 158, 11, 0.15);color:#f59e0b}
 .timer.tempo-vermelho{background:rgba(239, 68, 68, 0.15);color:#ef4444}
@@ -122,7 +131,7 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .qty button.plus{background:var(--brand);color:#fff;box-shadow:0 3px 10px rgba(239,68,68,0.3)}
 .qty span{font-weight:900;min-width:20px;text-align:center;font-size:14px;color:var(--ink)}
 
-/* Barra Flutuante de Carrinho com Efeito de Mola Animado */
+/* Barra Flutuante de Carrinho */
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(30, 41, 59, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
 .cartbar.show-cart{transform:translateX(-50%) translateY(0);opacity:1}
 [data-theme="light"] .cartbar{background:rgba(20, 40, 30, 0.95)}
@@ -225,7 +234,6 @@ if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 db.enablePersistence().catch(() => {});
 
-// Sistema de Alerta Sonoro Inteligente (Text-to-Speech)
 let somAtivo = false;
 let primeiraCargaFirebase = true;
 
@@ -254,21 +262,28 @@ function falarTexto(texto){
   window.speechSynthesis.speak(utterance);
 }
 
-// Função de verificação de comandas simplificada (Apenas avisa a mesa)
+// Verificação inteligente de alertas diferenciados (Novo Pedido vs Pedir Conta)
 function processarAlertaPedido(mesaId, atual) {
   if (!somAtivo) return;
 
+  // 1. Alerta de Pedir a Conta (Prioridade máxima / Cor amarela)
+  if (atual && atual.pediuContaAlerta) {
+    let textoFalar = `Atenção! A Mesa ${mesaId} solicitou a conta.`;
+    showToast(`⚠️ Mesa ${pad(mesaId)} pediu a conta!`);
+    falarTexto(textoFalar);
+    return; // Evita conflito com o aviso de novo pedido comum
+  }
+
+  // 2. Alerta de Novo Pedido (Cor azul/ciano)
   if (atual && atual.novoPedidoAlerta && Array.isArray(atual.itens) && atual.itens.length > 0) {
     let textoFalar = `Novo pedido na Mesa ${mesaId}`;
-
     showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
     falarTexto(textoFalar);
 
-    // Limpa a flag no Firebase para evitar repetição
     db.collection('comandas').doc(String(mesaId)).update({ 
       novoPedidoAlerta: false 
     }).catch(error => {
-      console.error("Erro ao limpar a flag de alerta no Firebase:", error);
+      console.error("Erro ao limpar flag de novo pedido:", error);
     });
   }
 }
@@ -285,7 +300,7 @@ function verificarNovosPedidos(novasComandas){
   }
 }
 
-// Sistema de Tema Claro/Escuro
+// Tema Claro/Escuro
 function toggleTheme(){
   const html = document.documentElement;
   const current = html.getAttribute('data-theme');
@@ -302,7 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if(btn) btn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
 });
 
-// Sistema de Toast Flutuante
 function showToast(msg, isError = false){
   const container = document.getElementById('toast-container');
   if(!container) return;
@@ -480,6 +494,15 @@ function mudarTela(t, num=null){
 
 function abrirMesa(num){
   mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; garcomTemp = "Hebster"; termoBuscaProduto = "";
+  
+  // Ao abrir a mesa, limpa os alertas pendentes (novo pedido ou pediu conta)
+  if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
+    db.collection("comandas").doc(String(num)).update({
+      novoPedidoAlerta: false,
+      pediuContaAlerta: false
+    }).catch(()=>{});
+  }
+
   if(comandas[num]){
     garcomTemp = comandas[num].garcom || "Hebster";
     if(comandas[num].itens){
@@ -622,6 +645,8 @@ function salvarComanda(){
  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
  const itensPagosAntigos = comandas[mesaSelecionada]?.itensPagos || [];
  const criadoEmOriginal = comandas[mesaSelecionada]?.criadoEm || Date.now();
+ 
+ // Ativa a flag novoPedidoAlerta = true para destacar na tela do garçom
  const dadosMesa = { garcom: garcomTemp, itens, itensPagos: itensPagosAntigos, total, criadoEm: criadoEmOriginal, atualizadoEm: Date.now(), novoPedidoAlerta: true };
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
@@ -986,10 +1011,27 @@ function renderMesas(){
    let totalRestante = c?.total || 0;
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
 
+   // Definir classes de destaque visual com base nos novos alertas pendentes
+   let classeDestaque = "";
+   let badgeTexto = "OCUPADA";
+   let badgeClasse = "ocupada";
+
+   if (busy) {
+     if (c.pediuContaAlerta) {
+       classeDestaque = "pediu-conta-ativo";
+       badgeTexto = "PEDIU A CONTA";
+       badgeClasse = "conta";
+     } else if (c.novoPedidoAlerta) {
+       classeDestaque = "novo-pedido-ativo";
+       badgeTexto = "NOVO PEDIDO";
+       badgeClasse = "novo";
+     }
+   }
+
    arrayMesasHTML.push(`
-     <div class="table ${busy ? "busy" : ""}" onclick="abrirMesa(${i})">
+     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
-       <div class="badge-status ${busy ? 'ocupada' : 'livre'}">${busy ? "OCUPADA" : "LIVRE"}</div>
+       <div class="badge-status ${busy ? badgeClasse : 'livre'}">${busy ? badgeTexto : "LIVRE"}</div>
        ${busy ? `<div class="total">${br(totalRestante)}</div><div class="timer ${tempoInfo.classe}">⏱️ ${tempoInfo.texto}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
      </div>
    `);
@@ -1019,7 +1061,12 @@ function renderComandas(){
  ${abertas.length ? abertas.map(([m,c]) => {
    let totalRestante = c.total || 0; 
    let tempoInfo = calcularTempoDecorrido(c.criadoEm);
-   return `<div class="card command">
+   let avisoContaOuNovo = "";
+   if(c.pediuContaAlerta) avisoContaOuNovo = `<div style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(245,158,11,0.4)">⚠️ ESTA MESA PEDIU A CONTA!</div>`;
+   else if(c.novoPedidoAlerta) avisoContaOuNovo = `<div style="background:rgba(56,189,248,0.2);color:#38bdf8;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(56,189,248,0.4)">🔔 HÁ UM NOVO PEDIDO NESTA MESA!</div>`;
+
+   return `<div class="card command" style="${c.pediuContaAlerta?'border-color:#f59e0b':c.novoPedidoAlerta?'border-color:#38bdf8':''}">
+     ${avisoContaOuNovo}
      <div class="row">
        <h3>Mesa ${pad(m)}</h3>
        <strong style="color:var(--brand);font-size:16px">${br(totalRestante)}</strong>
@@ -1048,6 +1095,8 @@ function renderAtendimento(){
 
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento por Cliente</p></div><button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:0;background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--border);color:var(--brand);border-radius:10px;padding:6px 10px;font-weight:900;font-size:11px;cursor:pointer">🔄 Mudar Mesa</button></div></div>
  
+ ${cAtual?.pediuContaAlerta ? `<div class="card" style="border-color:#f59e0b;background:rgba(245,158,11,0.1);padding:10px;margin-bottom:12px"><div style="font-weight:900;font-size:12px;color:#f59e0b">⚠️ Esta mesa solicitou fechamento de conta.</div></div>` : ''}
+
  ${itensJaPagosNaMesa.length ? `
  <div class="card" style="border-color:#10b981;padding:10px;margin-bottom:12px">
    <div style="font-weight:900;font-size:12px;color:#10b981;margin-bottom:4px">✅ Já pagos:</div>
