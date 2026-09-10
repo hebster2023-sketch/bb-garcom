@@ -484,7 +484,6 @@ function comprimirImagemParaBase64(file, callback) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       
-      // Converte para JPEG com qualidade 0.7 para gerar string leve
       const dataurl = canvas.toDataURL('image/jpeg', 0.7);
       callback(dataurl);
     };
@@ -495,7 +494,8 @@ function comprimirImagemParaBase64(file, callback) {
 
 // ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
-  let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
+  // Prompt limpo sem expor a senha na tela
+  let senha = prompt("Digite a senha do Administrador:");
   if(senha === null) return;
   if(senha !== "2201"){
     showToast("Senha incorreta!", true);
