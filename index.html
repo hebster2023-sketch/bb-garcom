@@ -424,6 +424,7 @@ db.enablePersistence().catch(() => {});
 let somAtivo = false;
 let primeiraCargaFirebase = true;
 let salvandoPedidoEmAndamento = false; // Trava global de segurança para evitar duplo clique
+let isProcessandoPedido = false; // Trava adicional para transações
 
 function toggleSound(){
   somAtivo = !somAtivo;
@@ -1075,7 +1076,6 @@ function salvarComanda(){
  const itens = itensTempComClientes(); 
  if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
  
- // TRAVA DE SEGURANÇA: Se já estiver salvando, ignora novos cliques
  if(salvandoPedidoEmAndamento) return;
  salvandoPedidoEmAndamento = true;
 
@@ -1113,13 +1113,13 @@ function salvarComanda(){
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
-     salvandoPedidoEmAndamento = false; // Libera a trava no sucesso
+     salvandoPedidoEmAndamento = false;
      fecharModal();
      showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(mesaSelecionada)}!`);
      mudarTela("mesas");
    })
    .catch(err => { 
-     salvandoPedidoEmAndamento = false; // Libera a trava mesmo se der erro
+     salvandoPedidoEmAndamento = false;
      showToast("Erro ao salvar: " + err.message, true); 
    });
 }
@@ -1775,6 +1775,76 @@ function renderizar(){
     document.getElementById('navRelatorios')?.classList.add('active');
     renderRelatorios();
   }
+}
+
+// Funções utilitárias adicionais integradas
+async function adicionarItemNaMesaTransacao(mesaId, produto) {
+    if (isProcessandoPedido) return;
+    isProcessandoPedido = true;
+
+    try {
+        const mesaRef = db.collection('mesas').doc(mesaId);
+        
+        const novoItem = {
+            idUnico: '_' + Math.random().toString(36).substr(2, 9),
+            produtoId: produto.id,
+            nome: produto.nome,
+            preco: Number(produto.preco),
+            quantidade: 1,
+            observacao: produto.observacao || '',
+            hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        await db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(mesaRef);
+            if (!doc.exists) throw "Mesa não encontrada!";
+
+            let dadosMesa = doc.data();
+            let itensAtuais = dadosMesa.itens || [];
+            
+            itensAtuais.push(novoItem);
+
+            let novoTotalCalculado = itensAtuais.reduce((acc, item) => acc + (Number(item.preco) * Number(item.quantidade)), 0);
+
+            transaction.update(mesaRef, {
+                itens: itensAtuais,
+                totalMesa: novoTotalCalculado,
+                status: 'ocupada'
+            });
+        });
+
+        showToast("Item adicionado com sucesso!");
+    } catch (error) {
+        console.error("Erro ao adicionar item:", error);
+        showToast("Erro ao adicionar item. Tente novamente.", true);
+    } finally {
+        setTimeout(() => { isProcessandoPedido = false; }, 500);
+    }
+}
+
+function calcularTotalVisualizacao(itens) {
+    if (!itens || !Array.isArray(itens)) return 0;
+    return itens.reduce((soma, item) => {
+        const preco = Number(item.preco) || 0;
+        const qtd = Number(item.quantidade) || 1;
+        return soma + (preco * qtd);
+    }, 0);
+}
+
+async function corrigirMesaComBug(mesaId) {
+    const mesaRef = db.collection('mesas').doc(mesaId);
+    const doc = await mesaRef.get();
+    if (!doc.exists) return;
+
+    const dados = doc.data();
+    const itens = dados.itens || [];
+
+    const totalReal = itens.reduce((acc, i) => acc + (Number(i.preco) * Number(i.quantidade)), 0);
+
+    await mesaRef.update({
+        totalMesa: totalReal
+    });
+    showToast("Mesa corrigida e recalibrada com sucesso!");
 }
 </script>
 </body>
