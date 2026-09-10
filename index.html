@@ -109,7 +109,6 @@ body{padding-bottom:140px}.app{max-width:760px;margin:auto;padding:16px 16px 140
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .product{overflow:hidden;border-radius:18px;background:var(--card);backdrop-filter:blur(12px);border:1px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.03);transition:all .2s;position:relative}
 .product.selected{border-color:var(--brand);box-shadow:0 6px 20px rgba(239,68,68,0.15)}
-/* Barra lateral de destaque nos produtos selecionados */
 .product.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand);border-radius:4px 0 0 4px}
 
 .prod-img{height:75px;width:100%;display:flex;align-items:center;justify-content:center;background:var(--input-bg)}
@@ -247,47 +246,25 @@ function toggleSound(){
 
 function falarTexto(texto){
   if(!somAtivo || !('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel(); // Cancela falas anteriores para não acumular
+  window.speechSynthesis.cancel();
   let utterance = new SpeechSynthesisUtterance(texto);
   utterance.lang = 'pt-BR';
-  utterance.rate = 1.05; // Levemente mais ágil para otimizar o tempo na operação
+  utterance.rate = 1.05;
   utterance.pitch = 1.0;
   window.speechSynthesis.speak(utterance);
 }
 
-// Função principal de verificação de comandas com base na flag 'novoPedidoAlerta'
+// Função de verificação de comandas simplificada (Apenas avisa a mesa)
 function processarAlertaPedido(mesaId, atual) {
   if (!somAtivo) return;
 
-  // Valida se o alerta está ativo e se existem itens
   if (atual && atual.novoPedidoAlerta && Array.isArray(atual.itens) && atual.itens.length > 0) {
-    let garcom = atual.garcom || "Garçom";
-    let textoFalar = `Atenção! Novo pedido na Mesa ${mesaId}, atendido por ${garcom}. Contendo: `;
-    
-    atual.itens.forEach((item, index) => {
-      let qtd = item.qtd || 1;
-      let unidadeTexto = qtd > 1 ? `${qtd} unidades de` : `${qtd}`;
-      
-      textoFalar += `${unidadeTexto} ${item.nome}`;
-
-      let observacao = item.obs || item.observacao;
-      if (observacao) {
-        textoFalar += ` (Observação: ${observacao})`;
-      }
-      
-      if (index === atual.itens.length - 1) {
-        textoFalar += ".";
-      } else if (index === atual.itens.length - 2) {
-        textoFalar += ", e ";
-      } else {
-        textoFalar += ", ";
-      }
-    });
+    let textoFalar = `Novo pedido na Mesa ${mesaId}`;
 
     showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
     falarTexto(textoFalar);
 
-    // Limpa a flag no Firebase para evitar repetição infinita ao atualizar o listener/snapshot
+    // Limpa a flag no Firebase para evitar repetição
     db.collection('comandas').doc(String(mesaId)).update({ 
       novoPedidoAlerta: false 
     }).catch(error => {
