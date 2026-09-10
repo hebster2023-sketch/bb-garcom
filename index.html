@@ -228,7 +228,6 @@ db.enablePersistence().catch(() => {});
 
 // Sistema de Alerta Sonoro Inteligente (Text-to-Speech)
 let somAtivo = false;
-let comandasAnteriores = {};
 let primeiraCargaFirebase = true;
 
 function toggleSound(){
@@ -249,39 +248,64 @@ function toggleSound(){
 function falarTexto(texto){
   if(!somAtivo || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel(); // Cancela falas anteriores para não acumular
-  const utterance = new SpeechSynthesisUtterance(texto);
+  let utterance = new SpeechSynthesisUtterance(texto);
   utterance.lang = 'pt-BR';
-  utterance.rate = 1.0;
+  utterance.rate = 1.05; // Levemente mais ágil para otimizar o tempo na operação
   utterance.pitch = 1.0;
   window.speechSynthesis.speak(utterance);
 }
 
+// Função principal de verificação de comandas com base na flag 'novoPedidoAlerta'
+function processarAlertaPedido(mesaId, atual) {
+  if (!somAtivo) return;
+
+  // Valida se o alerta está ativo e se existem itens
+  if (atual && atual.novoPedidoAlerta && Array.isArray(atual.itens) && atual.itens.length > 0) {
+    let garcom = atual.garcom || "Garçom";
+    let textoFalar = `Atenção! Novo pedido na Mesa ${mesaId}, atendido por ${garcom}. Contendo: `;
+    
+    atual.itens.forEach((item, index) => {
+      let qtd = item.qtd || 1;
+      let unidadeTexto = qtd > 1 ? `${qtd} unidades de` : `${qtd}`;
+      
+      textoFalar += `${unidadeTexto} ${item.nome}`;
+
+      let observacao = item.obs || item.observacao;
+      if (observacao) {
+        textoFalar += ` (Observação: ${observacao})`;
+      }
+      
+      if (index === atual.itens.length - 1) {
+        textoFalar += ".";
+      } else if (index === atual.itens.length - 2) {
+        textoFalar += ", e ";
+      } else {
+        textoFalar += ", ";
+      }
+    });
+
+    showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
+    falarTexto(textoFalar);
+
+    // Limpa a flag no Firebase para evitar repetição infinita ao atualizar o listener/snapshot
+    db.collection('comandas').doc(String(mesaId)).update({ 
+      novoPedidoAlerta: false 
+    }).catch(error => {
+      console.error("Erro ao limpar a flag de alerta no Firebase:", error);
+    });
+  }
+}
+
 function verificarNovosPedidos(novasComandas){
   if(primeiraCargaFirebase){
-    comandasAnteriores = JSON.parse(JSON.stringify(novasComandas));
     primeiraCargaFirebase = false;
     return;
   }
 
   for(const mesaId in novasComandas){
     const atual = novasComandas[mesaId];
-    const anterior = comandasAnteriores[mesaId];
-
-    // Se a mesa é nova ou teve aumento no total/itens, dispara o alerta
-    if(!anterior || (atual.total > (anterior.total || 0)) || ((atual.itens?.length || 0) > (anterior.itens?.length || 0))){
-      // Pega o último item adicionado ou resume
-      const ultItem = atual.itens && atual.itens.length ? atual.itens[atual.itens.length - 1] : null;
-      const descItem = ultItem ? `${ultItem.qtd} ${ultItem.nome}` : "Novo pedido";
-      const garcom = atual.garcom || "Garçom";
-
-      const mensagemAlerta = `Atenção! Novo pedido na Mesa ${mesaId}, atendido por ${garcom}. ${descItem}.`;
-      
-      showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
-      falarTexto(mensagemAlerta);
-    }
+    processarAlertaPedido(mesaId, atual);
   }
-
-  comandasAnteriores = JSON.parse(JSON.stringify(novasComandas));
 }
 
 // Sistema de Tema Claro/Escuro
@@ -621,7 +645,7 @@ function salvarComanda(){
  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
  const itensPagosAntigos = comandas[mesaSelecionada]?.itensPagos || [];
  const criadoEmOriginal = comandas[mesaSelecionada]?.criadoEm || Date.now();
- const dadosMesa = { garcom: garcomTemp, itens, itensPagos: itensPagosAntigos, total, criadoEm: criadoEmOriginal, atualizadoEm: Date.now() };
+ const dadosMesa = { garcom: garcomTemp, itens, itensPagos: itensPagosAntigos, total, criadoEm: criadoEmOriginal, atualizadoEm: Date.now(), novoPedidoAlerta: true };
 
  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
    .then(() => {
