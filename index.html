@@ -580,7 +580,7 @@ function carregarCardapioDinamico(){
 
 function salvarCardapioDinamicoNoFirebase(){
   db.collection("configuracoes").doc("cardapio").set({ dados: cardapio }).then(() => {
-    showToast("Cardápio atualizado com sucesso!");
+    showToast("Cardápio atualizado e salvo no banco com sucesso!");
     renderizar();
   }).catch(err => {
     showToast("Erro ao salvar cardápio: " + err.message, true);
@@ -595,8 +595,8 @@ function comprimirImagemParaBase64(file, callback) {
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;
-      const MAX_WIDTH = 300;
-      const MAX_HEIGHT = 300;
+      const MAX_WIDTH = 250;
+      const MAX_HEIGHT = 250;
       if (width > height) {
         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
       } else {
@@ -606,7 +606,7 @@ function comprimirImagemParaBase64(file, callback) {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      const dataurl = canvas.toDataURL('image/jpeg', 0.7);
+      const dataurl = canvas.toDataURL('image/jpeg', 0.6);
       callback(dataurl);
     };
     img.src = e.target.result;
@@ -622,7 +622,10 @@ function abrirPainelAdmin(){
     showToast("Senha incorreta!", true);
     return;
   }
-  
+  renderizarPainelAdmin();
+}
+
+function renderizarPainelAdmin(){
   let categoriasHTML = Object.keys(cardapio).map(cat => `
     <div class="card" style="margin-bottom:14px;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -672,8 +675,8 @@ function adicionarCategoriaAdmin(){
     return;
   }
   cardapio[novaCat] = [];
-  abrirPainelAdmin();
-  showToast(`Categoria ${novaCat} criada! Clique em salvar.`);
+  renderizarPainelAdmin();
+  showToast(`Categoria ${novaCat} criada! Clique em Salvar Alterações no Banco.`);
 }
 
 function adicionarItemAdmin(cat){
@@ -692,7 +695,7 @@ function adicionarItemAdmin(cat){
       <input type="file" id="inputFotoNovoItem" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
     </div>
     <button class="primary" onclick="confirmarAdicaoItemAdmin('${cat}', '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">✅ Adicionar Item</button>
-    <button class="secondary" onclick="abrirPainelAdmin()">Voltar</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
 
@@ -701,13 +704,13 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
       cardapio[cat].push([nome, preco, base64, desc]);
-      abrirPainelAdmin();
-      showToast("Item com foto adicionado com sucesso!");
+      salvarCardapioDinamicoNoFirebase();
+      renderizarPainelAdmin();
     });
   } else {
     cardapio[cat].push([nome, preco, "🍖", desc]);
-    abrirPainelAdmin();
-    showToast("Item adicionado com ícone padrão!");
+    salvarCardapioDinamicoNoFirebase();
+    renderizarPainelAdmin();
   }
 }
 
@@ -731,7 +734,7 @@ function editarItemAdmin(cat, idx){
       <input type="file" id="inputFotoItemAdmin" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
     </div>
     <button class="primary" onclick="confirmarEdicaoItemAdmin('${cat}', ${idx}, '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">💾 Salvar Alterações</button>
-    <button class="secondary" onclick="abrirPainelAdmin()">Voltar</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
 
@@ -742,21 +745,21 @@ function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
       cardapio[cat][idx] = [nome, preco, base64, desc];
-      abrirPainelAdmin();
-      showToast("Item e imagem atualizados com sucesso!");
+      salvarCardapioDinamicoNoFirebase();
+      renderizarPainelAdmin();
     });
   } else {
     cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc];
-    abrirPainelAdmin();
-    showToast("Item atualizado com sucesso!");
+    salvarCardapioDinamicoNoFirebase();
+    renderizarPainelAdmin();
   }
 }
 
 function removerItemAdmin(cat, idx){
   if(confirm("Deseja remover este item do cardápio?")){
     cardapio[cat].splice(idx, 1);
-    abrirPainelAdmin();
-    showToast("Item removido. Clique em salvar.");
+    salvarCardapioDinamicoNoFirebase();
+    renderizarPainelAdmin();
   }
 }
 
