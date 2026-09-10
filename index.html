@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -1716,57 +1716,65 @@ function renderRelatorios(){
   <div class="section-title"><h2>💳 Faturamento por Forma de Pagamento</h2></div>
   <div class="card">
     ${Object.keys(pagamentosTotais).length ? Object.entries(pagamentosTotais).map(([meio, val]) => `
-      <div class="line">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
         <span><b>${meio}</b></span>
-        <strong style="color:var(--brand)">${br(val)}</strong>
+        <b style="color:var(--brand)">${br(val)}</b>
       </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum pagamento registrado.</div>`}
+    `).join('') : '<div class="empty" style="padding:15px">Nenhum pagamento registrado hoje</div>'}
   </div>
 
-  <div class="section-title"><h2>📦 Total Consolidado de Produtos</h2></div>
+  <div class="section-title"><h2>🏆 Produtos Mais Vendidos</h2></div>
   <div class="card">
-    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd]) => `
-      <div class="line">
-        <span>${nome}</span>
-        <strong style="color:var(--brand)">${qtd}x</strong>
+    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd], index) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:900;color:var(--brand)">#${index+1}</span>
+          <span><b>${nome}</b></span>
+        </div>
+        <span class="tag" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border)">${qtd} un</span>
       </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum produto vendido ainda.</div>`}
+    `).join('') : '<div class="empty" style="padding:15px">Nenhuma venda registrada</div>'}
   </div>
 
-  <div class="section-title"><h2>⚠️ Registro de Cancelamentos</h2></div>
+  <div class="section-title"><h2>📉 Despesas Registradas</h2></div>
+  <div class="card">
+    ${despesas.length ? despesas.map(d => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <div><b>${d.desc}</b><br><small style="color:var(--muted)">Às ${d.horario || 'Recente'}</small></div>
+        <b style="color:#d32f2f">− ${br(d.valor)}</b>
+      </div>
+    `).join('') : '<div class="empty" style="padding:15px">Nenhuma despesa cadastrada</div>'}
+  </div>
+
+  <div class="section-title"><h2>⚠️ Comandas Canceladas</h2></div>
   <div class="card">
     ${cancelamentos.length ? cancelamentos.map(c => `
-      <div class="line" style="flex-direction:column;align-items:flex-start;gap:2px">
-        <div style="display:flex;width:100%;justify-content:space-between">
-          <strong style="color:var(--brand)">Mesa ${pad(c.mesa)} (${c.garcom})</strong>
-          <span style="font-size:11px;color:var(--muted)">${c.horario}</span>
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <div style="display:flex;justify-content:space-between">
+          <b>Mesa ${pad(c.mesa)} (${c.garcom})</b>
+          <span style="color:#d32f2f;font-weight:900">− ${br(c.totalCancelado)}</span>
         </div>
-        <div style="font-size:12px"><b>Motivo:</b> ${c.motivo}</div>
-        <div style="font-size:11px;color:var(--muted)">Valor estornado/cancelado: <b>${br(c.totalCancelado)}</b></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Motivo: <b>${c.motivo}</b> às ${c.horario || 'Recente'}</div>
       </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum cancelamento registrado.</div>`}
+    `).join('') : '<div class="empty" style="padding:15px">Nenhum cancelamento registrado</div>'}
   </div>
-
-  <div class="section-title"><h2>Gastos</h2></div>
-  <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:var(--brand)">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhum gasto.</div>`}</div>
-  
-  <div class="section-title"><h2>Histórico de Vendas por Comanda</h2></div>
-  <div class="card">${historicoVendas.length ? historicoVendas.map(v => `<div class="line"><div><b>Mesa ${pad(v.mesa)}</b> (${v.garcom} • ${v.pagamento || 'Pix'})<br><small>${v.horario} • ${(v.itens||[]).map(i=>`[${i.cliente}] ${i.qtd}x ${i.nome}`).join(", ")}</small></div><strong style="color:var(--brand)">${br(v.total)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhuma venda.</div>`}</div>`;
+`;
 }
 
 function renderizar(){
- const navM = document.getElementById("navMesas"), navC = document.getElementById("navComandas");
- navM.classList.toggle("active", telaAtual === "mesas" || telaAtual === "atendimento");
- navC.classList.toggle("active", telaAtual === "comandas");
- if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
-   const navR = document.getElementById("navRelatorios");
-   if(navR) navR.classList.toggle("active", telaAtual === "relatorios");
- }
- if(telaAtual === "mesas") renderMesas();
- else if(telaAtual === "atendimento") renderAtendimento();
- else if(telaAtual === "comandas") renderComandas();
- else if(telaAtual === "relatorios") renderRelatorios();
- atualizarBar();
+  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
+  if(telaAtual === 'mesas') {
+    document.getElementById('navMesas')?.classList.add('active');
+    renderMesas();
+  } else if(telaAtual === 'comandas') {
+    document.getElementById('navComandas')?.classList.add('active');
+    renderComandas();
+  } else if(telaAtual === 'atendimento') {
+    renderAtendimento();
+  } else if(telaAtual === 'relatorios') {
+    document.getElementById('navRelatorios')?.classList.add('active');
+    renderRelatorios();
+  }
 }
 </script>
 </body>
