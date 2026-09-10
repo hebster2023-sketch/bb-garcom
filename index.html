@@ -148,7 +148,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 }
 .side-cat:active { transform: scale(0.92); }
 
-/* Produtos Estilo Novo (Foto/Miniatura à esquerda, Título negrito, Descrição, Preço, Botão Vermelho Circular +) */
+/* Produtos Estilo Profissional (Miniatura real, Título, Descrição, Preço) */
 .products-list {
   display: flex;
   flex-direction: column;
@@ -171,8 +171,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   box-shadow: 0 6px 16px rgba(229,46,46,0.1);
 }
 .prod-thumb {
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   border-radius: 12px;
   background: var(--input-bg);
   display: flex;
@@ -614,7 +614,7 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO -----------------
+// ----------------- PAINEL ADMINISTRATIVO COM UPLOAD DIRETO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -633,15 +633,17 @@ function abrirPainelAdmin(){
         ${cardapio[cat].map((item, idx) => `
           <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
-              <span style="font-size:18px">${item[2].startsWith('data:') ? `<img src="${item[2]}" style="width:24px;height:24px;border-radius:4px;object-fit:cover">` : item[2]}</span>
-              <div>
-                <b>${item[0]}</b><br>
+              <div style="width:36px;height:36px;border-radius:8px;background:var(--card);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
+              </div>
+              <div style="min-width:0;flex:1">
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]}</b>
                 <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small> ${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="editarItemAdmin('${cat}', ${idx})" style="padding:4px 8px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
-              <button onclick="removerItemAdmin('${cat}', ${idx})" style="padding:4px 8px;border-radius:6px;border:0;background:rgba(229,46,46,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="editarItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
+              <button onclick="removerItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(229,46,46,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
         `).join('')}
@@ -681,12 +683,32 @@ function adicionarItemAdmin(cat){
   if(!precoStr) return;
   let preco = parseFloat(precoStr.replace(",", "."));
   if(isNaN(preco)) preco = 0;
-  let emojiOuIcone = prompt("Ícone (Emoji como 🥩 ou selecione imagem abaixo):", "🥩");
   let desc = prompt("Descrição curta ou detalhe (opcional):", "") || "";
 
-  cardapio[cat].push([nome.trim(), preco, emojiOuIcone, desc]);
-  abrirPainelAdmin();
-  showToast("Item adicionado! Lembre-se de salvar.");
+  document.getElementById("modalTitle").textContent = "📷 Enviar foto do novo prato";
+  document.getElementById("modalBody").innerHTML = `
+    <div style="text-align:center;padding:15px">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Selecione uma foto da galeria do seu celular para <b>${nome}</b>:</p>
+      <input type="file" id="inputFotoNovoItem" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
+    </div>
+    <button class="primary" onclick="confirmarAdicaoItemAdmin('${cat}', '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">✅ Adicionar Item</button>
+    <button class="secondary" onclick="abrirPainelAdmin()">Voltar</button>
+  `;
+}
+
+function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
+  const fileInput = document.getElementById('inputFotoNovoItem');
+  if(fileInput && fileInput.files && fileInput.files[0]){
+    comprimirImagemParaBase64(fileInput.files[0], (base64) => {
+      cardapio[cat].push([nome, preco, base64, desc]);
+      abrirPainelAdmin();
+      showToast("Item com foto adicionado com sucesso!");
+    });
+  } else {
+    cardapio[cat].push([nome, preco, "🍖", desc]);
+    abrirPainelAdmin();
+    showToast("Item adicionado com ícone padrão!");
+  }
 }
 
 function editarItemAdmin(cat, idx){
@@ -694,32 +716,39 @@ function editarItemAdmin(cat, idx){
   let nome = prompt("Editar nome:", item[0]);
   if(!nome) return;
   let preco = parseFloat(prompt("Editar preço:", item[1]).replace(",", ".")) || item[1];
-  let icone = prompt("Editar ícone/emoji:", item[2]);
   let desc = prompt("Editar descrição:", item[3] || "") || "";
 
-  document.getElementById("modalTitle").textContent = "📷 Deseja alterar a foto/imagem do item?";
+  document.getElementById("modalTitle").textContent = "📷 Alterar Foto do Prato";
   document.getElementById("modalBody").innerHTML = `
-    <div style="text-align:center;padding:10px">
-      <p style="font-size:12px;color:var(--muted)">Você pode enviar uma foto direto da galeria do celular:</p>
-      <input type="file" id="inputFotoItemAdmin" accept="image/*" style="margin:10px 0">
+    <div style="text-align:center;padding:15px">
+      <div style="margin-bottom:10px">
+        <span style="font-size:12px;color:var(--muted)">Foto Atual:</span><br>
+        <div style="width:70px;height:70px;margin:8px auto;border-radius:12px;overflow:hidden;background:var(--input-bg);border:1px solid var(--border)">
+          ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:32px;display:grid;place-items:center;height:100%">${item[2] || '📦'}</span>`}
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--muted)">Escolha uma nova foto direto da galeria (opcional):</p>
+      <input type="file" id="inputFotoItemAdmin" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
     </div>
-    <button class="primary" onclick="confirmarEdicaoItemAdmin('${cat}', ${idx}, '${nome}', ${preco}, '${icone}', '${desc}')">💾 Salvar Alterações</button>
+    <button class="primary" onclick="confirmarEdicaoItemAdmin('${cat}', ${idx}, '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">💾 Salvar Alterações</button>
     <button class="secondary" onclick="abrirPainelAdmin()">Voltar</button>
   `;
 }
 
-function confirmarEdicaoItemAdmin(cat, idx, nome, preco, icone, desc){
+function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
+  const itemAntigo = cardapio[cat][idx];
   const fileInput = document.getElementById('inputFotoItemAdmin');
+  
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
       cardapio[cat][idx] = [nome, preco, base64, desc];
       abrirPainelAdmin();
-      showToast("Item e imagem atualizados!");
+      showToast("Item e imagem atualizados com sucesso!");
     });
   } else {
-    cardapio[cat][idx] = [nome, preco, icone, desc];
+    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc];
     abrirPainelAdmin();
-    showToast("Item atualizado!");
+    showToast("Item atualizado com sucesso!");
   }
 }
 
@@ -949,7 +978,15 @@ function renderProdutos(){
 
  el.innerHTML = listaProd.map(p => {
    const [nome, preco, icon, desc] = p, q = cliMap[nome] || 0;
-   const renderThumb = icon && icon.startsWith('data:') ? `<img src="${icon}">` : (icon || '📦');
+   
+   let renderThumb = `<span style="font-size:26px">📦</span>`;
+   if (icon) {
+     if (icon.startsWith('data:') || icon.startsWith('http')) {
+       renderThumb = `<img src="${icon}" alt="${nome}">`;
+     } else {
+       renderThumb = `<span style="font-size:26px">${icon}</span>`;
+     }
+   }
    
    return `<div class="product-card ${q ? "selected" : ""}">
      <div class="prod-thumb">${renderThumb}</div>
