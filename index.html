@@ -62,10 +62,11 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 
 /* Grid de Mesas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
-.table:hover{border-color:rgba(211,47,47,0.3);transform:translateY(-2px)}
-.table:active{transform:scale(0.95)}
-.table.busy{border-color:rgba(211, 47, 47, 0.3);background:linear-gradient(135deg, rgba(211, 47, 47, 0.04), var(--card))}
+.card-mesa, .table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
+.card-mesa:hover, .table:hover{border-color:rgba(211,47,47,0.3);transform:translateY(-2px)}
+.card-mesa:active, .table:active{transform:scale(0.95)}
+.card-mesa.ocupada, .table.busy{border-color:rgba(211, 47, 47, 0.3);background:linear-gradient(135deg, rgba(211, 47, 47, 0.04), var(--card))}
+.card-mesa.livre {border-color:rgba(16, 185, 129, 0.3);background:linear-gradient(135deg, rgba(16, 185, 129, 0.04), var(--card))}
 
 .table.novo-pedido-ativo{border-color:#38bdf8 !important;background:linear-gradient(135deg, rgba(56, 189, 248, 0.15), var(--card)) !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.3) !important;animation: pulseNovo 1.5s infinite}
 @keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
@@ -73,14 +74,12 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.2), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.4) !important;animation: pulseConta 1.2s infinite}
 @keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
 
-.table .num{font-size:15px;font-weight:900}
-.badge-status{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
+.table .num, .card-mesa h3{font-size:15px;font-weight:900;margin:0}
+.badge-status, .status-mesa{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
 .badge-status.livre{background:rgba(16, 185, 129, 0.1);color:#10b981;border:1px solid rgba(16, 185, 129, 0.2)}
 .badge-status.ocupada{background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211, 47, 47, 0.2)}
-.badge-status.novo{background:rgba(56, 189, 248, 0.2);color:#38bdf8;border:1px solid rgba(56, 189, 248, 0.4)}
-.badge-status.conta{background:rgba(245, 158, 11, 0.2);color:#f59e0b;border:1px solid rgba(245, 158, 11, 0.4)}
 
-.table .total{font-size:12px;font-weight:900;margin-top:3px;color:#ff5252}
+.table .total, .total-mesa{font-size:12px;font-weight:900;margin-top:3px;color:#ff5252}
 .table .timer{font-size:9px;margin-top:2px;font-weight:800;padding:1px 6px;border-radius:6px}
 .timer.tempo-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
 .timer.tempo-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
@@ -424,7 +423,6 @@ db.enablePersistence().catch(() => {});
 let somAtivo = false;
 let primeiraCargaFirebase = true;
 let salvandoPedidoEmAndamento = false; 
-let isProcessandoPedido = false; 
 
 function toggleSound(){
   somAtivo = !somAtivo;
@@ -1072,72 +1070,153 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-function salvarComanda(){
- const itens = itensTempComClientes(); 
- if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
- 
- if(salvandoPedidoEmAndamento) return;
- salvandoPedidoEmAndamento = true;
+// ----------------- INTEGRAÇÃO DA FUNÇÃO SALVAR/ADICIONAR COMANDA -----------------
+function salvarComanda(numeroMesa, novoPedido) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    const numMesaStr = String(numeroMesa);
+    
+    // Se a mesa já tem uma comanda aberta, acumula os itens e soma o valor total
+    if (comandasLocal[numMesaStr]) {
+        const comandaAtualLocal = comandasLocal[numMesaStr];
+        comandaAtualLocal.itens.push(...novoPedido.itens);
+        comandaAtualLocal.total += novoPedido.total;
+    } else {
+        // Se a mesa está livre, cria uma nova comanda
+        comandasLocal[numMesaStr] = {
+            status: 'Ocupada',
+            itens: [...novoPedido.itens],
+            total: novoPedido.total,
+            horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+    }
+    
+    // Grava de volta no localStorage
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
+    // Processamento com Firebase se aplicável
+    const itens = novoPedido.itens || itensTempComClientes(); 
+    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    
+    if(salvandoPedidoEmAndamento) return;
+    salvandoPedidoEmAndamento = true;
 
- const comandaAtual = comandas[mesaSelecionada] || {};
- const criadoEmOriginal = comandaAtual.criadoEm || Date.now();
- 
- let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
- let novoLote = {
-   id: Date.now(),
-   horario: horaAtualStr,
-   isNovo: true,
-   itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
- };
+    const comandaAtual = comandas[numMesaStr] || {};
+    const criadoEmOriginal = comandaAtual.criadoEm || Date.now();
+    
+    let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    let novoLote = {
+      id: Date.now(),
+      horario: horaAtualStr,
+      isNovo: true,
+      itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
+    };
 
- let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
- let lotesAtualizados = [...lotesAntigos, novoLote];
+    let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
+    let lotesAtualizados = [...lotesAntigos, novoLote];
 
- let mapaItensConsolidados = {};
- 
- (comandaAtual.itens || []).forEach(it => {
-   let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
-   if(!mapaItensConsolidados[chave]) {
-     mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
-   }
-   mapaItensConsolidados[chave].qtd += Number(it.qtd);
- });
+    let mapaItensConsolidados = {};
+    (comandaAtual.itens || []).forEach(it => {
+      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
+      if(!mapaItensConsolidados[chave]) {
+        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
+      }
+      mapaItensConsolidados[chave].qtd += Number(it.qtd);
+    });
 
- itens.forEach(it => {
-   let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
-   if(!mapaItensConsolidados[chave]) {
-     mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
-   }
-   mapaItensConsolidados[chave].qtd += Number(it.qtd);
- });
+    itens.forEach(it => {
+      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
+      if(!mapaItensConsolidados[chave]) {
+        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
+      }
+      mapaItensConsolidados[chave].qtd += Number(it.qtd);
+    });
 
- let todosItensUnificados = Object.values(mapaItensConsolidados);
- let totalGeralAcumulado = todosItensUnificados.reduce((sum, i) => sum + (i.qtd * i.preco), 0);
+    let todosItensUnificados = Object.values(mapaItensConsolidados);
+    let totalGeralAcumulado = todosItensUnificados.reduce((sum, i) => sum + (i.qtd * i.preco), 0);
 
- const dadosMesa = { 
-   garcom: garcomTemp, 
-   itens: todosItensUnificados, 
-   lotes: lotesAtualizados,
-   itensPagos: comandaAtual.itensPagos || [], 
-   total: totalGeralAcumulado, 
-   criadoEm: criadoEmOriginal, 
-   atualizadoEm: Date.now(), 
-   novoPedidoAlerta: true,
-   origemPedido: 'garcom'
- };
+    const dadosMesa = { 
+      garcom: garcomTemp, 
+      itens: todosItensUnificados, 
+      lotes: lotesAtualizados,
+      itensPagos: comandaAtual.itensPagos || [], 
+      total: totalGeralAcumulado, 
+      criadoEm: criadoEmOriginal, 
+      atualizadoEm: Date.now(), 
+      novoPedidoAlerta: true,
+      origemPedido: 'garcom'
+    };
 
- db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
-   .then(() => {
-     salvandoPedidoEmAndamento = false;
-     pedidoTemp = {}; 
-     fecharModal();
-     showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(mesaSelecionada)}!`);
-     mudarTela("mesas");
-   })
-   .catch(err => { 
-     salvandoPedidoEmAndamento = false;
-     showToast("Erro ao salvar: " + err.message, true); 
-   });
+    db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true })
+      .then(() => {
+        salvandoPedidoEmAndamento = false;
+        pedidoTemp = {}; 
+        fecharModal();
+        showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
+        mudarTela("mesas");
+        carregarMesasSalvas();
+      })
+      .catch(err => { 
+        salvandoPedidoEmAndamento = false;
+        showToast("Erro ao salvar: " + err.message, true); 
+      });
+}
+
+// ----------------- FECHAR / LIMPAR COMANDA (PAGAMENTO) -----------------
+function fecharComanda(numeroMesa) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    const numMesaStr = String(numeroMesa);
+    
+    delete comandasLocal[numMesaStr];
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
+    db.collection("comandas").doc(numMesaStr).delete().then(() => {
+        carregarMesasSalvas();
+        showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
+        renderizar();
+    }).catch(err => {
+        showToast("Erro ao fechar conta: " + err.message, true);
+    });
+}
+
+// ----------------- CARREGAR E ATUALIZAR VISUALMENTE -----------------
+function carregarMesasSalvas() {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    
+    document.querySelectorAll('.card-mesa, .table').forEach(card => {
+        const numMesa = card.getAttribute('data-mesa'); 
+        if(numMesa) atualizarCardMesaVisual(numMesa, null);
+    });
+    
+    Object.keys(comandasLocal).forEach(numeroMesa => {
+        const dadosMesa = comandasLocal[numeroMesa];
+        atualizarCardMesaVisual(numeroMesa, dadosMesa);
+    });
+}
+
+function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
+    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
+    if (!cardMesa) return;
+
+    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
+    const totalEl = cardMesa.querySelector('.total-mesa, .total');
+
+    if (dadosMesa) {
+        cardMesa.classList.remove('livre');
+        cardMesa.classList.add('ocupada', 'busy');
+        if (statusEl) {
+            statusEl.textContent = 'Ocupada';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
+        }
+        if (totalEl) totalEl.textContent = `R$ ${(dadosMesa.total || 0).toFixed(2)}`;
+    } else {
+        cardMesa.classList.remove('ocupada', 'busy');
+        cardMesa.classList.add('livre');
+        if (statusEl) {
+            statusEl.textContent = 'Livre';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
+        }
+        if (totalEl) totalEl.textContent = `R$ 0,00`;
+    }
 }
 
 function abrirCarrinho(){
@@ -1168,10 +1247,15 @@ function abrirCarrinho(){
    `).join("");
  }
 
+ const pedidoAtualObjeto = {
+   itens: itens.map(i => ({ nome: i.nome, quantidade: i.qtd, valorUnitario: i.preco })),
+   total: totalTemp()
+ };
+
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick="salvarComanda()">Salvar comanda</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}", ${JSON.stringify(pedidoAtualObjeto)})'>Salvar comanda</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1398,11 +1482,9 @@ function cancelarComandaModal(num){
   };
 
   db.collection("cancelamentos").add(registroCancelamento).then(() => {
-    db.collection("comandas").doc(String(num)).delete().then(() => {
-      fecharModal();
-      showToast("Comanda cancelada e registrada com sucesso!", true);
-      renderizar();
-    });
+    fecharComanda(num);
+    fecharModal();
+    showToast("Comanda cancelada e registrada com sucesso!", true);
   }).catch(err => {
     showToast("Erro ao registrar cancelamento: " + err.message, true);
   });
@@ -1420,11 +1502,8 @@ function fecharMesaDireto(num){
    const pHist = c.total > 0 && todos.length ? db.collection("historico").add({ mesa: num, total: c.total, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: todos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) : Promise.resolve();
 
    pHist.then(() => {
-     db.collection("comandas").doc(String(num)).delete().then(() => {
-       fecharModal();
-       showToast(`Mesa ${pad(num)} fechada e liberada!`);
-       renderizar();
-     });
+     fecharComanda(num);
+     fecharModal();
    });
  }
 }
@@ -1510,7 +1589,7 @@ function renderMesas(){
    }
 
    arrayMesasHTML.push(`
-     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" onclick="abrirMesa(${i})">
+     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" data-mesa="Mesa ${pad(i)}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
        <div class="badge-status ${busy ? badgeClasse : 'livre'}">${busy ? badgeTexto : "LIVRE"}</div>
        ${busy ? `<div class="total">${br(totalRestante)}</div><div class="timer ${tempoInfo.classe}">⏱️ ${tempoInfo.texto}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
@@ -1645,153 +1724,111 @@ function renderAtendimento(){
  </div>` : ''}
 
  <div class="card" style="padding:12px">
-   <div style="font-weight:900;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
-     <span>👤 Pessoa pedindo agora:</span>
-     <span style="font-size:10px;color:var(--muted)">Clique no nome abaixo para renomear</span>
+   <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+     <div style="flex:1">
+       <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px">👤 Atendente / Garçom</label>
+       <input type="text" id="inputGarcom" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
+     </div>
    </div>
-   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-     ${clientesLista.map(cli => `
-       <div style="display:inline-flex;align-items:center;background:${cli===clienteAtual?'var(--brand)':'var(--card)'};border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};border-radius:10px;overflow:hidden">
-         <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 10px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>
-         <button onclick="renomearClienteAtual()" title="Renomear ${cli}" style="padding:6px 8px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--muted)'};font-weight:900;font-size:10px;cursor:pointer">✏️</button>
-       </div>
-     `).join("")}
-     <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:var(--card);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer">+ Nova Pessoa</button>
-   </div>
-   <div style="font-size:11px;color:var(--muted)">Lançando produtos na conta de: <b style="color:var(--brand)">${clienteAtual}</b></div>
- </div>
 
- <div class="card" style="padding:12px;display:flex;align-items:center;justify-content:space-between">
-   <div style="font-size:12px"><b>👤 Garçom Responsável</b></div>
-   <input id="garcomInput" type="text" value="${garcomTemp}" style="width:130px;border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;font-weight:900;background:var(--input-bg);color:var(--ink);font-size:12px;outline:none" oninput="atualizarGarcom(this.value)">
+   <div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+       <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">👤 Selecionar Cliente na Mesa</label>
+       <button onclick="adicionarNovoClientePrompt()" style="border:0;background:none;color:var(--brand);font-weight:900;font-size:11px;cursor:pointer">+ Nova Pessoa</button>
+     </div>
+     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">
+       ${Object.keys(pedidoTemp).map(cli => `<button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:12px;font-size:11px;font-weight:900;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--card)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};cursor:pointer;white-space:nowrap">${cli}</button>`).join("")}
+     </div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+       <span style="font-size:11px;color:var(--muted)">Lançando para: <b>${clienteAtual}</b></span>
+       <button onclick="renomearClienteAtual()" style="border:0;background:none;color:var(--muted);font-size:10px;cursor:pointer">✏️ Renomear</button>
+     </div>
+   </div>
  </div>
 
  <div class="search-box">
    <span>🔍</span>
-   <input type="text" placeholder="Pesquisar produto instantaneamente (ex: skol, frango)..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+   <input type="text" id="searchProdInput" placeholder="Pesquisar produto no cardápio..." oninput="filtrarProdutosInput(this.value)" value="${termoBuscaProduto}">
  </div>
 
  <div class="atendimento-layout">
-   <div class="side-cats" id="sideCatsContainer">
-     ${Object.keys(cardapio).map(c => `
-       <div class="side-cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">
-         <span class="cat-ico">${mapIconesCategoria[c] || '🏷️'}</span>
-         <span>${c}</span>
+   <div class="side-cats">
+     ${Object.keys(cardapio).map(cat => `
+       <div class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+         <span class="cat-ico">${mapIconesCategoria[cat] || '🍽️'}</span>
+         <span>${cat}</span>
        </div>
-     `).join("")}
+     `).join('')}
    </div>
-   <div>
-     <div class="products-list" id="produtos"></div>
-   </div>
+   <div id="produtos" class="products-list"></div>
  </div>`;
  renderProdutos();
 }
 
 function renderRelatorios(){
- let totalFaturamento = historicoVendas.reduce((s,v) => s + v.total, 0);
- let totalDespesas = despesas.reduce((s,d) => s + d.valor, 0);
- let lucroLiquido = totalFaturamento - totalDespesas;
- 
- let pagamentosTotais = {};
- historicoVendas.forEach(v => {
-   let meio = v.pagamento || "Pix";
-   pagamentosTotais[meio] = (pagamentosTotais[meio] || 0) + v.total;
- });
+  let totalDia = historicoVendas.reduce((acc, v) => acc + (v.total || 0), 0);
+  let totalDespesas = despesas.reduce((acc, d) => acc + (d.valor || 0), 0);
+  let saldoLiquido = totalDia - totalDespesas;
 
- let itensConsolidados = {};
- historicoVendas.forEach(v => {
-   if(v.itens && Array.isArray(v.itens)){
-     v.itens.forEach(i => {
-       let nomeProd = i.nome;
-       let qtdProd = i.qtd || 1;
-       if(itensConsolidados[nomeProd]){
-         itensConsolidados[nomeProd] += qtdProd;
-       } else {
-         itensConsolidados[nomeProd] = qtdProd;
-       }
-     });
-   }
- });
-
- let produtosOrdenados = Object.entries(itensConsolidados).sort((a,b) => b[1] - a[1]);
-
- document.getElementById("conteudo").innerHTML = `
-  <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo</span></div><button onclick="limparRelatorios()" style="border:0;background:rgba(211, 47, 47, 0.15);color:var(--brand);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🗑️ Resetar</button></div>
-  
-  <div class="card" style="background:linear-gradient(135deg,#1f2937,#111827);color:#fff">
-    <div style="font-size:12px;opacity:.85">Lucro Líquido</div>
-    <div style="font-size:26px;font-weight:900;margin-top:2px">${br(lucroLiquido)}</div>
-    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
-      <div>📈 Faturamento: <br><b style="font-size:13px">${br(totalFaturamento)}</b></div>
-      <div>📉 Gastos: <br><b style="font-size:13px">${br(totalDespesas)}</b></div>
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia</span></div>
+      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
     </div>
-  </div>
 
-  <div style="margin-bottom:10px"><button class="primary" onclick="adicionarDespesa()" style="font-size:13px;padding:12px">➕ Registrar Gasto</button></div>
-
-  <div class="section-title"><h2>💳 Faturamento por Forma de Pagamento</h2></div>
-  <div class="card">
-    ${Object.keys(pagamentosTotais).length ? Object.entries(pagamentosTotais).map(([meio, val]) => `
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <span><b>${meio}</b></span>
-        <b style="color:var(--brand)">${br(val)}</b>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
+      <div class="card" style="margin:0;padding:12px;text-align:center">
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Entradas</span>
+        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalDia)}</div>
       </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhum pagamento registrado hoje</div>'}
-  </div>
+      <div class="card" style="margin:0;padding:12px;text-align:center">
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
+        <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
+      </div>
+    </div>
 
-  <div class="section-title"><h2>🏆 Produtos Mais Vendidos</h2></div>
-  <div class="card">
-    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd], index) => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:900;color:var(--brand)">#${index+1}</span>
-          <span><b>${nome}</b></span>
+    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card))">
+      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
+      <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
+    </div>
+
+    <div class="card" style="padding:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📋 Vendas Realizadas</h3>
+      ${historicoVendas.length ? historicoVendas.map(v => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div><b>Mesa ${pad(v.mesa)}</b> (${v.pagamento})<br><small style="color:var(--muted)">${v.horario} • ${v.garcom}</small></div>
+          <strong style="color:#10b981">${br(v.total)}</strong>
         </div>
-        <span class="tag" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border)">${qtd} un</span>
-      </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhuma venda registrada</div>'}
-  </div>
+      `).join('') : '<div class="empty">Nenhuma venda registrada hoje.</div>'}
+    </div>
 
-  <div class="section-title"><h2>📉 Despesas Registradas</h2></div>
-  <div class="card">
-    ${despesas.length ? despesas.map(d => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <div><b>${d.desc}</b><br><small style="color:var(--muted)">Às ${d.horario || 'Recente'}</small></div>
-        <b style="color:#d32f2f">− ${br(d.valor)}</b>
-      </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhuma despesa cadastrada</div>'}
-  </div>
-
-  <div class="section-title"><h2>⚠️ Comandas Canceladas</h2></div>
-  <div class="card">
-    ${cancelamentos.length ? cancelamentos.map(c => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <div style="display:flex;justify-content:space-between">
-          <b>Mesa ${pad(c.mesa)} (${c.garcom})</b>
-          <span style="color:#d32f2f;font-weight:900">− ${br(c.totalCancelado)}</span>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Motivo: <b>${c.motivo}</b> às ${c.horario || 'Recente'}</div>
-      </div>
-    `).join('') : '<div class="empty" style="padding:15px">Nenhum cancelamento registrado</div>'}
-  </div>
-`;
+    <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);margin-top:10px">🗑️ Zerar Relatórios do Dia</button>
+  `;
 }
 
 function renderizar(){
   document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  if(telaAtual === 'mesas') {
-    document.getElementById('navMesas')?.classList.add('active');
+  if(telaAtual === 'mesas'){
+    const btn = document.getElementById('navMesas');
+    if(btn) btn.classList.add('active');
     renderMesas();
-  } else if(telaAtual === 'comandas') {
-    document.getElementById('navComandas')?.classList.add('active');
+  } else if(telaAtual === 'comandas'){
+    const btn = document.getElementById('navComandas');
+    if(btn) btn.classList.add('active');
     renderComandas();
-  } else if(telaAtual === 'atendimento') {
+  } else if(telaAtual === 'atendimento'){
     renderAtendimento();
-  } else if(telaAtual === 'relatorios') {
-    document.getElementById('navRelatorios')?.classList.add('active');
+  } else if(telaAtual === 'relatorios'){
+    const btn = document.getElementById('navRelatorios');
+    if(btn) btn.classList.add('active');
     renderRelatorios();
   }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Inicialização automática das mesas salvas no armazenamento local
+  carregarMesasSalvas();
+});
 </script>
 </body>
 </html>
