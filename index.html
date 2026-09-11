@@ -1094,7 +1094,7 @@ function salvarComanda(numeroMesa, novoPedido) {
     localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
     
     // Processamento com Firebase se aplicável
-    const itens = novoPedido.itens || itensTempComClientes(); 
+    const itens = itensTempComClientes(); 
     if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
     if(salvandoPedidoEmAndamento) return;
@@ -1589,7 +1589,7 @@ function renderMesas(){
    }
 
    arrayMesasHTML.push(`
-     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" data-mesa="Mesa ${pad(i)}" onclick="abrirMesa(${i})">
+     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" data-mesa="${i}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
        <div class="badge-status ${busy ? badgeClasse : 'livre'}">${busy ? badgeTexto : "LIVRE"}</div>
        ${busy ? `<div class="total">${br(totalRestante)}</div><div class="timer ${tempoInfo.classe}">⏱️ ${tempoInfo.texto}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
@@ -1610,6 +1610,7 @@ function renderMesas(){
  </div>
 
  <div class="tables">${arrayMesasHTML.join("")}</div>`;
+ carregarMesasSalvas();
 }
 
 function renderComandas(){
@@ -1826,7 +1827,6 @@ function renderizar(){
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Inicialização automática das mesas salvas no armazenamento local
   carregarMesasSalvas();
 });
 </script>
