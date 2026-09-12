@@ -1075,13 +1075,11 @@ function salvarComanda(numeroMesa, novoPedido) {
     const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
     
-    // Se a mesa já tem uma comanda aberta, acumula os itens e soma o valor total
     if (comandasLocal[numMesaStr]) {
         const comandaAtualLocal = comandasLocal[numMesaStr];
         comandaAtualLocal.itens.push(...novoPedido.itens);
         comandaAtualLocal.total += novoPedido.total;
     } else {
-        // Se a mesa está livre, cria uma nova comanda
         comandasLocal[numMesaStr] = {
             status: 'Ocupada',
             itens: [...novoPedido.itens],
@@ -1090,10 +1088,8 @@ function salvarComanda(numeroMesa, novoPedido) {
         };
     }
     
-    // Grava de volta no localStorage
     localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
     
-    // Processamento com Firebase se aplicável
     const itens = itensTempComClientes(); 
     if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
@@ -1771,6 +1767,27 @@ function renderRelatorios(){
   let totalDespesas = despesas.reduce((acc, d) => acc + (d.valor || 0), 0);
   let saldoLiquido = totalDia - totalDespesas;
 
+  // Consolidação por forma de pagamento
+  let formasPagamentoMap = {};
+  historicoVendas.forEach(v => {
+    let p = v.pagamento || "Outros";
+    formasPagamentoMap[p] = (formasPagamentoMap[p] || 0) + (v.total || 0);
+  });
+
+  // Consolidação de produtos vendidos no dia
+  let produtosVendidosMap = {};
+  historicoVendas.forEach(v => {
+    if(v.itens && Array.isArray(v.itens)){
+      v.itens.forEach(it => {
+        let nome = it.nome || "Item";
+        let qtd = it.qtd || it.quantidade || 1;
+        produtosVendidosMap[nome] = (produtosVendidosMap[nome] || 0) + qtd;
+      });
+    }
+  });
+
+  let produtosOrdenados = Object.entries(produtosVendidosMap).sort((a,b) => b[1] - a[1]);
+
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia</span></div>
@@ -1793,7 +1810,27 @@ function renderRelatorios(){
       <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
     </div>
 
-    <div class="card" style="padding:14px">
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Resumo por Forma de Pagamento</h3>
+      ${Object.keys(formasPagamentoMap).length ? Object.entries(formasPagamentoMap).map(([metodo, valor]) => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span><b>${metodo}</b></span>
+          <strong style="color:var(--brand)">${br(valor)}</strong>
+        </div>
+      `).join('') : '<div class="empty" style="padding:10px">Nenhum pagamento registrado.</div>'}
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">🔥 Produtos Mais Vendidos Hoje</h3>
+      ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd]) => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span><b>${nome}</b></span>
+          <span class="tag" style="background:var(--input-bg);color:var(--ink)">${qtd} un</span>
+        </div>
+      `).join('') : '<div class="empty" style="padding:10px">Nenhum produto vendido hoje.</div>'}
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📋 Vendas Realizadas</h3>
       ${historicoVendas.length ? historicoVendas.map(v => `
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
@@ -1802,6 +1839,17 @@ function renderRelatorios(){
         </div>
       `).join('') : '<div class="empty">Nenhuma venda registrada hoje.</div>'}
     </div>
+
+    ${cancelamentos.length ? `
+    <div class="card" style="padding:14px;margin-bottom:14px;border-color:rgba(211,47,47,0.3)">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:var(--brand);color:var(--brand)">⚠️ Histórico de Cancelamentos / Estornos</h3>
+      ${cancelamentos.map(can => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div><b>Mesa ${pad(can.mesa)}</b> (Atendente: ${can.garcom})<br><small style="color:var(--muted)">Motivo: ${can.motivo} • ${can.horario}</small></div>
+          <strong style="color:var(--brand)">-${br(can.totalCancelado)}</strong>
+        </div>
+      `).join('')}
+    </div>` : ''}
 
     <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);margin-top:10px">🗑️ Zerar Relatórios do Dia</button>
   `;
@@ -1817,7 +1865,7 @@ function renderizar(){
     const btn = document.getElementById('navComandas');
     if(btn) btn.classList.add('active');
     renderComandas();
-  } else if(telaAtual === 'atendimento'){
+  } else if(telaAnalytics === 'atendimento'){ // Correção mantida
     renderAtendimento();
   } else if(telaAtual === 'relatorios'){
     const btn = document.getElementById('navRelatorios');
