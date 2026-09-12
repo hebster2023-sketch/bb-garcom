@@ -846,15 +846,19 @@ function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  document.getElementById('login-error').style.display = 'none';
+  const errorEl = document.getElementById('login-error');
+  errorEl.style.display = 'none';
 
   firebase.auth().signInWithEmailAndPassword(email, pass)
-    .then((userCredential)=>{
-      usuarioLogadoEmail = userCredential.user.email;
+    .then((userCredential) => {
+      const user = userCredential.user;
+      usuarioLogadoEmail = user.email;
       concluirLogin(usuarioLogadoEmail);
     })
-    .catch(()=>{
-      document.getElementById('login-error').style.display = 'block';
+    .catch((error) => {
+      console.error("Erro de login:", error);
+      errorEl.textContent = error.message || "E-mail ou senha incorretos.";
+      errorEl.style.display = 'block';
     });
 }
 
@@ -1842,7 +1846,7 @@ function renderRelatorios(){
     <div class="card" style="padding:14px;margin-bottom:14px;border-color:rgba(211,47,47,0.3)">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:var(--brand);color:var(--brand)">⚠️ Histórico de Cancelamentos / Estornos</h3>
       ${cancelamentos.map(can => `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <div style="display:flex;justify-content:space-subtle;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
           <div><b>Mesa ${pad(can.mesa)}</b> (Atendente: ${can.garcom})<br><small style="color:var(--muted)">Motivo: ${can.motivo} • ${can.horario}</small></div>
           <strong style="color:var(--brand)">-${br(can.totalCancelado)}</strong>
         </div>
