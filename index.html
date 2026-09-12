@@ -1767,14 +1767,12 @@ function renderRelatorios(){
   let totalDespesas = despesas.reduce((acc, d) => acc + (d.valor || 0), 0);
   let saldoLiquido = totalDia - totalDespesas;
 
-  // Consolidação por forma de pagamento
   let formasPagamentoMap = {};
   historicoVendas.forEach(v => {
     let p = v.pagamento || "Outros";
     formasPagamentoMap[p] = (formasPagamentoMap[p] || 0) + (v.total || 0);
   });
 
-  // Consolidação de produtos vendidos no dia
   let produtosVendidosMap = {};
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
@@ -1865,7 +1863,7 @@ function renderizar(){
     const btn = document.getElementById('navComandas');
     if(btn) btn.classList.add('active');
     renderComandas();
-  } else if(telaAnalytics === 'atendimento'){ // Correção mantida
+  } else if(telaAtual === 'atendimento'){ 
     renderAtendimento();
   } else if(telaAtual === 'relatorios'){
     const btn = document.getElementById('navRelatorios');
