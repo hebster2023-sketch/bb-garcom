@@ -846,19 +846,15 @@ function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  const errorEl = document.getElementById('login-error');
-  errorEl.style.display = 'none';
+  document.getElementById('login-error').style.display = 'none';
 
   firebase.auth().signInWithEmailAndPassword(email, pass)
-    .then((userCredential) => {
-      const user = userCredential.user;
-      usuarioLogadoEmail = user.email;
+    .then((userCredential)=>{
+      usuarioLogadoEmail = userCredential.user.email;
       concluirLogin(usuarioLogadoEmail);
     })
-    .catch((error) => {
-      console.error("Erro de login:", error);
-      errorEl.textContent = error.message || "E-mail ou senha incorretos.";
-      errorEl.style.display = 'block';
+    .catch(()=>{
+      document.getElementById('login-error').style.display = 'block';
     });
 }
 
@@ -1074,11 +1070,32 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-// ----------------- FUNÇÃO SALVAR/ADICIONAR COMANDA (INTEGRADA) -----------------
-function salvarComanda(numeroMesa) {
+// ----------------- INTEGRAÇÃO DA FUNÇÃO SALVAR/ADICIONAR COMANDA -----------------
+function salvarComanda(numeroMesa, novoPedido) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
-    const itensNovosDoCarrinho = itensTempComClientes(); 
-    if(!itensNovosDoCarrinho.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    
+    // Se a mesa já tem uma comanda aberta, acumula os itens e soma o valor total
+    if (comandasLocal[numMesaStr]) {
+        const comandaAtualLocal = comandasLocal[numMesaStr];
+        comandaAtualLocal.itens.push(...novoPedido.itens);
+        comandaAtualLocal.total += novoPedido.total;
+    } else {
+        // Se a mesa está livre, cria uma nova comanda
+        comandasLocal[numMesaStr] = {
+            status: 'Ocupada',
+            itens: [...novoPedido.itens],
+            total: novoPedido.total,
+            horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+    }
+    
+    // Grava de volta no localStorage
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
+    // Processamento com Firebase se aplicável
+    const itens = itensTempComClientes(); 
+    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
@@ -1091,33 +1108,30 @@ function salvarComanda(numeroMesa) {
       id: Date.now(),
       horario: horaAtualStr,
       isNovo: true,
-      itens: itensNovosDoCarrinho.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
+      itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
     };
 
     let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
     let lotesAtualizados = [...lotesAntigos, novoLote];
 
-    // Reconstrução do array consolidado para evitar duplicações
-    let mapaConsolidado = {};
-
+    let mapaItensConsolidados = {};
     (comandaAtual.itens || []).forEach(it => {
-      let cli = it.cliente || "Cliente 1";
-      let chave = cli + "_" + it.nome;
-      if(!mapaConsolidado[chave]) {
-        mapaConsolidado[chave] = { cliente: cli, nome: it.nome, qtd: 0, preco: it.preco };
+      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
+      if(!mapaItensConsolidados[chave]) {
+        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
       }
-      mapaConsolidado[chave].qtd += Number(it.qtd);
+      mapaItensConsolidados[chave].qtd += Number(it.qtd);
     });
 
-    itensNovosDoCarrinho.forEach(it => {
-      let chave = it.cliente + "_" + it.nome;
-      if(!mapaConsolidado[chave]) {
-        mapaConsolidado[chave] = { cliente: it.cliente, nome: it.nome, qtd: 0, preco: it.preco };
+    itens.forEach(it => {
+      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
+      if(!mapaItensConsolidados[chave]) {
+        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
       }
-      mapaConsolidado[chave].qtd += Number(it.qtd);
+      mapaItensConsolidados[chave].qtd += Number(it.qtd);
     });
 
-    let todosItensUnificados = Object.values(mapaConsolidado);
+    let todosItensUnificados = Object.values(mapaItensConsolidados);
     let totalGeralAcumulado = todosItensUnificados.reduce((sum, i) => sum + (i.qtd * i.preco), 0);
 
     const dadosMesa = { 
@@ -1139,6 +1153,7 @@ function salvarComanda(numeroMesa) {
         fecharModal();
         showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
         mudarTela("mesas");
+        carregarMesasSalvas();
       })
       .catch(err => { 
         salvandoPedidoEmAndamento = false;
@@ -1148,13 +1163,60 @@ function salvarComanda(numeroMesa) {
 
 // ----------------- FECHAR / LIMPAR COMANDA (PAGAMENTO) -----------------
 function fecharComanda(numeroMesa) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
+    
+    delete comandasLocal[numMesaStr];
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
+        carregarMesasSalvas();
         showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
         renderizar();
     }).catch(err => {
         showToast("Erro ao fechar conta: " + err.message, true);
     });
+}
+
+// ----------------- CARREGAR E ATUALIZAR VISUALMENTE -----------------
+function carregarMesasSalvas() {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    
+    document.querySelectorAll('.card-mesa, .table').forEach(card => {
+        const numMesa = card.getAttribute('data-mesa'); 
+        if(numMesa) atualizarCardMesaVisual(numMesa, null);
+    });
+    
+    Object.keys(comandasLocal).forEach(numeroMesa => {
+        const dadosMesa = comandasLocal[numeroMesa];
+        atualizarCardMesaVisual(numeroMesa, dadosMesa);
+    });
+}
+
+function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
+    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
+    if (!cardMesa) return;
+
+    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
+    const totalEl = cardMesa.querySelector('.total-mesa, .total');
+
+    if (dadosMesa) {
+        cardMesa.classList.remove('livre');
+        cardMesa.classList.add('ocupada', 'busy');
+        if (statusEl) {
+            statusEl.textContent = 'Ocupada';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
+        }
+        if (totalEl) totalEl.textContent = `R$ ${(dadosMesa.total || 0).toFixed(2)}`;
+    } else {
+        cardMesa.classList.remove('ocupada', 'busy');
+        cardMesa.classList.add('livre');
+        if (statusEl) {
+            statusEl.textContent = 'Livre';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
+        }
+        if (totalEl) totalEl.textContent = `R$ 0,00`;
+    }
 }
 
 function abrirCarrinho(){
@@ -1172,7 +1234,7 @@ function abrirCarrinho(){
    htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--brand);margin-top:10px;margin-bottom:4px">👤 ${cli}</div>`;
    htmlCarrinho += itensPorPessoa[cli].map(i => `
      <div class="line" style="align-items:center">
-       <div><b>${i.nome}</b><br><small>${br(i.preco)} cada</small></div>
+       <div><b>${i.name || i.nome}</b><br><small>${br(i.preco)} cada</small></div>
        <div style="display:flex;align-items:center;gap:8px">
          <div class="qty-control-inline">
            <button onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', -1)">−</button>
@@ -1185,10 +1247,15 @@ function abrirCarrinho(){
    `).join("");
  }
 
+ const pedidoAtualObjeto = {
+   itens: itens.map(i => ({ nome: i.nome, quantidade: i.qtd, valorUnitario: i.preco })),
+   total: totalTemp()
+ };
+
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick="salvarComanda(${mesaSelecionada})">Salvar comanda</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}", ${JSON.stringify(pedidoAtualObjeto)})'>Salvar comanda</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1543,6 +1610,7 @@ function renderMesas(){
  </div>
 
  <div class="tables">${arrayMesasHTML.join("")}</div>`;
+ carregarMesasSalvas();
 }
 
 function renderComandas(){
@@ -1573,13 +1641,8 @@ function renderComandas(){
          let q = matchQtd ? parseInt(matchQtd[1]) : 1;
          let nomeReal = matchQtd ? matchQtd[2] : item.nome;
          
-         let precoNum = 0;
-         if (typeof item.preco === 'number') precoNum = item.preco;
-         else if (typeof item.preco === 'string') precoNum = parseFloat(item.preco.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
-
          itensAgrupadosLote[chave].nome = nomeReal;
          itensAgrupadosLote[chave].qtdTotal += q;
-         itensAgrupadosLote[chave].precoTotal += precoNum;
        });
 
        let itensLoteHTML = Object.values(itensAgrupadosLote).map(item => `
@@ -1645,8 +1708,11 @@ const mapIconesCategoria = {
 };
 
 function renderAtendimento(){
+ const total = totalTemp();
  const cAtual = comandas[mesaSelecionada];
  const itensJaPagosNaMesa = cAtual?.itensPagos || [];
+ let clientesLista = Object.keys(pedidoTemp);
+ if(!clientesLista.length) clientesLista = ["Cliente 1"];
 
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento por Cliente</p></div><button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:0;background:var(--card);border:1px solid var(--border);color:var(--brand);border-radius:10px;padding:6px 10px;font-weight:900;font-size:11px;cursor:pointer">🔄 Mudar Mesa</button></div></div>
  
@@ -1705,25 +1771,6 @@ function renderRelatorios(){
   let totalDespesas = despesas.reduce((acc, d) => acc + (d.valor || 0), 0);
   let saldoLiquido = totalDia - totalDespesas;
 
-  let formasPagamentoMap = {};
-  historicoVendas.forEach(v => {
-    let p = v.pagamento || "Outros";
-    formasPagamentoMap[p] = (formasPagamentoMap[p] || 0) + (v.total || 0);
-  });
-
-  let produtosVendidosMap = {};
-  historicoVendas.forEach(v => {
-    if(v.itens && Array.isArray(v.itens)){
-      v.itens.forEach(it => {
-        let nome = it.nome || "Item";
-        let qtd = it.qtd || it.quantidade || 1;
-        produtosVendidosMap[nome] = (produtosVendidosMap[nome] || 0) + qtd;
-      });
-    }
-  });
-
-  let produtosOrdenados = Object.entries(produtosVendidosMap).sort((a,b) => b[1] - a[1]);
-
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia</span></div>
@@ -1746,27 +1793,7 @@ function renderRelatorios(){
       <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
     </div>
 
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Resumo por Forma de Pagamento</h3>
-      ${Object.keys(formasPagamentoMap).length ? Object.entries(formasPagamentoMap).map(([metodo, valor]) => `
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span><b>${metodo}</b></span>
-          <strong style="color:var(--brand)">${br(valor)}</strong>
-        </div>
-      `).join('') : '<div class="empty" style="padding:10px">Nenhum pagamento registrado.</div>'}
-    </div>
-
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">🔥 Produtos Mais Vendidos Hoje</h3>
-      ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd]) => `
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span><b>${nome}</b></span>
-          <span class="tag" style="background:var(--input-bg);color:var(--ink)">${qtd} un</span>
-        </div>
-      `).join('') : '<div class="empty" style="padding:10px">Nenhum produto vendido hoje.</div>'}
-    </div>
-
-    <div class="card" style="padding:14px;margin-bottom:14px">
+    <div class="card" style="padding:14px">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📋 Vendas Realizadas</h3>
       ${historicoVendas.length ? historicoVendas.map(v => `
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
@@ -1775,17 +1802,6 @@ function renderRelatorios(){
         </div>
       `).join('') : '<div class="empty">Nenhuma venda registrada hoje.</div>'}
     </div>
-
-    ${cancelamentos.length ? `
-    <div class="card" style="padding:14px;margin-bottom:14px;border-color:rgba(211,47,47,0.3)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">⚠️ Histórico de Cancelamentos / Estornos</h3>
-      ${cancelamentos.map(can => `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <div><b>Mesa ${pad(can.mesa)}</b> (Atendente: ${can.garcom})<br><small style="color:var(--muted)">Motivo: ${can.motivo} • ${can.horario}</small></div>
-          <strong style="color:var(--brand)">-${br(can.totalCancelado)}</strong>
-        </div>
-      `).join('')}
-    </div>` : ''}
 
     <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);margin-top:10px">🗑️ Zerar Relatórios do Dia</button>
   `;
@@ -1801,7 +1817,7 @@ function renderizar(){
     const btn = document.getElementById('navComandas');
     if(btn) btn.classList.add('active');
     renderComandas();
-  } else if(telaAtual === 'atendimento'){ 
+  } else if(telaAtual === 'atendimento'){
     renderAtendimento();
   } else if(telaAtual === 'relatorios'){
     const btn = document.getElementById('navRelatorios');
@@ -1809,6 +1825,10 @@ function renderizar(){
     renderRelatorios();
   }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  carregarMesasSalvas();
+});
 </script>
 </body>
 </html>
