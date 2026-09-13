@@ -1076,24 +1076,7 @@ function adicionarNovoClientePrompt(){
 
 // ----------------- INTEGRAÇÃO DA FUNÇÃO SALVAR/ADICIONAR COMANDA -----------------
 function salvarComanda(numeroMesa, novoPedido) {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
-    
-    if (comandasLocal[numMesaStr]) {
-        const comandaAtualLocal = comandasLocal[numMesaStr];
-        comandaAtualLocal.itens.push(...novoPedido.itens);
-        comandaAtualLocal.total += novoPedido.total;
-    } else {
-        comandasLocal[numMesaStr] = {
-            status: 'Ocupada',
-            itens: [...novoPedido.itens],
-            total: novoPedido.total,
-            horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-    }
-    
-    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
-    
     const itens = itensTempComClientes(); 
     if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
@@ -1153,7 +1136,6 @@ function salvarComanda(numeroMesa, novoPedido) {
         fecharModal();
         showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
         mudarTela("mesas");
-        carregarMesasSalvas();
       })
       .catch(err => { 
         salvandoPedidoEmAndamento = false;
@@ -1163,60 +1145,13 @@ function salvarComanda(numeroMesa, novoPedido) {
 
 // ----------------- FECHAR / LIMPAR COMANDA (PAGAMENTO) -----------------
 function fecharComanda(numeroMesa) {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
-    
-    delete comandasLocal[numMesaStr];
-    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
-    
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
-        carregarMesasSalvas();
         showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
         renderizar();
     }).catch(err => {
         showToast("Erro ao fechar conta: " + err.message, true);
     });
-}
-
-// ----------------- CARREGAR E ATUALIZAR VISUALMENTE -----------------
-function carregarMesasSalvas() {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
-    
-    document.querySelectorAll('.card-mesa, .table').forEach(card => {
-        const numMesa = card.getAttribute('data-mesa'); 
-        if(numMesa) atualizarCardMesaVisual(numMesa, null);
-    });
-    
-    Object.keys(comandasLocal).forEach(numeroMesa => {
-        const dadosMesa = comandasLocal[numeroMesa];
-        atualizarCardMesaVisual(numeroMesa, dadosMesa);
-    });
-}
-
-function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
-    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
-    if (!cardMesa) return;
-
-    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
-    const totalEl = cardMesa.querySelector('.total-mesa, .total');
-
-    if (dadosMesa) {
-        cardMesa.classList.remove('livre');
-        cardMesa.classList.add('ocupada', 'busy');
-        if (statusEl) {
-            statusEl.textContent = 'Ocupada';
-            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
-        }
-        if (totalEl) totalEl.textContent = `R$ ${(dadosMesa.total || 0).toFixed(2)}`;
-    } else {
-        cardMesa.classList.remove('ocupada', 'busy');
-        cardMesa.classList.add('livre');
-        if (statusEl) {
-            statusEl.textContent = 'Livre';
-            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
-        }
-        if (totalEl) totalEl.textContent = `R$ 0,00`;
-    }
 }
 
 function abrirCarrinho(){
@@ -1610,7 +1545,6 @@ function renderMesas(){
  </div>
 
  <div class="tables">${arrayMesasHTML.join("")}</div>`;
- carregarMesasSalvas();
 }
 
 function renderComandas(){
@@ -1875,10 +1809,6 @@ function renderizar(){
     renderRelatorios();
   }
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-  carregarMesasSalvas();
-});
 </script>
 </body>
 </html>
