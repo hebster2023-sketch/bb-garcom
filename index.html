@@ -1074,11 +1074,11 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-// ----------------- INTEGRAÇÃO DA FUNÇÃO SALVAR/ADICIONAR COMANDA -----------------
+// ----------------- FUNÇÃO SALVAR/ADICIONAR COMANDA (INTEGRADA) -----------------
 function salvarComanda(numeroMesa, novoPedido) {
     const numMesaStr = String(numeroMesa);
-    const itens = itensTempComClientes(); 
-    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    const itensNovosDoCarrinho = itensTempComClientes(); 
+    if(!itensNovosDoCarrinho.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
@@ -1091,30 +1091,35 @@ function salvarComanda(numeroMesa, novoPedido) {
       id: Date.now(),
       horario: horaAtualStr,
       isNovo: true,
-      itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
+      itens: itensNovosDoCarrinho.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
     };
 
     let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
     let lotesAtualizados = [...lotesAntigos, novoLote];
 
-    let mapaItensConsolidados = {};
+    // Reconstrução do array consolidado para evitar duplicações
+    let mapaConsolidado = {};
+
+    // Adiciona os itens acumulados da comanda anterior ao mapa consolidado
     (comandaAtual.itens || []).forEach(it => {
-      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
-      if(!mapaItensConsolidados[chave]) {
-        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
+      let cli = it.cliente || "Cliente 1";
+      let chave = cli + "_" + it.nome;
+      if(!mapaConsolidado[chave]) {
+        mapaConsolidado[chave] = { cliente: cli, nome: it.nome, qtd: 0, preco: it.preco };
       }
-      mapaItensConsolidados[chave].qtd += Number(it.qtd);
+      mapaConsolidado[chave].qtd += Number(it.qtd);
     });
 
-    itens.forEach(it => {
-      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
-      if(!mapaItensConsolidados[chave]) {
-        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
+    // Adiciona os novos itens do carrinho ao mapa consolidado
+    itensNovosDoCarrinho.forEach(it => {
+      let chave = it.cliente + "_" + it.nome;
+      if(!mapaConsolidado[chave]) {
+        mapaConsolidado[chave] = { cliente: it.cliente, nome: it.nome, qtd: 0, preco: it.preco };
       }
-      mapaItensConsolidados[chave].qtd += Number(it.qtd);
+      mapaConsolidado[chave].qtd += Number(it.qtd);
     });
 
-    let todosItensUnificados = Object.values(mapaItensConsolidados);
+    let todosItensUnificados = Object.values(mapaConsolidado);
     let totalGeralAcumulado = todosItensUnificados.reduce((sum, i) => sum + (i.qtd * i.preco), 0);
 
     const dadosMesa = { 
