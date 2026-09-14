@@ -799,7 +799,7 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
-const br = v => (v || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
 
 function iniciarOuvintesFirebase() {
@@ -979,6 +979,13 @@ function itensTempComClientes(){
       if(qtd > 0){
         let pObj = produtosFlat().find(p => p.nome === prod);
         let preco = pObj ? pObj.preco : 0;
+        
+        // Correção principal do Bug do R$ 0,00 (resgatar o preço salvo caso não ache no cardápio)
+        if(!pObj && comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
+            let itemAntigo = comandas[mesaSelecionada].itens.find(x => x.nome === prod);
+            if(itemAntigo) preco = Number(itemAntigo.preco || 0);
+        }
+        
         arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco });
       }
     }
@@ -1075,25 +1082,23 @@ function salvarComanda(numeroMesa, novoPedido) {
     const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
     
-    // Se a mesa já tem uma comanda aberta, acumula os itens e soma o valor total
+    // Tratando corretamente a atualização local
     if (comandasLocal[numMesaStr]) {
         const comandaAtualLocal = comandasLocal[numMesaStr];
         comandaAtualLocal.itens.push(...novoPedido.itens);
-        comandaAtualLocal.total += novoPedido.total;
+        comandaAtualLocal.total = Number(comandaAtualLocal.total || 0) + Number(novoPedido.total || 0);
     } else {
-        // Se a mesa está livre, cria uma nova comanda
         comandasLocal[numMesaStr] = {
             status: 'Ocupada',
             itens: [...novoPedido.itens],
-            total: novoPedido.total,
+            total: Number(novoPedido.total || 0),
             horario: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
     }
     
-    // Grava de volta no localStorage
     localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
     
-    // Processamento com Firebase se aplicável
+    // Processamento com Firebase
     const itens = itensTempComClientes(); 
     if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
@@ -1118,7 +1123,7 @@ function salvarComanda(numeroMesa, novoPedido) {
     (comandaAtual.itens || []).forEach(it => {
       let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
       if(!mapaItensConsolidados[chave]) {
-        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
+        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: Number(it.preco || 0) };
       }
       mapaItensConsolidados[chave].qtd += Number(it.qtd);
     });
@@ -1126,13 +1131,13 @@ function salvarComanda(numeroMesa, novoPedido) {
     itens.forEach(it => {
       let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
       if(!mapaItensConsolidados[chave]) {
-        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: it.preco };
+        mapaItensConsolidados[chave] = { cliente: it.cliente || "Cliente 1", nome: it.nome, qtd: 0, preco: Number(it.preco || 0) };
       }
       mapaItensConsolidados[chave].qtd += Number(it.qtd);
     });
 
     let todosItensUnificados = Object.values(mapaItensConsolidados);
-    let totalGeralAcumulado = todosItensUnificados.reduce((sum, i) => sum + (i.qtd * i.preco), 0);
+    let totalGeralAcumulado = todosItensUnificados.reduce((sum, i) => sum + (Number(i.qtd) * Number(i.preco)), 0);
 
     const dadosMesa = { 
       garcom: garcomTemp, 
@@ -1207,7 +1212,7 @@ function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
             statusEl.textContent = 'Ocupada';
             statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
         }
-        if (totalEl) totalEl.textContent = `R$ ${(dadosMesa.total || 0).toFixed(2)}`;
+        if (totalEl) totalEl.textContent = br(dadosMesa.total);
     } else {
         cardMesa.classList.remove('ocupada', 'busy');
         cardMesa.classList.add('livre');
@@ -1306,7 +1311,7 @@ function executarTransferencia(numOrigem){
   let itensCombinados = [...(dadosOrigem.itens || [])];
   let lotesCombinados = [...(dadosOrigem.lotes || [])];
   let itensPagosCombinados = [...(dadosOrigem.itensPagos || [])];
-  let totalCombinado = dadosOrigem.total || 0;
+  let totalCombinado = Number(dadosOrigem.total || 0);
   let garcomNovo = dadosOrigem.garcom;
   let criadoEmNovo = dadosOrigem.criadoEm || Date.now();
 
@@ -1314,7 +1319,7 @@ function executarTransferencia(numOrigem){
     itensCombinados = [...(dadosDestinoExistente.itens || []), ...itensCombinados];
     lotesCombinados = [...(dadosDestinoExistente.lotes || []), ...lotesCombinados];
     itensPagosCombinados = [...(dadosDestinoExistente.itensPagos || []), ...itensPagosCombinados];
-    totalCombinado += (dadosDestinoExistente.total || 0);
+    totalCombinado += Number(dadosDestinoExistente.total || 0);
   }
 
   const batch = db.batch();
@@ -1454,8 +1459,18 @@ function pagarItensSelecionados(num){
       if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
-    const vendaParcial = { mesa: num, total: valTotalSel, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: itensPagosParaHistorico, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-    let novoTotal = Math.max(0, c.total - valTotalSel);
+    const vendaParcial = { 
+        mesa: num, 
+        total: valTotalSel, 
+        pagamento: formaPagamento, 
+        garcom: c.garcom || "Geral", 
+        itens: itensPagosParaHistorico, 
+        horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+        data: new Date().toLocaleDateString('pt-BR'),
+        timestamp: Date.now()
+    };
+    
+    let novoTotal = Math.max(0, Number(c.total) - valTotalSel);
 
     db.collection("historico").add(vendaParcial).then(() => {
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
@@ -1478,6 +1493,8 @@ function cancelarComandaModal(num){
     totalCancelado: c.total,
     motivo: motivo.trim() || "Não informado",
     horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    data: new Date().toLocaleDateString('pt-BR'),
+    timestamp: Date.now(),
     itens: c.itens || []
   };
 
@@ -1499,7 +1516,18 @@ function fecharMesaDireto(num){
    let todos = [...(c.itens || [])];
    if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco }));
 
-   const pHist = c.total > 0 && todos.length ? db.collection("historico").add({ mesa: num, total: c.total, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: todos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) : Promise.resolve();
+   let novaVenda = { 
+       mesa: num, 
+       total: c.total, 
+       pagamento: formaPagamento, 
+       garcom: c.garcom || "Geral", 
+       itens: todos, 
+       horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+       data: new Date().toLocaleDateString('pt-BR'),
+       timestamp: Date.now()
+   };
+
+   const pHist = c.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
 
    pHist.then(() => {
      fecharComanda(num);
@@ -1513,14 +1541,23 @@ function adicionarDespesa(){
   let valor = prompt("Valor em R$:"); if(!valor) return;
   valor = parseFloat(valor.replace(",","."));
   if(isNaN(valor) || valor <= 0){ showToast("Valor inválido.", true); return; }
-  db.collection("despesas").add({ desc, valor, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }).then(() => {
+  
+  let registroDespesa = { 
+      desc, 
+      valor, 
+      horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      data: new Date().toLocaleDateString('pt-BR'),
+      timestamp: Date.now()
+  };
+
+  db.collection("despesas").add(registroDespesa).then(() => {
     showToast("Gasto registrado com sucesso!");
     renderRelatorios();
   });
 }
 
 function limparRelatorios(){
-  if(confirm("Deseja zerar os relatórios do dia?")){
+  if(confirm("Deseja zerar TODAS as movimentações do banco? (Use com cuidado)")){
     const batch = db.batch();
     db.collection("historico").get().then(snap => {
       snap.docs.forEach(d => batch.delete(d.ref));
@@ -1529,7 +1566,7 @@ function limparRelatorios(){
         db.collection("cancelamentos").get().then(snap3 => {
           snap3.docs.forEach(d => batch.delete(d.ref));
           batch.commit().then(() => {
-            showToast("Relatórios zerados com sucesso!");
+            showToast("Banco de relatórios limpo com sucesso!");
             renderRelatorios();
           });
         });
@@ -1569,7 +1606,7 @@ function renderMesas(){
    if(filtroMesaAtual === 'livres' && busy) continue;
    if(filtroMesaAtual === 'ocupadas' && !busy) continue;
 
-   let totalRestante = c?.total || 0;
+   let totalRestante = Number(c?.total || 0);
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
 
    let classeDestaque = "";
@@ -1621,7 +1658,7 @@ function renderComandas(){
 
  document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
  ${abertas.length ? abertas.map(([m,c]) => {
-   let totalRestante = c.total || 0; 
+   let totalRestante = Number(c.total || 0); 
    let tempoInfo = calcularTempoDecorrido(c.criadoEm);
    let avisoContaOuNovo = "";
    if(c.pediuContaAlerta) avisoContaOuNovo = `<div style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(245,158,11,0.4)">⚠️ ESTA MESA PEDIU A CONTA!</div>`;
@@ -1667,7 +1704,7 @@ function renderComandas(){
      (c.itens || []).forEach(i => {
        let cli = i.cliente || 'Cliente 1';
        let chave = cli + "_" + i.nome;
-       if(!agrupadosGeral[chave]) agrupadosGeral[chave] = { cliente: cli, nome: i.nome, qtd: 0, preco: i.preco };
+       if(!agrupadosGeral[chave]) agrupadosGeral[chave] = { cliente: cli, nome: i.nome, qtd: 0, preco: Number(i.preco||0) };
        agrupadosGeral[chave].qtd += i.qtd;
      });
      lotesHTML = Object.values(agrupadosGeral).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("");
@@ -1766,21 +1803,38 @@ function renderAtendimento(){
  renderProdutos();
 }
 
+// ----------------- NOVA LÓGICA DE RELATÓRIOS DO DIA -----------------
 function renderRelatorios(){
-  let totalDia = historicoVendas.reduce((acc, v) => acc + (v.total || 0), 0);
-  let totalDespesas = despesas.reduce((acc, d) => acc + (d.valor || 0), 0);
-  let saldoLiquido = totalDia - totalDespesas;
+  let hoje = new Date().toLocaleDateString('pt-BR');
+  
+  // Filtrar apenas o histórico de transações que aconteceram HOJE
+  let vendasHoje = historicoVendas.filter(v => v.data === hoje || !v.data); 
+  let despesasHoje = despesas.filter(d => d.data === hoje || !d.data);
+  
+  let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
+  
+  vendasHoje.forEach(v => {
+    let t = Number(v.total) || 0;
+    totalGeral += t;
+    if(v.pagamento === 'Pix') totalPix += t;
+    else if(v.pagamento === 'Cartão de Crédito') totalCredito += t;
+    else if(v.pagamento === 'Cartão de Débito') totalDebito += t;
+    else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
+  });
+
+  let totalDespesas = despesasHoje.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
+  let saldoLiquido = totalGeral - totalDespesas;
 
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia</span></div>
+      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia (${hoje})</span></div>
       <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
       <div class="card" style="margin:0;padding:12px;text-align:center">
         <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Entradas</span>
-        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalDia)}</div>
+        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalGeral)}</div>
       </div>
       <div class="card" style="margin:0;padding:12px;text-align:center">
         <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
@@ -1788,14 +1842,33 @@ function renderRelatorios(){
       </div>
     </div>
 
-    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card))">
+    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
       <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
       <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
     </div>
 
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Entradas por Forma de Pagamento</h3>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Pix:</span> <b>${br(totalPix)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
+    </div>
+    
+    ${despesasHoje.length ? `
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Hoje</h3>
+      ${despesasHoje.map(d => `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div><b>${d.desc}</b> <small style="color:var(--muted)">(${d.horario})</small></div>
+          <strong style="color:#d32f2f">${br(d.valor)}</strong>
+        </div>
+      `).join('')}
+    </div>` : ''}
+
     <div class="card" style="padding:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📋 Vendas Realizadas</h3>
-      ${historicoVendas.length ? historicoVendas.map(v => `
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📋 Últimas Vendas Registradas</h3>
+      ${vendasHoje.length ? vendasHoje.reverse().slice(0, 10).map(v => `
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
           <div><b>Mesa ${pad(v.mesa)}</b> (${v.pagamento})<br><small style="color:var(--muted)">${v.horario} • ${v.garcom}</small></div>
           <strong style="color:#10b981">${br(v.total)}</strong>
@@ -1803,7 +1876,7 @@ function renderRelatorios(){
       `).join('') : '<div class="empty">Nenhuma venda registrada hoje.</div>'}
     </div>
 
-    <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);margin-top:10px">🗑️ Zerar Relatórios do Dia</button>
+    <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);margin-top:10px">🗑️ Zerar Relatórios</button>
   `;
 }
 
