@@ -274,15 +274,15 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
     background: var(--card);
 }
 
-/* Barra Flutuante de Carrinho Corrigida */
-.cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(120px);bottom:90px;width:min(700px,calc(100% - 24px));background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0;pointer-events:none}
-.cartbar.show-cart{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+/* Barra Flutuante de Carrinho */
+.cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
+.cartbar.show-cart{transform:translateX(-50%) translateY(0);opacity:1}
 .cartbar button{border:0;background:#fff;color:#1f2937;border-radius:12px;padding:8px 14px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
 .cartbar button:active{transform:scale(0.92)}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center}
 .modal.show{display:flex}
-.sheet{background:var(--card);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);color:var(--ink);width:90%;max-width:400px;margin:auto;border-radius:28px;padding:20px;max-height:85vh;overflow:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.2);border-top:1px solid var(--border);animation: slideUpModal .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.sheet{background:var(--card);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);color:var(--ink);width:90%;max-width:400px;margin:auto;border-radius:28px;padding:20px;max-height:90vh;overflow:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.2);border-top:1px solid var(--border);animation: slideUpModal .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
 @keyframes slideUpModal { from{transform:translateY(100%)} to{transform:translateY(0)} }
 
 .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
@@ -424,14 +424,14 @@ function processarAlertaPedido(mesaId, atual) {
 
   if (atual && atual.pediuContaAlerta) {
     let textoFalar = `Atenção! A Mesa ${mesaId} solicitou a conta.`;
-    showToast(`Mesa ${pad(mesaId)} pediu a conta!`, true);
+    showToast(`⚠️ Mesa ${pad(mesaId)} pediu a conta!`);
     falarTexto(textoFalar);
     return;
   }
 
   if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente') {
     let textoFalar = `Novo pedido na Mesa ${mesaId} feito pelo cliente`;
-    showToast(`Novo pedido digital na Mesa ${pad(mesaId)}!`);
+    showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
     falarTexto(textoFalar);
 
     db.collection('comandas').doc(String(mesaId)).update({ 
@@ -691,7 +691,7 @@ function adicionarItemAdmin(cat){
       <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Selecione uma foto da galeria do seu celular para <b>${nome}</b>:</p>
       <input type="file" id="inputFotoNovoItem" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
     </div>
-    <button class="primary" onclick="confirmarAdicaoItemAdmin('${cat}', '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">Adicionar Item</button>
+    <button class="primary" onclick="confirmarAdicaoItemAdmin('${cat}', '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">✅ Adicionar Item</button>
     <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
@@ -972,19 +972,11 @@ function totalTemp(){
 }
 
 function atualizarBar(){
-  const bar = document.getElementById("cartBar");
-  if(!bar) return;
-
-  if(telaAtual !== "atendimento"){
-    bar.classList.remove("show-cart");
-    return;
-  }
-
   const itensArr = itensTempComClientes();
   const total = totalTemp();
   const totalItens = itensArr.reduce((a,b) => a+b.qtd, 0);
-
-  if(totalItens > 0){
+  const bar = document.getElementById("cartBar");
+  if(telaAtual === "atendimento" && totalItens){
     bar.classList.add("show-cart");
     document.getElementById("cartCount").textContent = `${totalItens} ${totalItens === 1 ? "item" : "itens"}`;
     document.getElementById("cartTotal").textContent = br(total);
@@ -1085,7 +1077,7 @@ function salvarComanda(numeroMesa, novoPedido) {
         salvandoPedidoEmAndamento = false;
         pedidoTemp = {}; 
         fecharModal();
-        showToast(`Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
+        showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
         mudarTela("mesas");
         carregarMesasSalvas();
       })
@@ -1657,7 +1649,7 @@ function renderMesas(){
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
    let statusClass = busy ? 'ocupada' : 'livre';
    
-   // Borda azul piscante somente se o pedido vier do cardápio digital (origemPedido === 'cliente')
+   // Borda azul ativa APENAS para novos pedidos vindos do cliente (QR Code)
    let alertaNovo = (c && c.novoPedidoAlerta && c.origemPedido === 'cliente') ? 'novo-pedido-ativo' : '';
    let alertaConta = c && c.pediuContaAlerta ? 'pediu-conta-ativo' : '';
 
@@ -1693,7 +1685,7 @@ function renderComandas(){
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       totalGeral += Number(c.total || 0);
 
-      /* Produtos agrupados e sumarizados diretamente por cliente e nome */
+      /* Produtos agrupados e sumarizados diretamente por cliente e nome (Sem Lotes) */
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
         produtosListaHTML = `
@@ -1844,7 +1836,6 @@ function renderAtendimento(){
 function renderizar(){
   document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
   
-  // Oculta o cabeçalho superior na tela de atendimento para ganhar espaço útil na tela
   const headerEl = document.querySelector('.header');
   if(headerEl) {
     headerEl.style.display = (telaAtual === 'atendimento') ? 'none' : 'flex';
@@ -1866,7 +1857,6 @@ function renderizar(){
     renderAtendimento();
   }
 
-  // Atualiza a exibição da barra do carrinho de acordo com a tela
   atualizarBar();
 }
 </script>
