@@ -1,4 +1,4 @@
-   <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -945,19 +945,20 @@ function renomearClienteAtual(){
 function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
-  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
-  if(!itens.length && !comandas[mesaSelecionada]) return;
+  const total = totalTemp();
+
+  const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp, 
-    itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
-    total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
-    criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
+    garcom: garcomTemp || "Hebster", 
+    itens: itens, 
+    total: total, 
+    criadoEm: comandaAtual.criadoEm || Date.now(),
     atualizadoEm: Date.now(),
     origemPedido: 'garcom'
   };
 
-  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(()=>{});
+  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(err => console.error(err));
 }
 
 function alterarQtd(nome, delta){ 
@@ -1131,7 +1132,7 @@ function salvarComanda(numeroMesa, novoPedido) {
     let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
-      garcom: garcomTemp, 
+      garcom: garcomTemp || "Hebster", 
       itens: todosItensUnificados, 
       lotes: lotesAtualizados,
       itensPagos: comandaAtual.itensPagos || [], 
@@ -1458,7 +1459,7 @@ function pagarItensSelecionados(num){
         mesa: num, 
         total: valTotalSel, 
         pagamento: formaPagamento, 
-        garcom: c.garcom || "Geral", 
+        garcom: c.garcom || "Hebster", 
         itens: itensPagosParaHistorico, 
         horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
         data: new Date().toLocaleDateString('pt-BR'),
@@ -1515,7 +1516,7 @@ function fecharMesaDireto(num){
        mesa: num, 
        total: c.total, 
        pagamento: formaPagamento, 
-       garcom: c.garcom || "Geral", 
+       garcom: c.garcom || "Hebster", 
        itens: todos, 
        horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
        data: new Date().toLocaleDateString('pt-BR'),
@@ -1617,6 +1618,31 @@ function renderRelatorios(){
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Vendas e Pagamentos por Garçom Hoje</h3>
+      <div style="display:flex;flex-direction:column;gap:6px">
+      ${(function(){
+         let garcomVendas = {};
+         vendasHoje.forEach(v => {
+            let g = v.garcom || "Hebster";
+            if(!garcomVendas[g]) garcomVendas[g] = { total: 0, qtd: 0 };
+            garcomVendas[g].total += Number(v.total || 0);
+            garcomVendas[g].qtd += 1;
+         });
+         let html = Object.keys(garcomVendas).map(g => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <div>
+                <b>👤 Garçom: ${g}</b>
+                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd} ${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+              </div>
+              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
+            </div>
+         `).join('');
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
+      })()}
+      </div>
     </div>
     
     ${despesasHoje.length ? `
