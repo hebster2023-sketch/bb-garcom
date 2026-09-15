@@ -901,7 +901,6 @@ function mudarClienteAtual(novoCli){
   renderAtendimento();
 }
 
-/* 2. Função de renomear corrigida para atualizar imutavelmente a lista de clientes e o cliente ativo */
 function renomearClienteAtual(){
   let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
   if(!novoNome || !novoNome.trim()) return;
@@ -915,12 +914,10 @@ function renomearClienteAtual(){
 
   const nomeAntigo = clienteAtual;
   
-  // 1. Atualiza imutavelmente a estrutura de pedidos mantendo a lista atualizada
   const itensCliente = pedidoTemp[nomeAntigo] || {};
   delete pedidoTemp[nomeAntigo];
   pedidoTemp[novoNome] = { ...itensCliente };
 
-  // Atualiza também os dados na comanda carregada se houver
   if(mesaSelecionada && comandas[mesaSelecionada]) {
     if(Array.isArray(comandas[mesaSelecionada].itens)) {
       comandas[mesaSelecionada].itens.forEach(it => {
@@ -938,7 +935,6 @@ function renomearClienteAtual(){
     }
   }
 
-  // 2. Garante a atualização do cliente ativo exibido no topo ("Atendendo: ...")
   clienteAtual = novoNome;
   
   renderAtendimento();
@@ -1191,7 +1187,6 @@ function carregarMesasSalvas() {
     });
 }
 
-/* 1. Atualização para ocultar o valor nas mesas livres */
 function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
     const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
     if (!cardMesa) return;
@@ -1687,7 +1682,6 @@ function calcularTempoDecorrido(timestampCriacao){
   return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
 }
 
-/* 1. Condicional adicionada para exibir o valor total apenas quando > 0 */
 function renderMesas(){
  let totalAbertas = 0;
  let arrayMesasHTML = [];
