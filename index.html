@@ -1102,39 +1102,21 @@ function salvarComanda(numeroMesa, novoPedido) {
     salvandoPedidoEmAndamento = true;
 
     const comandaAtual = comandas[numMesaStr] || {};
-    
-    let pedidoInicial = JSON.parse(itensIniciaisJSON || "{}");
-    let itensNovos = [];
-    
-    for(const cli in pedidoTemp) {
-        for(const prod in pedidoTemp[cli]) {
-            let qtdAtual = pedidoTemp[cli][prod];
-            let qtdAntiga = (pedidoInicial[cli] && pedidoInicial[cli][prod]) ? pedidoInicial[cli][prod] : 0;
-            let delta = qtdAtual - qtdAntiga;
-            
-            if(delta > 0) {
-                let pObj = produtosFlat().find(p => p.nome === prod);
-                let preco = pObj ? pObj.preco : 0;
-                if(!pObj && comandaAtual.itens) {
-                    let itemAntigo = comandaAtual.itens.find(x => x.nome === prod);
-                    if(itemAntigo) preco = Number(itemAntigo.preco || 0);
-                }
-                itensNovos.push({ cliente: cli, nome: prod, qtd: delta, preco: preco });
-            }
-        }
-    }
-    
-    let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     let lotesAtualizados = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
     
-    if (itensNovos.length > 0) {
-        lotesAtualizados.push({
-            id: Date.now(),
-            horario: horaAtualStr,
-            isNovo: true,
-            itens: itensNovos.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
-        });
-    }
+    let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    
+    // Agrupa a totalidade dos itens salvos para exibição completa na comanda
+    lotesAtualizados.push({
+        id: Date.now(),
+        horario: horaAtualStr,
+        isNovo: true,
+        itens: itens.map(i => ({ 
+            nome: `${i.qtd}x ${i.nome}`, 
+            preco: br(i.qtd * i.preco), 
+            cliente: i.cliente 
+        }))
+    });
 
     let todosItensUnificados = itensTempComClientes();
     let totalGeralAcumulado = totalTemp();
@@ -1147,7 +1129,7 @@ function salvarComanda(numeroMesa, novoPedido) {
       total: totalGeralAcumulado, 
       criadoEm: comandaAtual.criadoEm || Date.now(), 
       atualizadoEm: Date.now(), 
-      novoPedidoAlerta: itensNovos.length > 0 ? true : (comandaAtual.novoPedidoAlerta || false),
+      novoPedidoAlerta: true,
       origemPedido: 'garcom'
     };
 
