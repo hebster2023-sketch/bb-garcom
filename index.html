@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -893,6 +893,7 @@ function abrirMesa(num){
 
 function atualizarGarcom(v){ 
   garcomTemp = v.trim() || "Hebster"; 
+  salvarRascunhoAutomatico();
 }
 
 function mudarClienteAtual(novoCli){
@@ -937,11 +938,26 @@ function renomearClienteAtual(){
   clienteAtual = novoNome;
   
   renderAtendimento();
+  salvarRascunhoAutomatico();
   showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
 function salvarRascunhoAutomatico(){
-  /* Mantido localmente para evitar gravações prematuras no banco */
+  if(telaAtual !== "atendimento" || !mesaSelecionada) return;
+  const itens = itensTempComClientes();
+  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
+  if(!itens.length && !comandas[mesaSelecionada]) return;
+
+  const dadosMesa = { 
+    garcom: garcomTemp, 
+    itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
+    total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
+    criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
+    atualizadoEm: Date.now(),
+    origemPedido: 'garcom'
+  };
+
+  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(()=>{});
 }
 
 function alterarQtd(nome, delta){ 
@@ -950,6 +966,7 @@ function alterarQtd(nome, delta){
   if(pedidoTemp[clienteAtual][nome] < 0) pedidoTemp[clienteAtual][nome] = 0; 
   renderProdutos(); 
   atualizarBar(); 
+  salvarRascunhoAutomatico(); 
 }
 
 function produtosFlat(){ 
@@ -1132,6 +1149,7 @@ function salvarComanda(numeroMesa, novoPedido) {
         fecharModal();
         showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
         mudarTela("mesas");
+        carregarMesasSalvas();
       })
       .catch(err => { 
         salvandoPedidoEmAndamento = false;
@@ -1140,14 +1158,65 @@ function salvarComanda(numeroMesa, novoPedido) {
 }
 
 function fecharComanda(numeroMesa) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
     
+    delete comandasLocal[numMesaStr];
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
+        carregarMesasSalvas();
         showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
         renderizar();
     }).catch(err => {
         showToast("Erro ao fechar conta: " + err.message, true);
     });
+}
+
+function carregarMesasSalvas() {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    
+    document.querySelectorAll('.card-mesa, .table').forEach(card => {
+        const numMesa = card.getAttribute('data-mesa'); 
+        if(numMesa) atualizarCardMesaVisual(numMesa, null);
+    });
+    
+    Object.keys(comandasLocal).forEach(numeroMesa => {
+        const dadosMesa = comandasLocal[numeroMesa];
+        atualizarCardMesaVisual(numeroMesa, dadosMesa);
+    });
+}
+
+function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
+    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
+    if (!cardMesa) return;
+
+    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
+    const totalEl = cardMesa.querySelector('.total-mesa, .total');
+
+    if (dadosMesa && dadosMesa.total > 0) {
+        cardMesa.classList.remove('livre');
+        cardMesa.classList.add('ocupada', 'busy');
+        if (statusEl) {
+            statusEl.textContent = 'Ocupada';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
+        }
+        if (totalEl) {
+            totalEl.textContent = br(dadosMesa.total);
+            totalEl.style.display = '';
+        }
+    } else {
+        cardMesa.classList.remove('ocupada', 'busy');
+        cardMesa.classList.add('livre');
+        if (statusEl) {
+            statusEl.textContent = 'Livre';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
+        }
+        if (totalEl) {
+            totalEl.textContent = '';
+            totalEl.style.display = 'none';
+        }
+    }
 }
 
 function abrirCarrinho(){
@@ -1195,6 +1264,7 @@ function alterarQtdCarrinhoModal(cli, nomeProd, delta){
   if(!pedidoTemp[cli]) pedidoTemp[cli] = {};
   pedidoTemp[cli][nomeProd] = (pedidoTemp[cli][nomeProd] || 0) + delta;
   if(pedidoTemp[cli][nomeProd] < 0) pedidoTemp[cli][nomeProd] = 0;
+  salvarRascunhoAutomatico();
   abrirCarrinho();
 }
 
