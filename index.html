@@ -800,16 +800,6 @@ function iniciarOuvintesFirebase() {
   }, err => console.error(err));
 }
 
-// Configuração do Auth Observer para persistir e gerenciar a sessão ao iniciar
-firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-    usuarioLogadoEmail = user.email;
-    concluirLogin(usuarioLogadoEmail);
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-  }
-});
-
 function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
@@ -880,18 +870,19 @@ function atualizarGarcom(v){
   salvarRascunhoAutomatico();
 }
 
-function salvarNomeGarcom(){
-  const inputEl = document.getElementById("inputGarcomNome");
-  if(inputEl) {
-    garcomTemp = inputEl.value.trim() || "Hebster";
-  }
-  salvarRascunhoAutomatico();
-  showToast(`Garçom "${garcomTemp}" salvo com sucesso!`);
-}
-
 function mudarClienteAtual(novoCli){
   clienteAtual = novoCli.trim() || "Cliente 1";
   renderAtendimento();
+}
+
+function adicionarNovoClientePrompt(){
+  let nomeCli = prompt("Digite o nome ou apelido da nova pessoa (ex: João, Maria):");
+  if(!nomeCli || !nomeCli.trim()) return;
+  nomeCli = nomeCli.trim();
+  if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
+  clienteAtual = nomeCli;
+  renderAtendimento();
+  showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
 function renomearClienteAtual(){
@@ -915,6 +906,15 @@ function renomearClienteAtual(){
     if(Array.isArray(comandas[mesaSelecionada].itens)) {
       comandas[mesaSelecionada].itens.forEach(it => {
         if(it.cliente === nomeAntigo) it.cliente = novoNome;
+      });
+    }
+    if(Array.isArray(comandas[mesaSelecionada].lotes)) {
+      comandas[mesaSelecionada].lotes.forEach(lote => {
+        if(Array.isArray(lote.itens)) {
+          lote.itens.forEach(it => {
+            if(it.cliente === nomeAntigo) it.cliente = novoNome;
+          });
+        }
       });
     }
   }
@@ -1057,16 +1057,6 @@ function renderProdutos(){
    document.querySelectorAll(".side-cat").forEach(x => x.classList.toggle("active", x.dataset.cat === categoriaAtual));
  }
  atualizarBar();
-}
-
-function adicionarNovoClientePrompt(){
-  let nomeCli = prompt("Digite o nome ou apelido da nova pessoa (ex: João, Maria):");
-  if(!nomeCli || !nomeCli.trim()) return;
-  nomeCli = nomeCli.trim();
-  if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
-  clienteAtual = nomeCli;
-  renderAtendimento();
-  showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
 function salvarComanda(numeroMesa, novoPedido) {
@@ -1799,58 +1789,75 @@ function renderAtendimento(){
     </button>
   `).join('');
 
+  let catsHTML = Object.keys(cardapio).map(cat => `
+    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+      <span class="cat-ico">${obterIconeCategoria(cat)}</span>
+      <span>${cat}</span>
+    </button>
+  `).join('');
+
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:12px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
-        <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
-        <p>Preencha os itens por pessoa e salve o pedido</p>
+        <h2>Mesa ${pad(mesaSelecionada)}</h2>
+        <p>Atendimento por Cliente</p>
       </div>
-      <button class="secondary" style="width:auto;padding:8px 12px;font-size:11px;margin:0" onclick="renomearClienteAtual()">✏️ Renomear Pessoa</button>
-    </div>
-
-    <div class="card" style="padding:12px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="flex:1">
-          <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px">👤 Nome do Garçom</label>
-          <input type="text" id="inputGarcomNome" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
-        </div>
-        <div style="padding-top:16px">
-          <button class="primary" style="padding:8px 12px;font-size:11px;background:#10b981;box-shadow:none" onclick="salvarNomeGarcom()">Salvar Nome</button>
-        </div>
+      <div style="display:flex;gap:6px">
+        <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
+        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
       </div>
     </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="filter-tabs" style="margin:0;flex:1;overflow-x:auto">${tabsClientesHTML}</div>
-      <button class="secondary" style="width:auto;margin:0 0 0 6px;padding:6px 10px;font-size:11px" onclick="adicionarNovoClientePrompt()">+ Nova Pessoa</button>
+    <!-- BLOCO DE GESTÃO E ALTERNÂNCIA DE CLIENTES -->
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;overflow-x:auto;padding-bottom:4px">
+      <span style="font-size:11px;font-weight:900;color:var(--muted)">CLIENTES:</span>
+      <div id="clientes-chips" style="display:flex;gap:4px">${tabsClientesHTML}</div>
+      <button onclick="adicionarNovoClientePrompt()" style="background:var(--brand);color:#fff;border:0;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap">+ Pessoa</button>
+      <button onclick="renomearClienteAtual()" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap" title="Renomear pessoa atual">✏️ Renomear</button>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
       <div class="side-cats">
-        ${Object.keys(cardapio).map(cat => `
-          <div class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
-            <span class="cat-ico">${obterIconeCategoria(cat)}</span>
-            <span>${cat}</span>
-          </div>
-        `).join('')}
+        ${catsHTML}
       </div>
-      <div class="products-list" id="produtos"></div>
+      <div id="produtos" class="products-list"></div>
     </div>
   `;
+
   renderProdutos();
 }
 
 function renderizar(){
-  if(telaAtual === 'mesas') renderMesas();
-  else if(telaAtual === 'comandas') renderComandas();
-  else if(telaAtual === 'relatorios') renderRelatorios();
-  else if(telaAtual === 'atendimento') renderAtendimento();
+  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
+  
+  const headerEl = document.querySelector('.header');
+  if(headerEl) {
+    headerEl.style.display = (telaAtual === 'atendimento') ? 'none' : 'flex';
+  }
+
+  if(telaAtual === 'mesas') {
+    const btn = document.getElementById('navMesas');
+    if(btn) btn.classList.add('active');
+    renderMesas();
+  } else if(telaAtual === 'comandas') {
+    const btn = document.getElementById('navComandas');
+    if(btn) btn.classList.add('active');
+    renderComandas();
+  } else if(telaAtual === 'relatorios') {
+    const btn = document.getElementById('navRelatorios');
+    if(btn) btn.classList.add('active');
+    renderRelatorios();
+  } else if(telaAtual === 'atendimento') {
+    renderAtendimento();
+  }
+
+  atualizarBar();
 }
 </script>
 </body>
