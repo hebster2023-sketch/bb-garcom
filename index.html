@@ -386,7 +386,7 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
@@ -611,14 +611,8 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO -----------------
+// ----------------- PAINEL ADMINISTRATIVO (SEM SENHA) -----------------
 function abrirPainelAdmin(){
-  let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
-  if(senha === null) return;
-  if(senha !== "2201"){
-    showToast("Senha incorreta!", true);
-    return;
-  }
   renderizarPainelAdmin();
 }
 
@@ -840,7 +834,7 @@ function mudarTela(t, num=null){
 }
 
 function abrirMesa(num){
-  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; garcomTemp = "Hebster"; termoBuscaProduto = "";
+  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = ""; garcomTemp = "Hebster"; termoBuscaProduto = "";
   
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
@@ -854,12 +848,16 @@ function abrirMesa(num){
     garcomTemp = comandas[num].garcom || "Hebster";
     if(comandas[num].itens){
       comandas[num].itens.forEach(it => {
-        let cli = it.cliente || "Cliente 1";
+        let cli = it.cliente || "Geral";
         if(!pedidoTemp[cli]) pedidoTemp[cli] = {};
         pedidoTemp[cli][it.nome] = (pedidoTemp[cli][it.nome] || 0) + it.qtd;
       });
     }
   }
+
+  let chavesClientes = Object.keys(pedidoTemp);
+  clienteAtual = chavesClientes.length > 0 ? chavesClientes[0] : "Atendimento";
+  if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
 
   itensIniciaisJSON = JSON.stringify(pedidoTemp);
   mudarTela("atendimento", num);
@@ -871,7 +869,7 @@ function atualizarGarcom(v){
 }
 
 function mudarClienteAtual(novoCli){
-  clienteAtual = novoCli.trim() || "Cliente 1";
+  clienteAtual = novoCli.trim() || "Atendimento";
   renderAtendimento();
 }
 
@@ -1041,13 +1039,13 @@ function renderProdutos(){
 }
 
 function adicionarNovoClientePrompt(){
-  let nomeCli = prompt("Digite o nome ou apelido da nova pessoa (ex: João, Maria):");
+  let nomeCli = prompt("Digite o nome ou identificação do cliente:");
   if(!nomeCli || !nomeCli.trim()) return;
   nomeCli = nomeCli.trim();
   if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
   clienteAtual = nomeCli;
   renderAtendimento();
-  showToast(`Nova pessoa "${nomeCli}" adicionada!`);
+  showToast(`Cliente "${nomeCli}" adicionado!`);
 }
 
 function salvarComanda(numeroMesa, novoPedido) {
@@ -1294,13 +1292,13 @@ function dividirContaModal(num){
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
-            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente || 'Cliente 1'}]</span> ${i.nome}</div>
+            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente \vert{}\vert{} 'Geral'}]</span>${i.nome}</div>
             <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button onclick="mudarQtdPagamento(${idx}, -1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
-            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente || 'Cliente 1'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
-            <button onclick="mudarQtdPagamento(${idx}, 1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
+            <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
+            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente || 'Geral'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
+            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
           </div>
         </div>
       `).join("")}
@@ -1367,7 +1365,7 @@ function pagarItensSelecionados(num){
     let itensPagosAcumulados = c.itensPagos ? [...c.itensPagos] : [];
 
     c.itens.forEach(it => {
-      let cli = it.cliente || "Cliente 1";
+      let cli = it.cliente || "Geral";
       let chave = cli + "_" + it.nome;
       let qtdBaixada = baixas[chave] || 0;
       if(qtdBaixada > 0){
@@ -1561,7 +1559,7 @@ function renderRelatorios(){
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
               <div>
                 <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd} ${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
               </div>
               <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
             </div>
@@ -1591,7 +1589,7 @@ function renderRelatorios(){
          });
          let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
             <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span>${prodVendidos[nome].qtd}x ${nome}</span>
+              <span>${prodVendidos[nome].qtd}x${nome}</span>
               <b>${br(prodVendidos[nome].total)}</b>
             </div>
          `).join('');
@@ -1649,7 +1647,6 @@ function renderMesas(){
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
    let statusClass = busy ? 'ocupada' : 'livre';
    
-   // Borda azul ativa APENAS para novos pedidos vindos do cliente (QR Code)
    let alertaNovo = (c && c.novoPedidoAlerta && c.origemPedido === 'cliente') ? 'novo-pedido-ativo' : '';
    let alertaConta = c && c.pediuContaAlerta ? 'pediu-conta-ativo' : '';
 
@@ -1678,21 +1675,18 @@ function renderMesas(){
 
 function renderComandas(){
   let comandasHTML = [];
-  let totalGeral = 0;
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
-      totalGeral += Number(c.total || 0);
 
-      /* Produtos agrupados e sumarizados diretamente por cliente e nome (Sem Lotes) */
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
         produtosListaHTML = `
           <div class="comanda-produtos-box">
             ${c.itens.map(it => `
               <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <span><b>[${it.cliente || 'Geral'}]</b> ${it.qtd}x${it.nome}</span>
                 <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
               </div>
             `).join('')}
@@ -1700,7 +1694,6 @@ function renderComandas(){
         `;
       }
 
-      /* Bloco de exibição de itens já pagos na mesa */
       let itensPagosHTML = "";
       if(c.itensPagos && c.itensPagos.length > 0){
         itensPagosHTML = `
@@ -1710,7 +1703,7 @@ function renderComandas(){
             </div>
             ${c.itensPagos.map(it => `
               <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <span><b>[${it.cliente || 'Geral'}]</b> ${it.qtd}x${it.nome}</span>
                 <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
               </div>
             `).join('')}
@@ -1751,7 +1744,6 @@ function renderComandas(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <h2>Comandas Abertas</h2>
-      <span class="muted">Total Acumulado: ${br(totalGeral)}</span>
     </div>
     ${comandasHTML.join('')}
   `;
@@ -1775,7 +1767,14 @@ function renderAtendimento(){
   if(!mesaSelecionada) return;
 
   let listaClientes = Object.keys(pedidoTemp);
-  if(!listaClientes.includes(clienteAtual)) listaClientes.unshift(clienteAtual);
+  if(listaClientes.length === 0) {
+    listaClientes = ["Atendimento"];
+    if(!pedidoTemp["Atendimento"]) pedidoTemp["Atendimento"] = {};
+  }
+  
+  if(!clienteAtual || !listaClientes.includes(clienteAtual)) {
+    clienteAtual = listaClientes[0];
+  }
 
   let tabsClientesHTML = listaClientes.map(cli => `
     <button class="filter-tab ${cli === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${cli.replace(/'/g,"\\'")}')">
@@ -1795,38 +1794,31 @@ function renderAtendimento(){
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
         <h2>Mesa ${pad(mesaSelecionada)}</h2>
-        <p>Atendimento por Cliente</p>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+          <span style="font-size:11px;color:var(--muted)">Garçom:</span>
+          <input type="text" value="${garcomTemp}" onchange="atualizarGarcom(this.value)" placeholder="Nome do Garçom" style="border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700;width:120px">
+        </div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
-        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
+        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Pagar</button>
       </div>
     </div>
 
-    <div class="card" style="padding:10px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1">
-          ${tabsClientesHTML}
-        </div>
-        <button class="secondary" style="width:auto;margin:0;padding:6px 10px;font-size:11px;white-space:nowrap" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 10px;border-radius:12px;border:1px solid var(--border)">
-        <span style="font-size:12px;font-weight:800">Atendendo: <b style="color:var(--brand)">${clienteAtual}</b></span>
-        <button style="border:0;background:none;color:var(--muted);font-weight:900;font-size:11px;cursor:pointer" onclick="renomearClienteAtual()">✏️ Renomear</button>
-      </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px">
+      ${tabsClientesHTML}
+      <button class="filter-tab" style="background:var(--input-bg);color:var(--brand);border-color:var(--brand)" onclick="adicionarNovoClientePrompt()">+ Add Cliente</button>
+      <button class="filter-tab" style="background:var(--input-bg);color:var(--ink)" onclick="renomearClienteAtual()">✏️ Renomear</button>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Buscar no cardápio..." oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">
-        ${catsHTML}
-      </div>
-      <div id="produtos" class="products-list"></div>
+      <div class="side-cats">${catsHTML}</div>
+      <div class="products-list" id="produtos"></div>
     </div>
   `;
 
@@ -1834,31 +1826,18 @@ function renderAtendimento(){
 }
 
 function renderizar(){
-  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  
-  const headerEl = document.querySelector('.header');
-  if(headerEl) {
-    headerEl.style.display = (telaAtual === 'atendimento') ? 'none' : 'flex';
-  }
+  if(telaAtual === "mesas") renderMesas();
+  else if(telaAtual === "comandas") renderComandas();
+  else if(telaAtual === "relatorios") renderRelatorios();
+  else if(telaAtual === "atendimento") renderAtendimento();
 
-  if(telaAtual === 'mesas') {
-    const btn = document.getElementById('navMesas');
-    if(btn) btn.classList.add('active');
-    renderMesas();
-  } else if(telaAtual === 'comandas') {
-    const btn = document.getElementById('navComandas');
-    if(btn) btn.classList.add('active');
-    renderComandas();
-  } else if(telaAtual === 'relatorios') {
-    const btn = document.getElementById('navRelatorios');
-    if(btn) btn.classList.add('active');
-    renderRelatorios();
-  } else if(telaAtual === 'atendimento') {
-    renderAtendimento();
-  }
-
-  atualizarBar();
+  document.querySelectorAll(".bottom button").forEach(b => b.classList.remove("active"));
+  if(telaAtual === "mesas") document.getElementById("navMesas")?.classList.add("active");
+  if(telaAtual === "comandas") document.getElementById("navComandas")?.classList.add("active");
+  if(telaAtual === "relatorios") document.getElementById("navRelatorios")?.classList.add("active");
 }
+
+renderizar();
 </script>
 </body>
 </html>
