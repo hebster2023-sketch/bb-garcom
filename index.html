@@ -800,6 +800,16 @@ function iniciarOuvintesFirebase() {
   }, err => console.error(err));
 }
 
+// Configuração do Auth Observer para persistir e gerenciar a sessão ao iniciar
+firebase.auth().onAuthStateChanged((user) => {
+  if (user) {
+    usuarioLogadoEmail = user.email;
+    concluirLogin(usuarioLogadoEmail);
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+});
+
 function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
@@ -870,7 +880,6 @@ function atualizarGarcom(v){
   salvarRascunhoAutomatico();
 }
 
-// NOVA FUNÇÃO: Botão Salvar Nome do Garçom
 function salvarNomeGarcom(){
   const inputEl = document.getElementById("inputGarcomNome");
   if(inputEl) {
@@ -1790,90 +1799,58 @@ function renderAtendimento(){
     </button>
   `).join('');
 
-  let catsHTML = Object.keys(cardapio).map(cat => `
-    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
-      <span class="cat-ico">${obterIconeCategoria(cat)}</span>
-      <span>${cat}</span>
-    </button>
-  `).join('');
-
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:12px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
-        <h2>Mesa ${pad(mesaSelecionada)}</h2>
-        <p>Atendimento por Cliente</p>
+        <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
+        <p>Preencha os itens por pessoa e salve o pedido</p>
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
-        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
-      </div>
+      <button class="secondary" style="width:auto;padding:8px 12px;font-size:11px;margin:0" onclick="renomearClienteAtual()">✏️ Renomear Pessoa</button>
     </div>
 
-    <!-- CAMPO DO NOME DO GARÇOM E BOTÃO SALVAR -->
-    <div class="card" style="padding:10px;margin-bottom:12px">
-      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">👤 Nome do Garçom Responsável</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="text" id="inputGarcomNome" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Digite seu nome..." style="flex:1;padding:9px 12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
-        <button class="primary" style="width:auto;margin:0;padding:9px 16px;font-size:12px;background:#10b981;box-shadow:0 4px 12px rgba(16,185,129,0.3)" onclick="salvarNomeGarcom()">Salvar</button>
-      </div>
-    </div>
-
-    <div class="card" style="padding:10px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1">
-          ${tabsClientesHTML}
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px">👤 Nome do Garçom</label>
+          <input type="text" id="inputGarcomNome" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
         </div>
-        <button class="secondary" style="width:auto;margin:0;padding:6px 10px;font-size:11px;white-space:nowrap" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
+        <div style="padding-top:16px">
+          <button class="primary" style="padding:8px 12px;font-size:11px;background:#10b981;box-shadow:none" onclick="salvarNomeGarcom()">Salvar Nome</button>
+        </div>
       </div>
+    </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 10px;border-radius:12px;border:1px solid var(--border)">
-        <span style="font-size:12px;font-weight:800">Atendendo: <b style="color:var(--brand)">${clienteAtual}</b></span>
-        <button style="border:0;background:none;color:var(--muted);font-weight:900;font-size:11px;cursor:pointer" onclick="renomearClienteAtual()">✏️ Renomear</button>
-      </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="filter-tabs" style="margin:0;flex:1;overflow-x:auto">${tabsClientesHTML}</div>
+      <button class="secondary" style="width:auto;margin:0 0 0 6px;padding:6px 10px;font-size:11px" onclick="adicionarNovoClientePrompt()">+ Nova Pessoa</button>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Buscar produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
       <div class="side-cats">
-        ${catsHTML}
+        ${Object.keys(cardapio).map(cat => `
+          <div class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+            <span class="cat-ico">${obterIconeCategoria(cat)}</span>
+            <span>${cat}</span>
+          </div>
+        `).join('')}
       </div>
-      <div id="produtos" class="products-list"></div>
+      <div class="products-list" id="produtos"></div>
     </div>
   `;
-
   renderProdutos();
 }
 
 function renderizar(){
-  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  
-  const headerEl = document.querySelector('.header');
-  if(headerEl) {
-    headerEl.style.display = (telaAtual === 'atendimento') ? 'none' : 'flex';
-  }
-
-  if(telaAtual === 'mesas') {
-    const btn = document.getElementById('navMesas');
-    if(btn) btn.classList.add('active');
-    renderMesas();
-  } else if(telaAtual === 'comandas') {
-    const btn = document.getElementById('navComandas');
-    if(btn) btn.classList.add('active');
-    renderComandas();
-  } else if(telaAtual === 'relatorios') {
-    const btn = document.getElementById('navRelatorios');
-    if(btn) btn.classList.add('active');
-    renderRelatorios();
-  } else if(telaAtual === 'atendimento') {
-    renderAtendimento();
-  }
-
-  atualizarBar();
+  if(telaAtual === 'mesas') renderMesas();
+  else if(telaAtual === 'comandas') renderComandas();
+  else if(telaAtual === 'relatorios') renderRelatorios();
+  else if(telaAtual === 'atendimento') renderAtendimento();
 }
 </script>
 </body>
