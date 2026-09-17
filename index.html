@@ -375,7 +375,7 @@ const firebaseConfig = {
 };
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
-db.enablePersistence().catch(() => {});
+firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 let somAtivo = false;
 let primeiraCargaFirebase = true;
@@ -948,11 +948,11 @@ function alterarQtd(nome, delta){
 
 function produtosFlat(){ 
   let a = []; 
-  for(const cat in cardapio) {
+  Object.keys(cardapio).forEach(cat => {
     cardapio[cat].forEach(p => {
-      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", cat});
+      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", cat: cat});
     });
-  } 
+  });
   return a; 
 }
 
@@ -1572,7 +1572,7 @@ function renderRelatorios(){
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
               <div>
                 <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? ' operação registrada' : ' operações registradas'}</div>
               </div>
               <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
             </div>
