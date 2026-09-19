@@ -1,4 +1,4 @@
-   <!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -901,7 +901,6 @@ function mudarClienteAtual(novoCli){
   renderAtendimento();
 }
 
-/* 2. Função de renomear corrigida para atualizar imutavelmente a lista de clientes e o cliente ativo */
 function renomearClienteAtual(){
   let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
   if(!novoNome || !novoNome.trim()) return;
@@ -912,35 +911,10 @@ function renomearClienteAtual(){
     showToast("Já existe uma pessoa com esse nome.", true);
     return;
   }
-
-  const nomeAntigo = clienteAtual;
   
-  // 1. Atualiza imutavelmente a estrutura de pedidos mantendo a lista atualizada
-  const itensCliente = pedidoTemp[nomeAntigo] || {};
-  delete pedidoTemp[nomeAntigo];
-  pedidoTemp[novoNome] = { ...itensCliente };
-
-  // Atualiza também os dados na comanda carregada se houver
-  if(mesaSelecionada && comandas[mesaSelecionada]) {
-    if(Array.isArray(comandas[mesaSelecionada].itens)) {
-      comandas[mesaSelecionada].itens.forEach(it => {
-        if(it.cliente === nomeAntigo) it.cliente = novoNome;
-      });
-    }
-    if(Array.isArray(comandas[mesaSelecionada].lotes)) {
-      comandas[mesaSelecionada].lotes.forEach(lote => {
-        if(Array.isArray(lote.itens)) {
-          lote.itens.forEach(it => {
-            if(it.cliente === nomeAntigo) it.cliente = novoNome;
-          });
-        }
-      });
-    }
-  }
-
-  // 2. Garante a atualização do cliente ativo exibido no topo ("Atendendo: ...")
+  pedidoTemp[novoNome] = pedidoTemp[clienteAtual] || {};
+  delete pedidoTemp[clienteAtual];
   clienteAtual = novoNome;
-  
   renderAtendimento();
   salvarRascunhoAutomatico();
   showToast(`Cliente renomeado para "${novoNome}"!`);
@@ -1191,7 +1165,6 @@ function carregarMesasSalvas() {
     });
 }
 
-/* 1. Atualização para ocultar o valor nas mesas livres */
 function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
     const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
     if (!cardMesa) return;
@@ -1199,17 +1172,14 @@ function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
     const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
     const totalEl = cardMesa.querySelector('.total-mesa, .total');
 
-    if (dadosMesa && dadosMesa.total > 0) {
+    if (dadosMesa) {
         cardMesa.classList.remove('livre');
         cardMesa.classList.add('ocupada', 'busy');
         if (statusEl) {
             statusEl.textContent = 'Ocupada';
             statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
         }
-        if (totalEl) {
-            totalEl.textContent = br(dadosMesa.total);
-            totalEl.style.display = '';
-        }
+        if (totalEl) totalEl.textContent = br(dadosMesa.total);
     } else {
         cardMesa.classList.remove('ocupada', 'busy');
         cardMesa.classList.add('livre');
@@ -1217,10 +1187,7 @@ function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
             statusEl.textContent = 'Livre';
             statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
         }
-        if (totalEl) {
-            totalEl.textContent = '';
-            totalEl.style.display = 'none';
-        }
+        if (totalEl) totalEl.textContent = `R$ 0,00`;
     }
 }
 
@@ -1687,7 +1654,6 @@ function calcularTempoDecorrido(timestampCriacao){
   return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
 }
 
-/* 1. Condicional adicionada para exibir o valor total apenas quando > 0 */
 function renderMesas(){
  let totalAbertas = 0;
  let arrayMesasHTML = [];
@@ -1709,7 +1675,7 @@ function renderMesas(){
      <div class="table ${statusClass} ${alertaNovo} ${alertaConta}" data-mesa="${i}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
        <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
-       ${(c && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
+       <div class="total">${br(c ? c.total : 0)}</div>
        ${tempoInfo ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
        ${busy && c.garcom ? `<div class="garcom-tag">👤 ${c.garcom}</div>` : ''}
      </div>
