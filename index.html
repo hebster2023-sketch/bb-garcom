@@ -48,7 +48,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
 /* Navegação Inferior */
-.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
 .bottom button{border:0;background:none;color:var(--muted);font-weight:800;font-size:11px;padding:8px 4px;border-radius:16px;display:flex;flex-direction:column;align-items:center;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);cursor:pointer}
 .bottom button.active{color:var(--brand);background:rgba(211, 47, 47, 0.1);transform:translateY(-2px)}
 .bottom button:active{transform:scale(0.92)}
@@ -378,6 +378,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 
 <nav class="bottom">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
+ <button id="navGarcons" onclick="mudarTela('garcons')"><span class="ico">🤵</span>Garçom</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
  <button id="navRelatorios" onclick="mudarTela('relatorios')"><span class="ico">📊</span>Relatórios</button>
 </nav>
@@ -804,13 +805,13 @@ function iniciarOuvintesFirebase() {
     verificarNovosPedidos(novasComandas);
     comandas = novasComandas;
 
-    if(telaAtual === "mesas" || telaAtual === "comandas") renderizar();
+    if(telaAtual === "mesas" || telaAtual === "comandas" || telaAtual === "garcons") renderizar();
   }, err => console.error(err));
 
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
-    if(telaAtual === "relatorios") renderizar();
+    if(telaAtual === "relatorios" || telaAtual === "garcons") renderizar();
   }, err => console.error(err));
 
   db.collection("despesas").onSnapshot(snapshot => {
@@ -848,12 +849,12 @@ function concluirLogin(email){
   
   if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(2,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
     document.getElementById('navRelatorios').style.display = 'flex';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(4,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B ADMIN — Gestão Completa';
   }
   iniciarOuvintesFirebase();
@@ -1368,13 +1369,13 @@ function dividirContaModal(num){
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
-            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente || 'Cliente 1'}]</span> ${i.nome}</div>
+            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente \vert{}\vert{} 'Cliente 1'}]</span>${i.nome}</div>
             <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button onclick="mudarQtdPagamento(${idx}, -1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
+            <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
             <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente || 'Cliente 1'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
-            <button onclick="mudarQtdPagamento(${idx}, 1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
+            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
           </div>
         </div>
       `).join("")}
@@ -1571,6 +1572,64 @@ function limparRelatorios(){
   }
 }
 
+function renderGarcons(){
+  let hoje = new Date().toLocaleDateString('pt-BR');
+  let vendasHoje = historicoVendas.filter(v => v.data === hoje || !v.data);
+  
+  let garconsMap = {};
+  
+  // Mapear mesas abertas por garçom
+  for(let mesaId in comandas){
+    let c = comandas[mesaId];
+    let g = c.garcom || "Hebster";
+    if(!garconsMap[g]) garconsMap[g] = { mesasAbertas: [], totalAberto: 0, vendasFechadas: 0, comissao: 0 };
+    garconsMap[g].mesasAbertas.push({ mesa: mesaId, total: c.total || 0 });
+    garconsMap[g].totalAberto += Number(c.total || 0);
+  }
+
+  // Mapear vendas fechadas hoje por garçom
+  vendasHoje.forEach(v => {
+    let g = v.garcom || "Hebster";
+    if(!garconsMap[g]) garconsMap[g] = { mesasAbertas: [], totalAberto: 0, vendasFechadas: 0, comissao: 0 };
+    garconsMap[g].vendasFechadas += Number(v.total || 0);
+  });
+
+  let garconsHTML = Object.keys(garconsMap).length === 0 ? `<div class="empty">Nenhum garçom registrou atendimento ativo ou vendas hoje.</div>` : Object.keys(garconsMap).map(g => {
+    let dados = garconsMap[g];
+    let totalGeralGarcom = dados.totalAberto + dados.vendasFechadas;
+    let comissaoEstimada = totalGeralGarcom * 0.10; // Exemplo de comissão de 10%
+    return `
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h3 style="margin:0;font-size:16px;font-weight:900;color:var(--brand)">🤵 ${g}</h3>
+          <span class="tag">Ativo</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px">
+          <div style="background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border)">
+            <small style="color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;display:block">Mesas Abertas</small>
+            <b style="font-size:14px;color:var(--ink)">${br(dados.totalAberto)}</b> <span style="font-size:10px;color:var(--muted)">(${dados.mesasAbertas.length} mesas)</span>
+          </div>
+          <div style="background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border)">
+            <small style="color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;display:block">Vendas Fechadas</small>
+            <b style="font-size:14px;color:#10b981">${br(dados.vendasFechadas)}</b>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)">
+          <span>Mesas sob responsabilidade:</span>
+          <b>${dados.mesasAbertas.length > 0 ? dados.mesasAbertas.map(m => `Mesa ${pad(m.mesa)}`).join(', ') : 'Nenhuma no momento'}</b>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <div><h2>Identificação de Garçons</h2><span class="muted">Desempenho e mesas por garçom</span></div>
+    </div>
+    ${garconsHTML}
+  `;
+}
+
 function renderRelatorios(){
   let hoje = new Date().toLocaleDateString('pt-BR');
   let vendasHoje = historicoVendas.filter(v => v.data === hoje || !v.data); 
@@ -1631,305 +1690,222 @@ function renderRelatorios(){
             garcomVendas[g].total += Number(v.total || 0);
             garcomVendas[g].qtd += 1;
          });
-         let html = Object.keys(garcomVendas).map(g => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-              <div>
-                <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd} ${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
-              </div>
-              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
-            </div>
-         `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
-      })()}
-      </div>
-    </div>
-    
-    ${despesasHoje.length ? `
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Hoje</h3>
-      ${despesasHoje.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc}</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
-    </div>` : ''}
-
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Produtos Vendidos Hoje</h3>
-      <div style="max-height:250px;overflow-y:auto;padding-right:5px">
-      ${(function(){
-         let prodVendidos = {};
-         vendasHoje.forEach(v => {
-            (v.itens || []).forEach(it => {
-               if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
-               prodVendidos[it.nome].qtd += it.qtd;
-               prodVendidos[it.nome].total += (it.qtd * Number(it.preco || 0));
-            });
-         });
-         let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
-            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span>${prodVendidos[nome].qtd}x ${nome}</span>
-              <b>${br(prodVendidos[nome].total)}</b>
-            </div>
-         `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido hoje.</div>';
+         let htmlG = "";
+         for(let g in garcomVendas){
+           htmlG += `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span><b>${g}</b> (${garcomVendas[g].qtd} vendas)</span> <b style="color:var(--brand)">${br(garcomVendas[g].total)}</b></div>`;
+         }
+         return htmlG || '<div class="empty">Nenhuma venda registrada hoje.</div>';
       })()}
       </div>
     </div>
 
-    ${cancelamentos.filter(c => c.data === hoje || !c.data).length ? `
-    <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Hoje</h3>
-      ${cancelamentos.filter(c => c.data === hoje || !c.data).map(c => `
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
-          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)}</b> <b>${br(c.totalCancelado)}</b></div>
-          <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
-        </div>
-      `).join('')}
-    </div>` : ''}
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">⚠️ Registros de Cancelamento (${cancelamentos.length})</h3>
+      <div style="max-height:160px;overflow:auto;display:flex;flex-direction:column;gap:6px">
+        ${cancelamentos.length === 0 ? '<div class="empty">Nenhum cancelamento registrado.</div>' : cancelamentos.map(can => `
+          <div style="background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px">
+            <div style="display:flex;justify-content:space-between;font-weight:900">
+              <span>Mesa ${pad(can.mesa)} •${can.garcom}</span>
+              <span style="color:var(--brand)">${br(can.totalCancelado)}</span>
+            </div>
+            <div style="color:var(--muted);margin-top:2px">Motivo: ${can.motivo}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${can.data} às ${can.horario}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
 
-    <button class="secondary" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
+    <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand)">🗑️ Zerar Relatórios do Banco</button>
   `;
-}
-
-function mudarFiltroMesa(f){
-  filtroMesaAtual = f;
-  renderMesas();
-}
-
-function calcularTempoDecorrido(timestampCriacao){
-  if(!timestampCriacao) return { texto: "Aberto agora", classe: "tempo-verde" };
-  let diffMinutos = Math.floor((Date.now() - timestampCriacao) / 60000);
-  let classe = "tempo-verde";
-  if(diffMinutos >= 30 && diffMinutos < 60) classe = "tempo-amarelo";
-  else if(diffMinutos >= 60) classe = "tempo-vermelho";
-
-  if(diffMinutos < 1) return { texto: "Há instantes", classe };
-  if(diffMinutos < 60) return { texto: `Há ${diffMinutos} min`, classe };
-  let horas = Math.floor(diffMinutos / 60);
-  let mins = diffMinutos % 60;
-  return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
 }
 
 function renderMesas(){
- let totalAbertas = 0;
- let arrayMesasHTML = [];
+  let htmlFiltros = `
+    <div class="filter-tabs">
+      <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="filtroMesaAtual='todas';renderMesas()">Todas (1-30)</button>
+      <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="filtroMesaAtual='livres';renderMesas()">Livres</button>
+      <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="filtroMesaAtual='ocupadas';renderMesas()">Ocupadas</button>
+    </div>
+  `;
 
- for(let i=1; i<=30; i++){
-   let c = comandas[i];
-   let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0));
-   if(busy) totalAbertas++;
+  let gridHTML = `<div class="tables">`;
+  for(let i=1; i<=30; i++){
+    let c = comandas[i];
+    let ocupada = c && c.total > 0;
+    
+    if(filtroMesaAtual === 'livres' && ocupada) continue;
+    if(filtroMesaAtual === 'ocupadas' && !ocupada) continue;
 
-   if(filtroMesaAtual === 'livres' && busy) continue;
-   if(filtroMesaAtual === 'ocupadas' && !busy) continue;
+    let classeStatus = ocupada ? "ocupada" : "livre";
+    let textoStatus = ocupada ? "Ocupada" : "Livre";
+    let valorStr = ocupada ? br(c.total) : "";
+    let garcomStr = (ocupada && c.garcom) ? c.garcom : "";
 
-   let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
-   let statusClass = busy ? 'ocupada' : 'livre';
-   let alertaNovo = c && c.novoPedidoAlerta ? 'novo-pedido-ativo' : '';
-   let alertaConta = c && c.pediuContaAlerta ? 'pediu-conta-ativo' : '';
+    let classeAlertaExtra = "";
+    if(c && c.pediuContaAlerta) classeAlertaExtra = "pediu-conta-ativo";
+    else if(c && c.novoPedidoAlerta) classeAlertaExtra = "novo-pedido-ativo";
 
-   arrayMesasHTML.push(`
-     <div class="table ${statusClass} ${alertaNovo} ${alertaConta}" data-mesa="${i}" onclick="abrirMesa(${i})">
-       <div class="num">Mesa ${pad(i)}</div>
-       <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
-       ${(c && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
-       ${tempoInfo ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
-       ${busy && c.garcom ? `<div class="garcom-tag">👤 ${c.garcom}</div>` : ''}
-     </div>
-   `);
- }
+    let tempoStr = "";
+    if(ocupada && c.criadoEm){
+      let diffMins = Math.floor((Date.now() - c.criadoEm) / 60000);
+      let corTempo = diffMins > 60 ? "tempo-vermelho" : (diffMins > 30 ? "tempo-amarelo" : "tempo-verde");
+      tempoStr = `<div class="timer ${corTempo}">⏱️ ${diffMins} min</div>`;
+    }
 
- document.getElementById("conteudo").innerHTML = `
-   <div class="filter-tabs">
-     <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
-     <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${totalAbertas})</button>
-     <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${30 - totalAbertas})</button>
-   </div>
-   <div class="tables">
-     ${arrayMesasHTML.join('')}
-   </div>
- `;
+    gridHTML += `
+      <div class="card-mesa ${classeStatus} ${classeAlertaExtra}" data-mesa="${i}" onclick="abrirMesa(${i})">
+        <h3>Mesa ${pad(i)}</h3>
+        <span class="badge-status ${classeStatus}">${textoStatus}</span>
+        ${ocupada ? `<div class="total">${valorStr}</div>` : ''}
+        ${garcomStr ? `<div class="garcom-tag">🤵 ${garcomStr}</div>` : ''}
+        ${tempoStr}
+      </div>
+    `;
+  }
+  gridHTML += `</div>`;
+
+  document.getElementById("conteudo").innerHTML = htmlFiltros + gridHTML;
 }
 
 function renderComandas(){
-  let comandasHTML = [];
-  let totalGeral = 0;
-
-  for(let i=1; i<=30; i++){
-    let c = comandas[i];
-    if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
-      totalGeral += Number(c.total || 0);
-
-      let lotesHTML = "";
-      if(c.lotes && c.lotes.length > 0){
-        lotesHTML = c.lotes.map(l => `
-          <div class="lote-pedido ${l.isNovo ? 'novo' : ''}">
-            <div class="lote-header">
-              <span>🕒 Lote - ${l.horario}</span>
-              ${l.isNovo ? '<span class="badge-novo">NOVO</span>' : ''}
+  let lista = Object.keys(comandas).filter(k => comandas[k] && comandas[k].total > 0);
+  let html = `<div class="section-title"><h2>Comandas Abertas</h2><span class="muted">${lista.length} mesas com consumo</span></div>`;
+  
+  if(lista.length === 0){
+    html += `<div class="empty">Nenhuma comanda aberta no momento.</div>`;
+  } else {
+    html += lista.map(num => {
+      let c = comandas[num];
+      let itensLotes = c.lotes && c.lotes.length > 0 ? c.lotes.map(lote => `
+        <div class="lote-pedido ${lote.isNovo ? 'novo' : ''}">
+          <div class="lote-header">
+            <span>🕒 ${lote.horario}</span>
+            ${lote.isNovo ? '<span class="badge-novo">NOVO LOTE</span>' : ''}
+          </div>
+          ${lote.itens.map(it => `
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
+              <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.nome}</span>
+              <span><b>${it.preco}</b></span>
             </div>
-            ${(l.itens || []).map(it => `
-              <div style="font-size:12px;display:flex;justify-content:space-between;margin-top:2px">
-                <span>${it.cliente ? `<b>[${it.cliente}]</b> ` : ''}${it.nome}</span>
-                <span>${it.preco}</span>
-              </div>
-            `).join('')}
-          </div>
-        `).join('');
-      } else if(c.itens && c.itens.length > 0){
-        lotesHTML = c.itens.map(it => `
-          <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
-            <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
-            <b>${br(it.qtd * it.preco)}</b>
-          </div>
-        `).join('');
-      }
+          `).join('')}
+        </div>
+      `).join('') : (c.itens || []).map(i => `
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
+          <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
+          <span><b>${br(i.qtd * i.preco)}</b></span>
+        </div>
+      `).join('');
 
-      /* Bloco de exibição de itens já pagos na mesa */
-      let itensPagosHTML = "";
-      if(c.itensPagos && c.itensPagos.length > 0){
-        itensPagosHTML = `
-          <div style="margin-top:8px;padding:8px 10px;background:rgba(16, 185, 129, 0.08);border:1px solid rgba(16, 185, 129, 0.25);border-radius:12px">
-            <div style="font-size:11px;font-weight:900;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:4px">
-              <span>✅</span> ITENS JÁ PAGOS
-            </div>
-            ${c.itensPagos.map(it => `
-              <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
-                <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      }
-
-      comandasHTML.push(`
+      return `
         <div class="card command">
           <div class="row" style="align-items:center;margin-bottom:8px">
             <div>
-              <h3>Mesa ${pad(i)}</h3>
-              <small class="muted">Garçom: ${c.garcom || 'Hebster'}</small>
+              <h3>Mesa ${pad(num)}</h3>
+              <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b></small>
             </div>
-            <div class="tag">${br(c.total)}</div>
+            <div style="text-align:right">
+              <span class="tag">${br(c.total)}</span>
+            </div>
           </div>
-          <div style="margin-bottom:10px">
-            ${lotesHTML}
-            ${itensPagosHTML}
-          </div>
-          <div style="display:flex;gap:6px;margin-top:10px">
-            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirMesa(${i})">✏️ Editar / Add</button>
-            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirModalTransferencia(${i})">🔄 Transferir</button>
-            <button class="primary" style="margin:0;flex:1;font-size:11px;background:#10b981" onclick="fecharMesa(${i})">💳 Pagar / Fechar</button>
+          <div style="margin:8px 0">${itensLotes}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px">
+            <button class="secondary" style="margin:0;font-size:11px;padding:8px" onclick="abrirMesa(${num})">✏️ Adicionar</button>
+            <button class="secondary" style="margin:0;font-size:11px;padding:8px" onclick="abrirModalTransferencia(${num})">🔄 Transferir</button>
+            <button class="primary" style="margin:0;font-size:11px;padding:8px" onclick="fecharMesa(${num})">💳 Pagar / Fechar</button>
           </div>
         </div>
-      `);
-    }
+      `;
+    }).join('');
   }
 
-  if(comandasHTML.length === 0){
-    document.getElementById("conteudo").innerHTML = `
-      <div class="empty">Nenhuma comanda aberta no momento.</div>
-    `;
-    return;
-  }
-
-  document.getElementById("conteudo").innerHTML = `
-    <div class="section-title">
-      <h2>Comandas Abertas</h2>
-      <span class="muted">Total Acumulado: ${br(totalGeral)}</span>
-    </div>
-    ${comandasHTML.join('')}
-  `;
-}
-
-function obterIconeCategoria(cat){
-  const map = {
-    "CHURRASCOS": "🍢",
-    "CARANGUEJO": "🦀",
-    "BEBIDAS": "🍺",
-    "GUARNIÇÕES": "🍚",
-    "PETISCOS": "🍟",
-    "REFRIGERANTES": "🥤",
-    "SUCOS": "🧃",
-    "DIVERSOS": "📦"
-  };
-  return map[cat] || "🍽️";
+  document.getElementById("conteudo").innerHTML = html;
 }
 
 function renderAtendimento(){
-  if(!mesaSelecionada) return;
+  let c = comandas[mesaSelecionada] || {};
+  let garcomAtual = garcomTemp || c.garcom || "Hebster";
 
-  let listaClientes = Object.keys(pedidoTemp);
-  if(!listaClientes.includes(clienteAtual)) listaClientes.unshift(clienteAtual);
+  let clientesLista = Object.keys(pedidoTemp);
+  if(clientesLista.length === 0) clientesLista = ["Cliente 1"];
+  if(!clientesLista.includes(clienteAtual)) clienteAtual = clientesLista[0];
 
-  let tabsClientesHTML = listaClientes.map(cli => `
-    <button class="filter-tab ${cli === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${cli.replace(/'/g,"\\'")}')">
-      👤 ${cli}
-    </button>
+  let botoesClientesHTML = clientesLista.map(cli => `
+    <button class="filter-tab ${cli === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${cli}')">👤 ${cli}</button>
   `).join('');
 
-  let catsHTML = Object.keys(cardapio).map(cat => `
-    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
-      <span class="cat-ico">${obterIconeCategoria(cat)}</span>
+  let sideCatsHTML = Object.keys(cardapio).map(cat => `
+    <div class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+      <div class="cat-ico">${cat === 'CHURRASCOS' ? '🥩' : cat === 'CARANGUEJO' ? '🦀' : cat === 'BEBIDAS' ? '🍺' : cat === 'GUARNIÇÕES' ? '🍚' : cat === 'PETISCOS' ? '🍟' : cat === 'REFRIGERANTES' ? '🥤' : cat === 'SUCOS' ? '🧃' : '📦'}</div>
       <span>${cat}</span>
-    </button>
+    </div>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="topbar" style="margin-bottom:12px">
+    <div class="topbar" style="margin-bottom:14px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
         <h2>Mesa ${pad(mesaSelecionada)}</h2>
-        <p>Atendimento por Cliente</p>
+        <p>Atendimento individualizado por pessoa</p>
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
-        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
+      <div>
+        <select onchange="atualizarGarcom(this.value)" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:700;outline:none">
+          <option value="Hebster" ${garcomAtual==='Hebster'?'selected':''}>🤵 Hebster</option>
+          <option value="Garçom 2" ${garcomAtual==='Garçom 2'?'selected':''}>🤵 Garçom 2</option>
+          <option value="Garçom 3" ${garcomAtual==='Garçom 3'?'selected':''}>🤵 Garçom 3</option>
+        </select>
       </div>
     </div>
 
-    <div class="card" style="padding:10px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1">
-          ${tabsClientesHTML}
+    <!-- Gestão de Clientes na Mesa -->
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:900;text-transform:uppercase;color:var(--muted)">Pessoas na Mesa:</span>
+        <div style="display:flex;gap:6px">
+          <button onclick="renomearClienteAtual()" style="background:var(--input-bg);border:1px solid var(--border);color:var(--ink);padding:4px 8px;border-radius:8px;font-size:10px;font-weight:900;cursor:pointer">✏️ Renomear (${clienteAtual})</button>
+          <button onclick="adicionarNovoClientePrompt()" style="background:var(--brand);border:0;color:#fff;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:900;cursor:pointer">+ Nova Pessoa</button>
         </div>
-        <button class="secondary" style="width:auto;margin:0;padding:6px 10px;font-size:11px;white-space:nowrap" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
       </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 10px;border-radius:12px;border:1px solid var(--border)">
-        <span style="font-size:12px;font-weight:800">Atendendo: <b style="color:var(--brand)">${clienteAtual}</b></span>
-        <button style="border:0;background:none;color:var(--muted);font-weight:900;font-size:11px;cursor:pointer" onclick="renomearClienteAtual()">✏️ Renomear</button>
+      <div class="filter-tabs" style="margin:0">
+        ${botoesClientesHTML}
       </div>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+      <input type="text" id="inputBuscaProd" placeholder="Buscar qualquer produto no cardápio..." oninput="filtrarProdutosInput(this.value)" value="${termoBuscaProduto}">
     </div>
 
     <div class="atendimento-layout">
       <div class="side-cats">
-        ${catsHTML}
+        ${sideCatsHTML}
       </div>
-      <div id="produtos" class="products-list"></div>
+      <div class="products-list" id="produtos">
+        <!-- Renderizado dinamicamente -->
+      </div>
     </div>
   `;
-
   renderProdutos();
 }
 
 function renderizar(){
   document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  if(telaAtual === 'mesas') {
+  if(telaAtual === 'mesas'){
     const btn = document.getElementById('navMesas');
     if(btn) btn.classList.add('active');
     renderMesas();
-  } else if(telaAtual === 'comandas') {
+  } else if(telaAtual === 'garcons'){
+    const btn = document.getElementById('navGarcons');
+    if(btn) btn.classList.add('active');
+    renderGarcons();
+  } else if(telaAtual === 'comandas'){
     const btn = document.getElementById('navComandas');
     if(btn) btn.classList.add('active');
     renderComandas();
-  } else if(telaAtual === 'relatorios') {
+  } else if(telaAtual === 'relatorios'){
     const btn = document.getElementById('navRelatorios');
     if(btn) btn.classList.add('active');
     renderRelatorios();
-  } else if(telaAtual === 'atendimento') {
+  } else if(telaAtual === 'atendimento'){
     renderAtendimento();
   }
 }
