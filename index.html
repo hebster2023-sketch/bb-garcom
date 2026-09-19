@@ -62,10 +62,11 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 
 /* Grid de Mesas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
-.table:hover{border-color:rgba(211,47,47,0.3);transform:translateY(-2px)}
-.table:active{transform:scale(0.95)}
-.table.busy{border-color:rgba(211, 47, 47, 0.3);background:linear-gradient(135deg, rgba(211, 47, 47, 0.04), var(--card))}
+.card-mesa, .table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
+.card-mesa:hover, .table:hover{border-color:rgba(211,47,47,0.3);transform:translateY(-2px)}
+.card-mesa:active, .table:active{transform:scale(0.95)}
+.card-mesa.ocupada, .table.busy{border-color:rgba(211, 47, 47, 0.3);background:linear-gradient(135deg, rgba(211, 47, 47, 0.04), var(--card))}
+.card-mesa.livre {border-color:rgba(16, 185, 129, 0.3);background:linear-gradient(135deg, rgba(16, 185, 129, 0.04), var(--card))}
 
 .table.novo-pedido-ativo{border-color:#38bdf8 !important;background:linear-gradient(135deg, rgba(56, 189, 248, 0.15), var(--card)) !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.3) !important;animation: pulseNovo 1.5s infinite}
 @keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
@@ -73,14 +74,12 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.2), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.4) !important;animation: pulseConta 1.2s infinite}
 @keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
 
-.table .num{font-size:15px;font-weight:900}
-.badge-status{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
+.table .num, .card-mesa h3{font-size:15px;font-weight:900;margin:0}
+.badge-status, .status-mesa{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
 .badge-status.livre{background:rgba(16, 185, 129, 0.1);color:#10b981;border:1px solid rgba(16, 185, 129, 0.2)}
 .badge-status.ocupada{background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211, 47, 47, 0.2)}
-.badge-status.novo{background:rgba(56, 189, 248, 0.2);color:#38bdf8;border:1px solid rgba(56, 189, 248, 0.4)}
-.badge-status.conta{background:rgba(245, 158, 11, 0.2);color:#f59e0b;border:1px solid rgba(245, 158, 11, 0.4)}
 
-.table .total{font-size:12px;font-weight:900;margin-top:3px;color:#ff5252}
+.table .total, .total-mesa{font-size:12px;font-weight:900;margin-top:3px;color:#ff5252}
 .table .timer{font-size:9px;margin-top:2px;font-weight:800;padding:1px 6px;border-radius:6px}
 .timer.tempo-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
 .timer.tempo-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
@@ -200,7 +199,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 }
 .prod-desc-text {
   font-size: 0.85rem;
-  color: var(--text-gray, var(--muted));
+  color: var(--muted);
   margin: 0 0 3px 0;
   font-weight: 600;
   display: -webkit-box;
@@ -219,18 +218,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   align-items: center;
   gap: 8px;
 }
-.btn {
-  background-color: var(--brand);
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: transform .15s ease;
-}
-.btn:hover { opacity: 0.9; }
-.btn:active { transform: scale(0.92); }
 
 .btn-circle-plus {
   width: 38px;
@@ -312,11 +299,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
     font-size: 0.7rem;
     font-weight: 900;
 }
-.novo-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
 
 /* Barra Flutuante de Carrinho */
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
@@ -338,7 +320,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .totalrow{display:flex;justify-content:space-between;font-size:17px;font-weight:900;padding:14px 0;border-top:2px dashed var(--border);margin-top:4px}
 .primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:14px;padding:14px;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(211, 47, 47, 0.25);cursor:pointer;transition:transform .2s}
 .primary:active{transform:scale(0.97)}
-.secondary{width:100%;border:0;background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:14px;padding:12px;font-weight:900;margin-top:6px;cursor:pointer;font-size:13px;transition:transform .2s}
+.secondary{width:100%;background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:14px;padding:12px;font-weight:900;margin-top:6px;cursor:pointer;font-size:13px;transition:transform .2s}
 .secondary:active{transform:scale(0.97)}
 .empty{padding:30px 15px;text-align:center;color:var(--muted);font-weight:700;font-size:13px}
 .command{padding:16px;margin-bottom:10px}
@@ -423,7 +405,20 @@ db.enablePersistence().catch(() => {});
 
 let somAtivo = false;
 let primeiraCargaFirebase = true;
-let salvandoPedidoEmAndamento = false; // Trava global de segurança para evitar duplo clique
+let salvandoPedidoEmAndamento = false; 
+let itensIniciaisJSON = "{}";
+
+let comandas = {};
+let historicoVendas = [];
+let despesas = [];
+let cancelamentos = [];
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
+let filtroMesaAtual = "todas";
+let termoBuscaProduto = "";
+let usuarioLogadoEmail = "";
+
+const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const pad = n => String(n).padStart(2,"0");
 
 function toggleSound(){
   somAtivo = !somAtivo;
@@ -642,7 +637,7 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO COM UPLOAD DIRETO -----------------
+// ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -791,18 +786,6 @@ function removerItemAdmin(cat, idx){
   }
 }
 
-let comandas = {};
-let historicoVendas = [];
-let despesas = [];
-let cancelamentos = [];
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
-let filtroMesaAtual = "todas";
-let termoBuscaProduto = "";
-let usuarioLogadoEmail = "";
-
-const br = v => (v || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const pad = n => String(n).padStart(2,"0");
-
 function iniciarOuvintesFirebase() {
   carregarCardapioDinamico();
 
@@ -903,6 +886,8 @@ function abrirMesa(num){
       });
     }
   }
+
+  itensIniciaisJSON = JSON.stringify(pedidoTemp);
   mudarTela("atendimento", num);
 }
 
@@ -926,10 +911,32 @@ function renomearClienteAtual(){
     showToast("Já existe uma pessoa com esse nome.", true);
     return;
   }
+
+  const nomeAntigo = clienteAtual;
   
-  pedidoTemp[novoNome] = pedidoTemp[clienteAtual] || {};
-  delete pedidoTemp[clienteAtual];
+  const itensCliente = pedidoTemp[nomeAntigo] || {};
+  delete pedidoTemp[nomeAntigo];
+  pedidoTemp[novoNome] = { ...itensCliente };
+
+  if(mesaSelecionada && comandas[mesaSelecionada]) {
+    if(Array.isArray(comandas[mesaSelecionada].itens)) {
+      comandas[mesaSelecionada].itens.forEach(it => {
+        if(it.cliente === nomeAntigo) it.cliente = novoNome;
+      });
+    }
+    if(Array.isArray(comandas[mesaSelecionada].lotes)) {
+      comandas[mesaSelecionada].lotes.forEach(lote => {
+        if(Array.isArray(lote.itens)) {
+          lote.itens.forEach(it => {
+            if(it.cliente === nomeAntigo) it.cliente = novoNome;
+          });
+        }
+      });
+    }
+  }
+
   clienteAtual = novoNome;
+  
   renderAtendimento();
   salvarRascunhoAutomatico();
   showToast(`Cliente renomeado para "${novoNome}"!`);
@@ -938,19 +945,20 @@ function renomearClienteAtual(){
 function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
-  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
-  if(!itens.length && !comandas[mesaSelecionada]) return;
+  const total = totalTemp();
+
+  const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp, 
-    itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
-    total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
-    criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
+    garcom: garcomTemp || "Hebster", 
+    itens: itens, 
+    total: total, 
+    criadoEm: comandaAtual.criadoEm || Date.now(),
     atualizadoEm: Date.now(),
     origemPedido: 'garcom'
   };
 
-  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(()=>{});
+  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(err => console.error(err));
 }
 
 function alterarQtd(nome, delta){ 
@@ -980,6 +988,12 @@ function itensTempComClientes(){
       if(qtd > 0){
         let pObj = produtosFlat().find(p => p.nome === prod);
         let preco = pObj ? pObj.preco : 0;
+        
+        if(!pObj && comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
+            let itemAntigo = comandas[mesaSelecionada].itens.find(x => x.nome === prod);
+            if(itemAntigo) preco = Number(itemAntigo.preco || 0);
+        }
+        
         arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco });
       }
     }
@@ -1071,57 +1085,139 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-function salvarComanda(){
- const itens = itensTempComClientes(); 
- if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
- 
- // TRAVA DE SEGURANÇA: Se já estiver salvando, ignora novos cliques
- if(salvandoPedidoEmAndamento) return;
- salvandoPedidoEmAndamento = true;
+function salvarComanda(numeroMesa, novoPedido) {
+    const numMesaStr = String(numeroMesa);
+    const itens = itensTempComClientes(); 
+    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    
+    if(salvandoPedidoEmAndamento) return;
+    salvandoPedidoEmAndamento = true;
 
- const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
- const comandaAtual = comandas[mesaSelecionada] || {};
- 
- const itensPagosAntigos = comandaAtual.itensPagos || [];
- const criadoEmOriginal = comandaAtual.criadoEm || Date.now();
- 
- let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
- 
- let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
- let novoLote = {
-   id: Date.now(),
-   horario: horaAtualStr,
-   isNovo: true,
-   itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
- };
+    const comandaAtual = comandas[numMesaStr] || {};
+    
+    let pedidoInicial = JSON.parse(itensIniciaisJSON || "{}");
+    let itensNovos = [];
+    
+    for(const cli in pedidoTemp) {
+        for(const prod in pedidoTemp[cli]) {
+            let qtdAtual = pedidoTemp[cli][prod];
+            let qtdAntiga = (pedidoInicial[cli] && pedidoInicial[cli][prod]) ? pedidoInicial[cli][prod] : 0;
+            let delta = qtdAtual - qtdAntiga;
+            
+            if(delta > 0) {
+                let pObj = produtosFlat().find(p => p.nome === prod);
+                let preco = pObj ? pObj.preco : 0;
+                if(!pObj && comandaAtual.itens) {
+                    let itemAntigo = comandaAtual.itens.find(x => x.nome === prod);
+                    if(itemAntigo) preco = Number(itemAntigo.preco || 0);
+                }
+                itensNovos.push({ cliente: cli, nome: prod, qtd: delta, preco: preco });
+            }
+        }
+    }
+    
+    let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    let lotesAtualizados = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
+    
+    if (itensNovos.length > 0) {
+        lotesAtualizados.push({
+            id: Date.now(),
+            horario: horaAtualStr,
+            isNovo: true,
+            itens: itensNovos.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
+        });
+    }
 
- let lotesAtualizados = [...lotesAntigos, novoLote];
- let totalGeralAcumulado = total + (comandaAtual.total || 0);
- let todosItensAcumulados = [...(comandaAtual.itens || []), ...itens];
+    let todosItensUnificados = itensTempComClientes();
+    let totalGeralAcumulado = totalTemp();
 
- const dadosMesa = { 
-   garcom: garcomTemp, 
-   itens: todosItensAcumulados, 
-   lotes: lotesAtualizados,
-   itensPagos: itensPagosAntigos, 
-   total: totalGeralAcumulado, 
-   criadoEm: criadoEmOriginal, 
-   atualizadoEm: Date.now(), 
-   novoPedidoAlerta: true,
-   origemPedido: 'garcom'
- };
+    const dadosMesa = { 
+      garcom: garcomTemp || "Hebster", 
+      itens: todosItensUnificados, 
+      lotes: lotesAtualizados,
+      itensPagos: comandaAtual.itensPagos || [], 
+      total: totalGeralAcumulado, 
+      criadoEm: comandaAtual.criadoEm || Date.now(), 
+      atualizadoEm: Date.now(), 
+      novoPedidoAlerta: itensNovos.length > 0 ? true : (comandaAtual.novoPedidoAlerta || false),
+      origemPedido: 'garcom'
+    };
 
- db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
-   .then(() => {
-     salvandoPedidoEmAndamento = false; // Libera a trava no sucesso
-     fecharModal();
-     showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(mesaSelecionada)}!`);
-     mudarTela("mesas");
-   })
-   .catch(err => { 
-     salvandoPedidoEmAndamento = false; // Libera a trava mesmo se der erro
-     showToast("Erro ao salvar: " + err.message, true); 
-   });
+    db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true })
+      .then(() => {
+        salvandoPedidoEmAndamento = false;
+        pedidoTemp = {}; 
+        fecharModal();
+        showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
+        mudarTela("mesas");
+        carregarMesasSalvas();
+      })
+      .catch(err => { 
+        salvandoPedidoEmAndamento = false;
+        showToast("Erro ao salvar: " + err.message, true); 
+      });
+}
+
+function fecharComanda(numeroMesa) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    const numMesaStr = String(numeroMesa);
+    
+    delete comandasLocal[numMesaStr];
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
+    db.collection("comandas").doc(numMesaStr).delete().then(() => {
+        carregarMesasSalvas();
+        showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
+        renderizar();
+    }).catch(err => {
+        showToast("Erro ao fechar conta: " + err.message, true);
+    });
+}
+
+function carregarMesasSalvas() {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    
+    document.querySelectorAll('.card-mesa, .table').forEach(card => {
+        const numMesa = card.getAttribute('data-mesa'); 
+        if(numMesa) atualizarCardMesaVisual(numMesa, null);
+    });
+    
+    Object.keys(comandasLocal).forEach(numeroMesa => {
+        const dadosMesa = comandasLocal[numeroMesa];
+        atualizarCardMesaVisual(numeroMesa, dadosMesa);
+    });
+}
+
+function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
+    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
+    if (!cardMesa) return;
+
+    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
+    const totalEl = cardMesa.querySelector('.total-mesa, .total');
+
+    if (dadosMesa && dadosMesa.total > 0) {
+        cardMesa.classList.remove('livre');
+        cardMesa.classList.add('ocupada', 'busy');
+        if (statusEl) {
+            statusEl.textContent = 'Ocupada';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
+        }
+        if (totalEl) {
+            totalEl.textContent = br(dadosMesa.total);
+            totalEl.style.display = '';
+        }
+    } else {
+        cardMesa.classList.remove('ocupada', 'busy');
+        cardMesa.classList.add('livre');
+        if (statusEl) {
+            statusEl.textContent = 'Livre';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
+        }
+        if (totalEl) {
+            totalEl.textContent = '';
+            totalEl.style.display = 'none';
+        }
+    }
 }
 
 function abrirCarrinho(){
@@ -1139,7 +1235,7 @@ function abrirCarrinho(){
    htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--brand);margin-top:10px;margin-bottom:4px">👤 ${cli}</div>`;
    htmlCarrinho += itensPorPessoa[cli].map(i => `
      <div class="line" style="align-items:center">
-       <div><b>${i.name || i.nome}</b><br><small>${br(i.preco)} cada</small></div>
+       <div><b>${i.nome}</b><br><small>${br(i.preco)} cada</small></div>
        <div style="display:flex;align-items:center;gap:8px">
          <div class="qty-control-inline">
            <button onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', -1)">−</button>
@@ -1152,10 +1248,15 @@ function abrirCarrinho(){
    `).join("");
  }
 
+ const pedidoAtualObjeto = {
+   itens: itens.map(i => ({ nome: i.nome, quantidade: i.qtd, valorUnitario: i.preco })),
+   total: totalTemp()
+ };
+
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick="salvarComanda()">Finalizar Pedido →</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}", ${JSON.stringify(pedidoAtualObjeto)})'>Salvar comanda</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1206,7 +1307,7 @@ function executarTransferencia(numOrigem){
   let itensCombinados = [...(dadosOrigem.itens || [])];
   let lotesCombinados = [...(dadosOrigem.lotes || [])];
   let itensPagosCombinados = [...(dadosOrigem.itensPagos || [])];
-  let totalCombinado = dadosOrigem.total || 0;
+  let totalCombinado = Number(dadosOrigem.total || 0);
   let garcomNovo = dadosOrigem.garcom;
   let criadoEmNovo = dadosOrigem.criadoEm || Date.now();
 
@@ -1214,7 +1315,7 @@ function executarTransferencia(numOrigem){
     itensCombinados = [...(dadosDestinoExistente.itens || []), ...itensCombinados];
     lotesCombinados = [...(dadosDestinoExistente.lotes || []), ...lotesCombinados];
     itensPagosCombinados = [...(dadosDestinoExistente.itensPagos || []), ...itensPagosCombinados];
-    totalCombinado += (dadosDestinoExistente.total || 0);
+    totalCombinado += Number(dadosDestinoExistente.total || 0);
   }
 
   const batch = db.batch();
@@ -1354,8 +1455,18 @@ function pagarItensSelecionados(num){
       if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
-    const vendaParcial = { mesa: num, total: valTotalSel, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: itensPagosParaHistorico, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-    let novoTotal = Math.max(0, c.total - valTotalSel);
+    const vendaParcial = { 
+        mesa: num, 
+        total: valTotalSel, 
+        pagamento: formaPagamento, 
+        garcom: c.garcom || "Hebster", 
+        itens: itensPagosParaHistorico, 
+        horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+        data: new Date().toLocaleDateString('pt-BR'),
+        timestamp: Date.now()
+    };
+    
+    let novoTotal = Math.max(0, Number(c.total) - valTotalSel);
 
     db.collection("historico").add(vendaParcial).then(() => {
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
@@ -1378,15 +1489,15 @@ function cancelarComandaModal(num){
     totalCancelado: c.total,
     motivo: motivo.trim() || "Não informado",
     horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    data: new Date().toLocaleDateString('pt-BR'),
+    timestamp: Date.now(),
     itens: c.itens || []
   };
 
   db.collection("cancelamentos").add(registroCancelamento).then(() => {
-    db.collection("comandas").doc(String(num)).delete().then(() => {
-      fecharModal();
-      showToast("Comanda cancelada e registrada com sucesso!", true);
-      renderizar();
-    });
+    fecharComanda(num);
+    fecharModal();
+    showToast("Comanda cancelada e registrada com sucesso!", true);
   }).catch(err => {
     showToast("Erro ao registrar cancelamento: " + err.message, true);
   });
@@ -1401,14 +1512,22 @@ function fecharMesaDireto(num){
    let todos = [...(c.itens || [])];
    if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco }));
 
-   const pHist = c.total > 0 && todos.length ? db.collection("historico").add({ mesa: num, total: c.total, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: todos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) : Promise.resolve();
+   let novaVenda = { 
+       mesa: num, 
+       total: c.total, 
+       pagamento: formaPagamento, 
+       garcom: c.garcom || "Hebster", 
+       itens: todos, 
+       horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+       data: new Date().toLocaleDateString('pt-BR'),
+       timestamp: Date.now()
+   };
+
+   const pHist = c.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
 
    pHist.then(() => {
-     db.collection("comandas").doc(String(num)).delete().then(() => {
-       fecharModal();
-       showToast(`Mesa ${pad(num)} fechada e liberada!`);
-       renderizar();
-     });
+     fecharComanda(num);
+     fecharModal();
    });
  }
 }
@@ -1418,14 +1537,23 @@ function adicionarDespesa(){
   let valor = prompt("Valor em R$:"); if(!valor) return;
   valor = parseFloat(valor.replace(",","."));
   if(isNaN(valor) || valor <= 0){ showToast("Valor inválido.", true); return; }
-  db.collection("despesas").add({ desc, valor, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }).then(() => {
+  
+  let registroDespesa = { 
+      desc, 
+      valor, 
+      horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      data: new Date().toLocaleDateString('pt-BR'),
+      timestamp: Date.now()
+  };
+
+  db.collection("despesas").add(registroDespesa).then(() => {
     showToast("Gasto registrado com sucesso!");
     renderRelatorios();
   });
 }
 
 function limparRelatorios(){
-  if(confirm("Deseja zerar os relatórios do dia?")){
+  if(confirm("Deseja zerar TODAS as movimentações do banco? (Use com cuidado)")){
     const batch = db.batch();
     db.collection("historico").get().then(snap => {
       snap.docs.forEach(d => batch.delete(d.ref));
@@ -1434,13 +1562,131 @@ function limparRelatorios(){
         db.collection("cancelamentos").get().then(snap3 => {
           snap3.docs.forEach(d => batch.delete(d.ref));
           batch.commit().then(() => {
-            showToast("Relatórios zerados com sucesso!");
+            showToast("Banco de relatórios limpo com sucesso!");
             renderRelatorios();
           });
         });
       });
     });
   }
+}
+
+function renderRelatorios(){
+  let hoje = new Date().toLocaleDateString('pt-BR');
+  let vendasHoje = historicoVendas.filter(v => v.data === hoje || !v.data); 
+  let despesasHoje = despesas.filter(d => d.data === hoje || !d.data);
+  
+  let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
+  
+  vendasHoje.forEach(v => {
+    let t = Number(v.total) || 0;
+    totalGeral += t;
+    if(v.pagamento === 'Pix') totalPix += t;
+    else if(v.pagamento === 'Cartão de Crédito') totalCredito += t;
+    else if(v.pagamento === 'Cartão de Débito') totalDebito += t;
+    else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
+  });
+
+  let totalDespesas = despesasHoje.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
+  let saldoLiquido = totalGeral - totalDespesas;
+
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia (${hoje})</span></div>
+      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
+      <div class="card" style="margin:0;padding:12px;text-align:center">
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Entradas</span>
+        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalGeral)}</div>
+      </div>
+      <div class="card" style="margin:0;padding:12px;text-align:center">
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
+        <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
+      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
+      <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Entradas por Forma de Pagamento</h3>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Pix:</span> <b>${br(totalPix)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Vendas e Pagamentos por Garçom Hoje</h3>
+      <div style="display:flex;flex-direction:column;gap:6px">
+      ${(function(){
+         let garcomVendas = {};
+         vendasHoje.forEach(v => {
+            let g = v.garcom || "Hebster";
+            if(!garcomVendas[g]) garcomVendas[g] = { total: 0, qtd: 0 };
+            garcomVendas[g].total += Number(v.total || 0);
+            garcomVendas[g].qtd += 1;
+         });
+         let html = Object.keys(garcomVendas).map(g => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <div>
+                <b>👤 Garçom: ${g}</b>
+                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd} ${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+              </div>
+              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
+            </div>
+         `).join('');
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
+      })()}
+      </div>
+    </div>
+    
+    ${despesasHoje.length ? `
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Hoje</h3>
+      ${despesasHoje.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc}</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
+    </div>` : ''}
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Produtos Vendidos Hoje</h3>
+      <div style="max-height:250px;overflow-y:auto;padding-right:5px">
+      ${(function(){
+         let prodVendidos = {};
+         vendasHoje.forEach(v => {
+            (v.itens || []).forEach(it => {
+               if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
+               prodVendidos[it.nome].qtd += it.qtd;
+               prodVendidos[it.nome].total += (it.qtd * Number(it.preco || 0));
+            });
+         });
+         let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
+              <span>${prodVendidos[nome].qtd}x ${nome}</span>
+              <b>${br(prodVendidos[nome].total)}</b>
+            </div>
+         `).join('');
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido hoje.</div>';
+      })()}
+      </div>
+    </div>
+
+    ${cancelamentos.filter(c => c.data === hoje || !c.data).length ? `
+    <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Hoje</h3>
+      ${cancelamentos.filter(c => c.data === hoje || !c.data).map(c => `
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)}</b> <b>${br(c.totalCancelado)}</b></div>
+          <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    <button class="secondary" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
+  `;
 }
 
 function mudarFiltroMesa(f){
@@ -1468,305 +1714,224 @@ function renderMesas(){
 
  for(let i=1; i<=30; i++){
    let c = comandas[i];
-   let busy = c && (c.itens?.length || c.itensPagos?.length || c.total >= 0);
+   let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0));
    if(busy) totalAbertas++;
 
    if(filtroMesaAtual === 'livres' && busy) continue;
    if(filtroMesaAtual === 'ocupadas' && !busy) continue;
 
-   let totalRestante = c?.total || 0;
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
-
-   let classeDestaque = "";
-   let badgeTexto = "OCUPADA";
-   let badgeClasse = "ocupada";
-
-   if (busy) {
-     if (c.pediuContaAlerta) {
-       classeDestaque = "pediu-conta-ativo";
-       badgeTexto = "PEDIU A CONTA";
-       badgeClasse = "conta";
-     } else if (c.novoPedidoAlerta) {
-       classeDestaque = "novo-pedido-ativo";
-       badgeTexto = "NOVO PEDIDO";
-       badgeClasse = "novo";
-     }
-   }
+   let statusClass = busy ? 'ocupada' : 'livre';
+   let alertaNovo = c && c.novoPedidoAlerta ? 'novo-pedido-ativo' : '';
+   let alertaConta = c && c.pediuContaAlerta ? 'pediu-conta-ativo' : '';
 
    arrayMesasHTML.push(`
-     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" onclick="abrirMesa(${i})">
+     <div class="table ${statusClass} ${alertaNovo} ${alertaConta}" data-mesa="${i}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
-       <div class="badge-status ${busy ? badgeClasse : 'livre'}">${busy ? badgeTexto : "LIVRE"}</div>
-       ${busy ? `<div class="total">${br(totalRestante)}</div><div class="timer ${tempoInfo.classe}">⏱️ ${tempoInfo.texto}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
+       <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
+       ${(c && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
+       ${tempoInfo ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
+       ${busy && c.garcom ? `<div class="garcom-tag">👤 ${c.garcom}</div>` : ''}
      </div>
    `);
  }
 
  document.getElementById("conteudo").innerHTML = `
- <div class="section-title">
-   <div><h2>Mesas</h2><span class="muted">${totalAbertas} aberta${totalAbertas === 1 ? "" : "s"} no salão</span></div>
-   <span class="tag">30 mesas</span>
- </div>
- 
- <div class="filter-tabs">
-   <button class="filter-tab ${filtroMesaAtual==='todas'?'active':''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
-   <button class="filter-tab ${filtroMesaAtual==='ocupadas'?'active':''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas</button>
-   <button class="filter-tab ${filtroMesaAtual==='livres'?'active':''}" onclick="mudarFiltroMesa('livres')">Livres</button>
- </div>
-
- <div class="tables">${arrayMesasHTML.join("")}</div>`;
+   <div class="filter-tabs">
+     <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
+     <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${totalAbertas})</button>
+     <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${30 - totalAbertas})</button>
+   </div>
+   <div class="tables">
+     ${arrayMesasHTML.join('')}
+   </div>
+ `;
 }
 
 function renderComandas(){
- let abertas = Object.entries(comandas).filter(([m,c]) => {
-   let numMesa = parseInt(m);
-   return !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30 && (c?.itens?.length || c?.itensPagos?.length || c?.total >= 0);
- });
+  let comandasHTML = [];
+  let totalGeral = 0;
 
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
- ${abertas.length ? abertas.map(([m,c]) => {
-   let totalRestante = c.total || 0; 
-   let tempoInfo = calcularTempoDecorrido(c.criadoEm);
-   let avisoContaOuNovo = "";
-   if(c.pediuContaAlerta) avisoContaOuNovo = `<div style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(245,158,11,0.4)">⚠️ ESTA MESA PEDIU A CONTA!</div>`;
-   else if(c.novoPedidoAlerta && c.origemPedido === 'cliente') avisoContaOuNovo = `<div style="background:rgba(56,189,248,0.2);color:#38bdf8;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(56,189,248,0.4)">🔔 HÁ UM NOVO PEDIDO DIGITAL NESTA MESA!</div>`;
+  for(let i=1; i<=30; i++){
+    let c = comandas[i];
+    if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
+      totalGeral += Number(c.total || 0);
 
-   let lotesHTML = "";
-   if (c.lotes && c.lotes.length > 0) {
-     let lotesInvertidos = [...c.lotes].reverse();
-     lotesHTML = lotesInvertidos.map(lote => {
-       let itensAgrupadosLote = {};
-       (lote.itens || []).forEach(item => {
-         let chave = (item.cliente || 'Cliente 1') + "_" + item.nome;
-         if(!itensAgrupadosLote[chave]) {
-           itensAgrupadosLote[chave] = { cliente: item.cliente || 'Cliente 1', nome: item.nome, qtdTotal: 0, precoTotal: 0 };
-         }
-         let matchQtd = String(item.nome).match(/^(\d+)x\s*(.*)$/);
-         let q = matchQtd ? parseInt(matchQtd[1]) : 1;
-         let nomeReal = matchQtd ? matchQtd[2] : item.nome;
-         
-         itensAgrupadosLote[chave].nome = nomeReal;
-         itensAgrupadosLote[chave].qtdTotal += q;
-       });
+      let lotesHTML = "";
+      if(c.lotes && c.lotes.length > 0){
+        lotesHTML = c.lotes.map(l => `
+          <div class="lote-pedido ${l.isNovo ? 'novo' : ''}">
+            <div class="lote-header">
+              <span>🕒 Lote - ${l.horario}</span>
+              ${l.isNovo ? '<span class="badge-novo">NOVO</span>' : ''}
+            </div>
+            ${(l.itens || []).map(it => `
+              <div style="font-size:12px;display:flex;justify-content:space-between;margin-top:2px">
+                <span>${it.cliente ? `<b>[${it.cliente}]</b> ` : ''}${it.nome}</span>
+                <span>${it.preco}</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('');
+      } else if(c.itens && c.itens.length > 0){
+        lotesHTML = c.itens.map(it => `
+          <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+            <b>${br(it.qtd * it.preco)}</b>
+          </div>
+        `).join('');
+      }
 
-       let itensLoteHTML = Object.values(itensAgrupadosLote).map(item => `
-         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
-           <span><b>[${item.cliente}]</b> ${item.qtdTotal}x ${item.nome}</span>
-           <span>${item.precoTotal ? br(item.precoTotal) : ''}</span>
-         </div>
-       `).join('');
+      /* Bloco de exibição de itens já pagos na mesa */
+      let itensPagosHTML = "";
+      if(c.itensPagos && c.itensPagos.length > 0){
+        itensPagosHTML = `
+          <div style="margin-top:8px;padding:8px 10px;background:rgba(16, 185, 129, 0.08);border:1px solid rgba(16, 185, 129, 0.25);border-radius:12px">
+            <div style="font-size:11px;font-weight:900;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:4px">
+              <span>✅</span> ITENS JÁ PAGOS
+            </div>
+            ${c.itensPagos.map(it => `
+              <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
+                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
 
-       return `
-         <div class="lote-pedido ${lote.isNovo ? 'novo' : ''}">
-           <div class="lote-header">
-             <span>📦 Pedido às ${lote.horario || 'Recente'}</span>
-             ${lote.isNovo ? '<span class="badge-novo novo-item">🔵 NOVO 🚀</span>' : ''}
-           </div>
-           <div>${itensLoteHTML}</div>
-         </div>
-       `;
-     }).join('');
-   } else {
-     let agrupadosGeral = {};
-     (c.itens || []).forEach(i => {
-       let cli = i.cliente || 'Cliente 1';
-       let chave = cli + "_" + i.nome;
-       if(!agrupadosGeral[chave]) agrupadosGeral[chave] = { cliente: cli, nome: i.nome, qtd: 0, preco: i.preco };
-       agrupadosGeral[chave].qtd += i.qtd;
-     });
-     lotesHTML = Object.values(agrupadosGeral).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("");
-   }
+      comandasHTML.push(`
+        <div class="card command">
+          <div class="row" style="align-items:center;margin-bottom:8px">
+            <div>
+              <h3>Mesa ${pad(i)}</h3>
+              <small class="muted">Garçom: ${c.garcom || 'Hebster'}</small>
+            </div>
+            <div class="tag">${br(c.total)}</div>
+          </div>
+          <div style="margin-bottom:10px">
+            ${lotesHTML}
+            ${itensPagosHTML}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirMesa(${i})">✏️ Editar / Add</button>
+            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirModalTransferencia(${i})">🔄 Transferir</button>
+            <button class="primary" style="margin:0;flex:1;font-size:11px;background:#10b981" onclick="fecharMesa(${i})">💳 Pagar / Fechar</button>
+          </div>
+        </div>
+      `);
+    }
+  }
 
-   return `<div class="card command" style="${c.pediuContaAlerta?'border-color:#f59e0b':c.novoPedidoAlerta?'border-color:#38bdf8':''}">
-     ${avisoContaOuNovo}
-     <div class="row">
-       <h3>Mesa ${pad(m)}</h3>
-       <strong style="color:var(--brand);font-size:16px">${br(totalRestante)}</strong>
-     </div>
-     <div style="display:flex;justify-content:space-between;align-items:center;margin:3px 0 10px">
-       <p class="muted" style="font-size:11px;margin:0">👤 Atendente: <b>${c.garcom || 'Hebster'}</b></p>
-       <span class="tag ${tempoInfo.classe}" style="background:var(--input-bg);color:var(--muted)">⏱️ ${tempoInfo.texto}</span>
-     </div>
-     ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:10px;color:#10b981;margin-bottom:6px"><b>Pagos:</b> ${c.itensPagos.map(ip=>`[${ip.cliente}] ${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
-     
-     <div style="margin: 8px 0;">${lotesHTML}</div>
+  if(comandasHTML.length === 0){
+    document.getElementById("conteudo").innerHTML = `
+      <div class="empty">Nenhuma comanda aberta no momento.</div>
+    `;
+    return;
+  }
 
-     <div style="display:flex;gap:6px;margin-top:12px">
-       <button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar</button>
-       <button class="secondary" style="margin:0;background:rgba(211,47,47,0.1);color:var(--brand);border-color:var(--brand)" onclick="abrirModalTransferencia(${m})">🔄 Transferir</button>
-       <button class="primary" onclick="fecharMesa(${m})">💰 Pagar</button>
-     </div>
-   </div>`;
- }).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b></div>`}`;
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <h2>Comandas Abertas</h2>
+      <span class="muted">Total Acumulado: ${br(totalGeral)}</span>
+    </div>
+    ${comandasHTML.join('')}
+  `;
 }
 
-const mapIconesCategoria = {
-  "CHURRASCOS": "🍖",
-  "CARANGUEJO": "🦀",
-  "BEBIDAS": "🍺",
-  "GUARNIÇÕES": "🍚",
-  "PETISCOS": "🍟",
-  "REFRIGERANTES": "🥤",
-  "SUCOS": "🧃",
-  "DIVERSOS": "🚬"
-};
+function obterIconeCategoria(cat){
+  const map = {
+    "CHURRASCOS": "🍢",
+    "CARANGUEJO": "🦀",
+    "BEBIDAS": "🍺",
+    "GUARNIÇÕES": "🍚",
+    "PETISCOS": "🍟",
+    "REFRIGERANTES": "🥤",
+    "SUCOS": "🧃",
+    "DIVERSOS": "📦"
+  };
+  return map[cat] || "🍽️";
+}
 
 function renderAtendimento(){
- const total = totalTemp();
- const cAtual = comandas[mesaSelecionada];
- const itensJaPagosNaMesa = cAtual?.itensPagos || [];
- let clientesLista = Object.keys(pedidoTemp);
- if(!clientesLista.length) clientesLista = ["Cliente 1"];
+  if(!mesaSelecionada) return;
 
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento por Cliente</p></div><button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:0;background:var(--card);border:1px solid var(--border);color:var(--brand);border-radius:10px;padding:6px 10px;font-weight:900;font-size:11px;cursor:pointer">🔄 Mudar Mesa</button></div></div>
- 
- ${cAtual?.pediuContaAlerta ? `<div class="card" style="border-color:#f59e0b;background:rgba(245,158,11,0.1);padding:10px;margin-bottom:12px"><div style="font-weight:900;font-size:12px;color:#f59e0b">⚠️ Esta mesa solicitou fechamento de conta.</div></div>` : ''}
+  let listaClientes = Object.keys(pedidoTemp);
+  if(!listaClientes.includes(clienteAtual)) listaClientes.unshift(clienteAtual);
 
- ${itensJaPagosNaMesa.length ? `
- <div class="card" style="border-color:#10b981;padding:10px;margin-bottom:12px">
-   <div style="font-weight:900;font-size:12px;color:#10b981;margin-bottom:4px">✅ Já pagos:</div>
-   ${itensJaPagosNaMesa.map(ip => `<div style="font-size:11px;color:var(--muted);display:flex;justify-content:space-between"><span><b>[${ip.cliente}]</b> ${ip.qtd}x ${ip.nome}</span><b>${br(ip.qtd*ip.preco)}</b></div>`).join("")}
- </div>` : ''}
+  let tabsClientesHTML = listaClientes.map(cli => `
+    <button class="filter-tab ${cli === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${cli.replace(/'/g,"\\'")}')">
+      👤 ${cli}
+    </button>
+  `).join('');
 
- <div class="card" style="padding:12px">
-   <div style="font-weight:900;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
-     <span>👤 Pessoa pedindo agora:</span>
-     <span style="font-size:10px;color:var(--muted)">Clique no nome abaixo para renomear</span>
-   </div>
-   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-     ${clientesLista.map(cli => `
-       <div style="display:inline-flex;align-items:center;background:${cli===clienteAtual?'var(--brand)':'var(--card)'};border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};border-radius:10px;overflow:hidden">
-         <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 10px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>
-         <button onclick="renomearClienteAtual()" title="Renomear ${cli}" style="padding:6px 8px;border:0;background:transparent;color:${cli===clienteAtual?'#fff':'var(--muted)'};font-weight:900;font-size:10px;cursor:pointer">✏️</button>
-       </div>
-     `).join("")}
-     <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:var(--card);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer">+ Nova Pessoa</button>
-   </div>
-   <div style="font-size:11px;color:var(--muted)">Lançando produtos na conta de: <b style="color:var(--brand)">${clienteAtual}</b></div>
- </div>
+  let catsHTML = Object.keys(cardapio).map(cat => `
+    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+      <span class="cat-ico">${obterIconeCategoria(cat)}</span>
+      <span>${cat}</span>
+    </button>
+  `).join('');
 
- <div class="card" style="padding:12px;display:flex;align-items:center;justify-content:space-between">
-   <div style="font-size:12px"><b>👤 Garçom Responsável</b></div>
-   <input id="garcomInput" type="text" value="${garcomTemp}" style="width:130px;border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;font-weight:900;background:var(--input-bg);color:var(--ink);font-size:12px;outline:none" oninput="atualizarGarcom(this.value)">
- </div>
-
- <div class="search-box">
-   <span>🔍</span>
-   <input type="text" placeholder="Pesquisar produto instantaneamente (ex: skol, frango)..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
- </div>
-
- <div class="atendimento-layout">
-   <div class="side-cats" id="sideCatsContainer">
-     ${Object.keys(cardapio).map(c => `
-       <div class="side-cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">
-         <span class="cat-ico">${mapIconesCategoria[c] || '🏷️'}</span>
-         <span>${c}</span>
-       </div>
-     `).join("")}
-   </div>
-   <div>
-     <div class="products-list" id="produtos"></div>
-   </div>
- </div>`;
- renderProdutos();
-}
-
-function renderRelatorios(){
- let totalFaturamento = historicoVendas.reduce((s,v) => s + v.total, 0);
- let totalDespesas = despesas.reduce((s,d) => s + d.valor, 0);
- let lucroLiquido = totalFaturamento - totalDespesas;
- 
- let pagamentosTotais = {};
- historicoVendas.forEach(v => {
-   let meio = v.pagamento || "Pix";
-   pagamentosTotais[meio] = (pagamentosTotais[meio] || 0) + v.total;
- });
-
- let itensConsolidados = {};
- historicoVendas.forEach(v => {
-   if(v.itens && Array.isArray(v.itens)){
-     v.itens.forEach(i => {
-       let nomeProd = i.nome;
-       let qtdProd = i.qtd || 1;
-       if(itensConsolidados[nomeProd]){
-         itensConsolidados[nomeProd] += qtdProd;
-       } else {
-         itensConsolidados[nomeProd] = qtdProd;
-       }
-     });
-   }
- });
-
- let produtosOrdenados = Object.entries(itensConsolidados).sort((a,b) => b[1] - a[1]);
-
- document.getElementById("conteudo").innerHTML = `
-  <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo</span></div><button onclick="limparRelatorios()" style="border:0;background:rgba(211, 47, 47, 0.15);color:var(--brand);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🗑️ Resetar</button></div>
-  
-  <div class="card" style="background:linear-gradient(135deg,#1f2937,#111827);color:#fff">
-    <div style="font-size:12px;opacity:.85">Lucro Líquido</div>
-    <div style="font-size:26px;font-weight:900;margin-top:2px">${br(lucroLiquido)}</div>
-    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
-      <div>📈 Faturamento: <br><b style="font-size:13px">${br(totalFaturamento)}</b></div>
-      <div>📉 Gastos: <br><b style="font-size:13px">${br(totalDespesas)}</b></div>
+  document.getElementById("conteudo").innerHTML = `
+    <div class="topbar" style="margin-bottom:12px">
+      <button class="back" onclick="mudarTela('mesas')">←</button>
+      <div class="mesa-head">
+        <h2>Mesa ${pad(mesaSelecionada)}</h2>
+        <p>Atendimento por Cliente</p>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
+        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
+      </div>
     </div>
-  </div>
 
-  <div style="margin-bottom:10px"><button class="primary" onclick="adicionarDespesa()" style="font-size:13px;padding:12px">➕ Registrar Gasto</button></div>
-
-  <div class="section-title"><h2>💳 Faturamento por Forma de Pagamento</h2></div>
-  <div class="card">
-    ${Object.keys(pagamentosTotais).length ? Object.entries(pagamentosTotais).map(([meio, val]) => `
-      <div class="line">
-        <span><b>${meio}</b></span>
-        <strong style="color:var(--brand)">${br(val)}</strong>
-      </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum pagamento registrado.</div>`}
-  </div>
-
-  <div class="section-title"><h2>📦 Total Consolidado de Produtos</h2></div>
-  <div class="card">
-    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd]) => `
-      <div class="line">
-        <span>${nome}</span>
-        <strong style="color:var(--brand)">${qtd}x</strong>
-      </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum produto vendido ainda.</div>`}
-  </div>
-
-  <div class="section-title"><h2>⚠️ Registro de Cancelamentos</h2></div>
-  <div class="card">
-    ${cancelamentos.length ? cancelamentos.map(c => `
-      <div class="line" style="flex-direction:column;align-items:flex-start;gap:2px">
-        <div style="display:flex;width:100%;justify-content:space-between">
-          <strong style="color:var(--brand)">Mesa ${pad(c.mesa)} (${c.garcom})</strong>
-          <span style="font-size:11px;color:var(--muted)">${c.horario}</span>
+    <div class="card" style="padding:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1">
+          ${tabsClientesHTML}
         </div>
-        <div style="font-size:12px"><b>Motivo:</b> ${c.motivo}</div>
-        <div style="font-size:11px;color:var(--muted)">Valor estornado/cancelado: <b>${br(c.totalCancelado)}</b></div>
+        <button class="secondary" style="width:auto;margin:0;padding:6px 10px;font-size:11px;white-space:nowrap" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
       </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum cancelamento registrado.</div>`}
-  </div>
 
-  <div class="section-title"><h2>Gastos</h2></div>
-  <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:var(--brand)">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhum gasto.</div>`}</div>
-  
-  <div class="section-title"><h2>Histórico de Vendas por Comanda</h2></div>
-  <div class="card">${historicoVendas.length ? historicoVendas.map(v => `<div class="line"><div><b>Mesa ${pad(v.mesa)}</b> (${v.garcom} • ${v.pagamento || 'Pix'})<br><small>${v.horario} • ${(v.itens||[]).map(i=>`[${i.cliente}] ${i.qtd}x ${i.nome}`).join(", ")}</small></div><strong style="color:var(--brand)">${br(v.total)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhuma venda.</div>`}</div>`;
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 10px;border-radius:12px;border:1px solid var(--border)">
+        <span style="font-size:12px;font-weight:800">Atendendo: <b style="color:var(--brand)">${clienteAtual}</b></span>
+        <button style="border:0;background:none;color:var(--muted);font-weight:900;font-size:11px;cursor:pointer" onclick="renomearClienteAtual()">✏️ Renomear</button>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+    </div>
+
+    <div class="atendimento-layout">
+      <div class="side-cats">
+        ${catsHTML}
+      </div>
+      <div id="produtos" class="products-list"></div>
+    </div>
+  `;
+
+  renderProdutos();
 }
 
 function renderizar(){
- const navM = document.getElementById("navMesas"), navC = document.getElementById("navComandas");
- navM.classList.toggle("active", telaAtual === "mesas" || telaAtual === "atendimento");
- navC.classList.toggle("active", telaAtual === "comandas");
- if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
-   const navR = document.getElementById("navRelatorios");
-   if(navR) navR.classList.toggle("active", telaAtual === "relatorios");
- }
- if(telaAtual === "mesas") renderMesas();
- else if(telaAtual === "atendimento") renderAtendimento();
- else if(telaAtual === "comandas") renderComandas();
- else if(telaAtual === "relatorios") renderRelatorios();
- atualizarBar();
+  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
+  if(telaAtual === 'mesas') {
+    const btn = document.getElementById('navMesas');
+    if(btn) btn.classList.add('active');
+    renderMesas();
+  } else if(telaAtual === 'comandas') {
+    const btn = document.getElementById('navComandas');
+    if(btn) btn.classList.add('active');
+    renderComandas();
+  } else if(telaAtual === 'relatorios') {
+    const btn = document.getElementById('navRelatorios');
+    if(btn) btn.classList.add('active');
+    renderRelatorios();
+  } else if(telaAtual === 'atendimento') {
+    renderAtendimento();
+  }
 }
 </script>
 </body>
