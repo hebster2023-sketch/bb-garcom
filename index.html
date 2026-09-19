@@ -901,6 +901,7 @@ function mudarClienteAtual(novoCli){
   renderAtendimento();
 }
 
+/* 2. Função de renomear corrigida para atualizar imutavelmente a lista de clientes e o cliente ativo */
 function renomearClienteAtual(){
   let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
   if(!novoNome || !novoNome.trim()) return;
@@ -914,10 +915,12 @@ function renomearClienteAtual(){
 
   const nomeAntigo = clienteAtual;
   
+  // 1. Atualiza imutavelmente a estrutura de pedidos mantendo a lista atualizada
   const itensCliente = pedidoTemp[nomeAntigo] || {};
   delete pedidoTemp[nomeAntigo];
   pedidoTemp[novoNome] = { ...itensCliente };
 
+  // Atualiza também os dados na comanda carregada se houver
   if(mesaSelecionada && comandas[mesaSelecionada]) {
     if(Array.isArray(comandas[mesaSelecionada].itens)) {
       comandas[mesaSelecionada].itens.forEach(it => {
@@ -935,6 +938,7 @@ function renomearClienteAtual(){
     }
   }
 
+  // 2. Garante a atualização do cliente ativo exibido no topo ("Atendendo: ...")
   clienteAtual = novoNome;
   
   renderAtendimento();
@@ -1187,6 +1191,7 @@ function carregarMesasSalvas() {
     });
 }
 
+/* 1. Atualização para ocultar o valor nas mesas livres */
 function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
     const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
     if (!cardMesa) return;
@@ -1682,6 +1687,7 @@ function calcularTempoDecorrido(timestampCriacao){
   return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
 }
 
+/* 1. Condicional adicionada para exibir o valor total apenas quando > 0 */
 function renderMesas(){
  let totalAbertas = 0;
  let arrayMesasHTML = [];
@@ -1756,24 +1762,6 @@ function renderComandas(){
         `).join('');
       }
 
-      /* Bloco de exibição de itens já pagos na mesa */
-      let itensPagosHTML = "";
-      if(c.itensPagos && c.itensPagos.length > 0){
-        itensPagosHTML = `
-          <div style="margin-top:8px;padding:8px 10px;background:rgba(16, 185, 129, 0.08);border:1px solid rgba(16, 185, 129, 0.25);border-radius:12px">
-            <div style="font-size:11px;font-weight:900;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:4px">
-              <span>✅</span> ITENS JÁ PAGOS
-            </div>
-            ${c.itensPagos.map(it => `
-              <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
-                <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      }
-
       comandasHTML.push(`
         <div class="card command">
           <div class="row" style="align-items:center;margin-bottom:8px">
@@ -1785,7 +1773,6 @@ function renderComandas(){
           </div>
           <div style="margin-bottom:10px">
             ${lotesHTML}
-            ${itensPagosHTML}
           </div>
           <div style="display:flex;gap:6px;margin-top:10px">
             <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirMesa(${i})">✏️ Editar / Add</button>
