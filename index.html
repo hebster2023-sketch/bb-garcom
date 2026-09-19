@@ -417,6 +417,9 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
+// Lista de garçons disponíveis no sistema
+const listaGarconsDisponiveis = ["Hebster", "João", "Carlos", "Marcos", "Lucas", "Outro"];
+
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
 
@@ -1368,13 +1371,13 @@ function dividirContaModal(num){
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
-            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente || 'Cliente 1'}]</span> ${i.nome}</div>
+            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente \vert{}\vert{} 'Cliente 1'}]</span>${i.nome}</div>
             <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button onclick="mudarQtdPagamento(${idx}, -1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
+            <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
             <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente || 'Cliente 1'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
-            <button onclick="mudarQtdPagamento(${idx}, 1, ${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
+            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
           </div>
         </div>
       `).join("")}
@@ -1635,7 +1638,7 @@ function renderRelatorios(){
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
               <div>
                 <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd} ${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
               </div>
               <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
             </div>
@@ -1665,7 +1668,7 @@ function renderRelatorios(){
          });
          let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
             <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span>${prodVendidos[nome].qtd}x ${nome}</span>
+              <span>${prodVendidos[nome].qtd}x${nome}</span>
               <b>${br(prodVendidos[nome].total)}</b>
             </div>
          `).join('');
@@ -1792,7 +1795,7 @@ function renderComandas(){
             </div>
             ${c.itensPagos.map(it => `
               <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span>
                 <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
               </div>
             `).join('')}
@@ -1872,6 +1875,12 @@ function renderAtendimento(){
     </button>
   `).join('');
 
+  // Opções para o seletor de Garçom Responsável
+  let optionsGarcons = listaGarconsDisponiveis.map(g => `<option value="${g}" ${garcomTemp === g ? 'selected' : ''}>${g}</option>`).join('');
+  if(!listaGarconsDisponiveis.includes(garcomTemp)){
+    optionsGarcons += `<option value="${garcomTemp}" selected>${garcomTemp}</option>`;
+  }
+
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:12px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
@@ -1883,6 +1892,20 @@ function renderAtendimento(){
         <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
         <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
       </div>
+    </div>
+
+    <!-- SEÇÃO DE GARÇOM RESPONSÁVEL -->
+    <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">🧑‍🍳</span>
+        <div>
+          <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Garçom Responsável</div>
+          <div style="font-size:12px;font-weight:900;color:var(--ink)">Atendimento atual</div>
+        </div>
+      </div>
+      <select onchange="atualizarGarcom(this.value)" style="padding:8px 12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:900;outline:none;cursor:pointer">
+        ${optionsGarcons}
+      </select>
     </div>
 
     <div class="card" style="padding:10px;margin-bottom:12px">
