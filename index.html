@@ -1,311 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f8faf9">
-<title>B.B GARÇOM — B.B CHURRASCO</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<style>
-:root {
-  --brand: #e52e2e;
-  --brand-hover: #c42222;
-  --ink: #1f2937;
-  --bg: #f8faf9;
-  --card: #ffffff;
-  --border: rgba(0, 0, 0, 0.06);
-  --muted: #6b7280;
-  --input-bg: #f1f5f3;
-}
-[data-theme="dark"] {
-  --brand: #ef4444;
-  --brand-hover: #dc2626;
-  --ink: #f3f4f6;
-  --bg: #0d0f12;
-  --card: rgba(30, 32, 38, 0.85);
-  --border: rgba(255, 255, 255, 0.08);
-  --muted: #9ca3af;
-  --input-bg: rgba(20, 22, 27, 0.8);
-}
-*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent;transition:background .3s,color .3s}
-body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140px}
-
-/* Header */
-.header{background:linear-gradient(135deg,var(--brand),var(--brand-hover));color:#fff;border-radius:24px;padding:20px 18px;box-shadow:0 10px 25px rgba(229, 46, 46, 0.2);position:relative;overflow:hidden;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
-.header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0}.header p{margin:4px 0 0;font-size:11px;opacity:.9}
-.header-actions{display:flex;gap:8px;align-items:center}
-.theme-btn, .sound-btn, .admin-btn{background:rgba(255,255,255,0.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
-.theme-btn:active, .sound-btn:active, .admin-btn:active{transform:scale(.85)}
-.sound-btn.active{background:rgba(16, 185, 129, 0.5);border:1px solid #10b981}
-
-/* Toast Flutuante */
-#toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
-.toast{background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(8px);color:#fff;padding:12px 16px;border-radius:14px;font-size:12px;font-weight:800;box-shadow:0 10px 25px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;pointer-events:auto;animation: fadeInOut .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
-@keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
-
-/* Navegação Inferior */
-.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
-.bottom button{border:0;background:none;color:var(--muted);font-weight:800;font-size:11px;padding:8px 4px;border-radius:16px;display:flex;flex-direction:column;align-items:center;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);cursor:pointer}
-.bottom button.active{color:var(--brand);background:rgba(229, 46, 46, 0.1);transform:translateY(-2px)}
-.bottom button:active{transform:scale(0.92)}
-.bottom .ico{font-size:18px;margin-bottom:2px}
-
-/* Filtros de Mesas */
-.filter-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
-.filter-tabs::-webkit-scrollbar{display:none}
-.filter-tab{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.02);transition:all .2s}
-.filter-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px rgba(229,46,46,0.25)}
-
-/* Grid de Mesas */
-.tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
-.table:hover{border-color:rgba(229,46,46,0.3);transform:translateY(-2px)}
-.table:active{transform:scale(0.95)}
-.table.busy{border-color:rgba(229, 46, 46, 0.3);background:linear-gradient(135deg, rgba(229, 46, 46, 0.04), var(--card))}
-
-.table.novo-pedido-ativo{border-color:#38bdf8 !important;background:linear-gradient(135deg, rgba(56, 189, 248, 0.15), var(--card)) !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.3) !important;animation: pulseNovo 1.5s infinite}
-@keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
-
-.table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.2), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.4) !important;animation: pulseConta 1.2s infinite}
-@keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
-
-.table .num{font-size:15px;font-weight:900}
-.badge-status{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
-.badge-status.livre{background:rgba(16, 185, 129, 0.1);color:#10b981;border:1px solid rgba(16, 185, 129, 0.2)}
-.badge-status.ocupada{background:rgba(229, 46, 46, 0.1);color:var(--brand);border:1px solid rgba(229, 46, 46, 0.2)}
-.badge-status.novo{background:rgba(56, 189, 248, 0.2);color:#38bdf8;border:1px solid rgba(56, 189, 248, 0.4)}
-.badge-status.conta{background:rgba(245, 158, 11, 0.2);color:#f59e0b;border:1px solid rgba(245, 158, 11, 0.4)}
-
-.table .total{font-size:12px;font-weight:900;margin-top:3px;color:var(--brand)}
-.table .timer{font-size:9px;margin-top:2px;font-weight:800;padding:1px 6px;border-radius:6px}
-.timer.tempo-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
-.timer.tempo-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
-.timer.tempo-vermelho{background:rgba(229, 46, 46, 0.1);color:#e52e2e}
-.table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* Cards Genéricos */
-.card{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px}
-.section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 10px}.section-title h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
-
-.topbar{display:flex;gap:12px;align-items:center}
-.back{border:0;background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:12px;width:38px;height:38px;font-weight:900;font-size:15px;display:grid;place-items:center;cursor:pointer;transition:transform .2s}
-.back:active{transform:scale(0.85)}
-.mesa-head{flex:1}.mesa-head h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:11px;color:var(--muted)}
-
-/* Busca de Produtos */
-.search-box{position:relative;margin-bottom:12px}
-.search-box input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:700;outline:none;transition:all .2s}
-.search-box input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(229,46,46,0.1)}
-.search-box span{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
-
-/* Layout Atendimento: Menu Lateral + Produtos Grid */
-.atendimento-layout {
-  display: grid;
-  grid-template-columns: 84px 1fr;
-  gap: 12px;
-  align-items: start;
-}
-
-/* Menu Lateral de Categorias */
-.side-cats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: sticky;
-  top: 16px;
-}
-.side-cat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 4px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all .2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  color: var(--muted);
-  font-weight: 800;
-  font-size: 9px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-}
-.side-cat .cat-ico {
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-.side-cat.active {
-  background: var(--brand);
-  color: #fff;
-  border-color: var(--brand);
-  box-shadow: 0 4px 14px rgba(229,46,46,0.3);
-  transform: translateY(-1px);
-}
-.side-cat:active { transform: scale(0.92); }
-
-/* Produtos Estilo Profissional (Miniatura real, Título, Descrição, Preço) */
-.products-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.product-card {
-  display: flex;
-  align-items: center;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 10px;
-  gap: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-  transition: all 0.2s;
-  position: relative;
-}
-.product-card.selected {
-  border-color: var(--brand);
-  box-shadow: 0 6px 16px rgba(229,46,46,0.1);
-}
-.prod-thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  background: var(--input-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-  font-size: 26px;
-}
-.prod-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.prod-info {
-  flex: 1;
-  min-width: 0;
-}
-.prod-title {
-  font-size: 13px;
-  font-weight: 900;
-  color: var(--ink);
-  line-height: 1.2;
-}
-.prod-desc-text {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 2px;
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.prod-price {
-  font-size: 13px;
-  font-weight: 900;
-  color: var(--brand);
-  margin-top: 4px;
-}
-.prod-action-qty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.btn-circle-plus {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--brand);
-  color: #fff;
-  border: 0;
-  font-size: 20px;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(229, 46, 46, 0.3);
-  transition: transform .15s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.btn-circle-plus:active { transform: scale(0.85); }
-.qty-control-inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--input-bg);
-  padding: 4px 8px;
-  border-radius: 99px;
-  border: 1px solid var(--border);
-}
-.qty-control-inline button {
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--card);
-  color: var(--ink);
-  font-weight: 900;
-  font-size: 14px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-.qty-control-inline span {
-  font-weight: 900;
-  font-size: 13px;
-  min-width: 16px;
-  text-align: center;
-}
-
-/* Lotes nas Comandas */
-.lote-pedido {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 12px;
-    padding: 10px;
-    background: var(--card);
-    transition: all 0.3s ease;
-}
-.lote-pedido.novo {
-    border-color: var(--brand);
-    background-color: rgba(229, 46, 46, 0.04);
-    box-shadow: 0 0 12px rgba(229, 46, 46, 0.1);
-}
-.lote-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: var(--muted);
-    margin-bottom: 6px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid var(--border);
-}
-.badge-novo {
-    background-color: var(--brand);
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 900;
-}
-
-/* Barra Flutuante de Carrinho */
-.cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
+ filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
 .cartbar.show-cart{transform:translateX(-50%) translateY(0);opacity:1}
 .cartbar button{border:0;background:#fff;color:#1f2937;border-radius:12px;padding:8px 14px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
 .cartbar button:active{transform:scale(0.92)}
 
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:none;align-items:end}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center}
 .modal.show{display:flex}
-.sheet{background:var(--card);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);color:var(--ink);width:100%;max-width:760px;margin:auto auto 0;border-radius:28px 28px 0 0;padding:20px;max-height:86vh;overflow:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.2);border-top:1px solid var(--border);animation: slideUpModal .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.sheet{background:var(--card);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);color:var(--ink);width:90%;max-width:400px;margin:auto;border-radius:28px;padding:20px;max-height:90vh;overflow:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.2);border-top:1px solid var(--border);animation: slideUpModal .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
 @keyframes slideUpModal { from{transform:translateY(100%)} to{transform:translateY(0)} }
 
 .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
@@ -315,15 +15,15 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .line{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
 .line small{color:var(--muted)}
 .totalrow{display:flex;justify-content:space-between;font-size:17px;font-weight:900;padding:14px 0;border-top:2px dashed var(--border);margin-top:4px}
-.primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:14px;padding:14px;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(229, 46, 46, 0.25);cursor:pointer;transition:transform .2s}
+.primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:14px;padding:14px;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(211, 47, 47, 0.25);cursor:pointer;transition:transform .2s}
 .primary:active{transform:scale(0.97)}
-.secondary{width:100%;border:0;background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:14px;padding:12px;font-weight:900;margin-top:6px;cursor:pointer;font-size:13px;transition:transform .2s}
+.secondary{width:100%;background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:14px;padding:12px;font-weight:900;margin-top:6px;cursor:pointer;font-size:13px;transition:transform .2s}
 .secondary:active{transform:scale(0.97)}
 .empty{padding:30px 15px;text-align:center;color:var(--muted);font-weight:700;font-size:13px}
 .command{padding:16px;margin-bottom:10px}
 .command .row{display:flex;justify-content:space-between;gap:10px}
 .command h3{margin:0;font-size:16px;font-weight:900;color:var(--ink)}
-.tag{font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:rgba(229, 46, 46, 0.1);color:var(--brand);border:1px solid rgba(229,46,46,0.2)}
+.tag{font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211,47,47,0.2)}
 </style>
 </head>
 <body>
@@ -347,8 +47,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
         <input type="password" id="login-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
       </div>
-      <div id="login-error" style="color:#e52e2e;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
-      <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(229,46,46,0.25)">Entrar no Sistema</button>
+      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
+      <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(211,47,47,0.25)">Entrar no Sistema</button>
     </form>
   </div>
 </div>
@@ -356,7 +56,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 <div class="app">
 <header class="header">
   <div>
-    <h1>B.B CHURRASCO</h1>
+    <h1>🔥 B.B CHURRASCO</h1>
     <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
   </div>
   <div class="header-actions">
@@ -402,6 +102,20 @@ db.enablePersistence().catch(() => {});
 
 let somAtivo = false;
 let primeiraCargaFirebase = true;
+let salvandoPedidoEmAndamento = false; 
+let itensIniciaisJSON = "{}";
+
+let comandas = {};
+let historicoVendas = [];
+let despesas = [];
+let cancelamentos = [];
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
+let filtroMesaAtual = "todas";
+let termoBuscaProduto = "";
+let usuarioLogadoEmail = "";
+
+const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const pad = n => String(n).padStart(2,"0");
 
 function toggleSound(){
   somAtivo = !somAtivo;
@@ -438,16 +152,22 @@ function processarAlertaPedido(mesaId, atual) {
     return;
   }
 
-  if (atual && atual.novoPedidoAlerta && Array.isArray(atual.lotes) && atual.lotes.length > 0) {
-    let textoFalar = `Novo pedido na Mesa ${mesaId}`;
-    showToast(`🔔 Novo pedido na Mesa ${pad(mesaId)}!`);
+  if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente') {
+    let textoFalar = `Novo pedido na Mesa ${mesaId} feito pelo cliente`;
+    showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
     falarTexto(textoFalar);
 
     db.collection('comandas').doc(String(mesaId)).update({ 
-      novoPedidoAlerta: false 
+      novoPedidoAlerta: false,
+      origemPedido: null 
     }).catch(error => {
       console.error("Erro ao limpar flag de novo pedido:", error);
     });
+  } else if (atual && atual.novoPedidoAlerta) {
+    db.collection('comandas').doc(String(mesaId)).update({ 
+      novoPedidoAlerta: false,
+      origemPedido: null 
+    }).catch(()=>{});
   }
 }
 
@@ -469,7 +189,7 @@ function toggleTheme(){
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
-  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#0d0f12' : '#f8faf9');
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#f8faf9');
   localStorage.setItem('bb_theme', next);
 }
 const savedTheme = localStorage.getItem('bb_theme') || 'light';
@@ -484,7 +204,7 @@ function showToast(msg, isError = false){
   if(!container) return;
   const t = document.createElement('div');
   t.className = 'toast';
-  t.style.borderLeft = isError ? '4px solid #e52e2e' : '4px solid #10b981';
+  t.style.borderLeft = isError ? '4px solid #d32f2f' : '4px solid #10b981';
   t.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${msg}</span>`;
   container.appendChild(t);
   setTimeout(() => {
@@ -497,10 +217,10 @@ function showToast(msg, isError = false){
 // ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
-    ["Frango", 8, "🍖", ""],
-    ["Porco", 8, "🍖", ""],
+    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango"],
+    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado"],
     ["Linguiça", 8, "🍖", ""],
-    ["Coração de frango", 8, "🍖", ""],
+    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado"],
     ["Coração de boi", 8, "🍖", ""],
     ["Carne", 8, "🍖", ""],
     ["Tripa", 8, "🍖", ""]
@@ -580,7 +300,7 @@ function carregarCardapioDinamico(){
 
 function salvarCardapioDinamicoNoFirebase(){
   db.collection("configuracoes").doc("cardapio").set({ dados: cardapio }).then(() => {
-    showToast("Cardápio atualizado com sucesso!");
+    showToast("Cardápio atualizado e salvo no banco com sucesso!");
     renderizar();
   }).catch(err => {
     showToast("Erro ao salvar cardápio: " + err.message, true);
@@ -595,8 +315,8 @@ function comprimirImagemParaBase64(file, callback) {
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;
-      const MAX_WIDTH = 300;
-      const MAX_HEIGHT = 300;
+      const MAX_WIDTH = 250;
+      const MAX_HEIGHT = 250;
       if (width > height) {
         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
       } else {
@@ -606,7 +326,7 @@ function comprimirImagemParaBase64(file, callback) {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      const dataurl = canvas.toDataURL('image/jpeg', 0.7);
+      const dataurl = canvas.toDataURL('image/jpeg', 0.6);
       callback(dataurl);
     };
     img.src = e.target.result;
@@ -614,7 +334,7 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO COM UPLOAD DIRETO -----------------
+// ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -622,7 +342,10 @@ function abrirPainelAdmin(){
     showToast("Senha incorreta!", true);
     return;
   }
-  
+  renderizarPainelAdmin();
+}
+
+function renderizarPainelAdmin(){
   let categoriasHTML = Object.keys(cardapio).map(cat => `
     <div class="card" style="margin-bottom:14px;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -643,7 +366,7 @@ function abrirPainelAdmin(){
             </div>
             <div style="display:flex;gap:4px">
               <button onclick="editarItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
-              <button onclick="removerItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(229,46,46,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="removerItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
         `).join('')}
@@ -672,8 +395,8 @@ function adicionarCategoriaAdmin(){
     return;
   }
   cardapio[novaCat] = [];
-  abrirPainelAdmin();
-  showToast(`Categoria ${novaCat} criada! Clique em salvar.`);
+  renderizarPainelAdmin();
+  showToast(`Categoria ${novaCat} criada! Clique em Salvar Alterações no Banco.`);
 }
 
 function adicionarItemAdmin(cat){
@@ -692,7 +415,7 @@ function adicionarItemAdmin(cat){
       <input type="file" id="inputFotoNovoItem" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
     </div>
     <button class="primary" onclick="confirmarAdicaoItemAdmin('${cat}', '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">✅ Adicionar Item</button>
-    <button class="secondary" onclick="abrirPainelAdmin()">Voltar</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
 
@@ -701,13 +424,13 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
       cardapio[cat].push([nome, preco, base64, desc]);
-      abrirPainelAdmin();
-      showToast("Item com foto adicionado com sucesso!");
+      salvarCardapioDinamicoNoFirebase();
+      renderizarPainelAdmin();
     });
   } else {
     cardapio[cat].push([nome, preco, "🍖", desc]);
-    abrirPainelAdmin();
-    showToast("Item adicionado com ícone padrão!");
+    salvarCardapioDinamicoNoFirebase();
+    renderizarPainelAdmin();
   }
 }
 
@@ -731,7 +454,7 @@ function editarItemAdmin(cat, idx){
       <input type="file" id="inputFotoItemAdmin" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;width:100%">
     </div>
     <button class="primary" onclick="confirmarEdicaoItemAdmin('${cat}', ${idx}, '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">💾 Salvar Alterações</button>
-    <button class="secondary" onclick="abrirPainelAdmin()">Voltar</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
 
@@ -742,35 +465,23 @@ function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
       cardapio[cat][idx] = [nome, preco, base64, desc];
-      abrirPainelAdmin();
-      showToast("Item e imagem atualizados com sucesso!");
+      salvarCardapioDinamicoNoFirebase();
+      renderizarPainelAdmin();
     });
   } else {
     cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc];
-    abrirPainelAdmin();
-    showToast("Item atualizado com sucesso!");
+    salvarCardapioDinamicoNoFirebase();
+    renderizarPainelAdmin();
   }
 }
 
 function removerItemAdmin(cat, idx){
   if(confirm("Deseja remover este item do cardápio?")){
     cardapio[cat].splice(idx, 1);
-    abrirPainelAdmin();
-    showToast("Item removido. Clique em salvar.");
+    salvarCardapioDinamicoNoFirebase();
+    renderizarPainelAdmin();
   }
 }
-
-let comandas = {};
-let historicoVendas = [];
-let despesas = [];
-let cancelamentos = [];
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
-let filtroMesaAtual = "todas";
-let termoBuscaProduto = "";
-let usuarioLogadoEmail = "";
-
-const br = v => (v || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const pad = n => String(n).padStart(2,"0");
 
 function iniciarOuvintesFirebase() {
   carregarCardapioDinamico();
@@ -857,7 +568,8 @@ function abrirMesa(num){
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
       novoPedidoAlerta: false,
-      pediuContaAlerta: false
+      pediuContaAlerta: false,
+      origemPedido: null
     }).catch(()=>{});
   }
 
@@ -871,6 +583,8 @@ function abrirMesa(num){
       });
     }
   }
+
+  itensIniciaisJSON = JSON.stringify(pedidoTemp);
   mudarTela("atendimento", num);
 }
 
@@ -894,29 +608,45 @@ function renomearClienteAtual(){
     showToast("Já existe uma pessoa com esse nome.", true);
     return;
   }
+
+  const nomeAntigo = clienteAtual;
   
-  pedidoTemp[novoNome] = pedidoTemp[clienteAtual] || {};
-  delete pedidoTemp[clienteAtual];
+  const itensCliente = pedidoTemp[nomeAntigo] || {};
+  delete pedidoTemp[nomeAntigo];
+  pedidoTemp[novoNome] = { ...itensCliente };
+
+  if(mesaSelecionada && comandas[mesaSelecionada]) {
+    if(Array.isArray(comandas[mesaSelecionada].itens)) {
+      comandas[mesaSelecionada].itens.forEach(it => {
+        if(it.cliente === nomeAntigo) it.cliente = novoNome;
+      });
+    }
+  }
+
   clienteAtual = novoNome;
+  
   renderAtendimento();
   salvarRascunhoAutomatico();
+  showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
 function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
-  const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
-  if(!itens.length && !comandas[mesaSelecionada]) return;
+  const total = totalTemp();
+
+  const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp, 
-    itens: itens.length ? itens : (comandas[mesaSelecionada]?.itens || []), 
-    total: itens.length ? total : (comandas[mesaSelecionada]?.total || 0), 
-    criadoEm: comandas[mesaSelecionada]?.criadoEm || Date.now(),
-    atualizadoEm: Date.now() 
+    garcom: garcomTemp || "Hebster", 
+    itens: itens, 
+    total: total, 
+    criadoEm: comandaAtual.criadoEm || Date.now(),
+    atualizadoEm: Date.now(),
+    origemPedido: 'garcom'
   };
 
-  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(()=>{});
+  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(err => console.error(err));
 }
 
 function alterarQtd(nome, delta){ 
@@ -928,7 +658,15 @@ function alterarQtd(nome, delta){
   salvarRascunhoAutomatico(); 
 }
 
-function produtosFlat(){ let a = []; for(const cat in cardapio) cardapio[cat].forEach(p => a.push({nome:p[0], preco:p[1], icon:p[2], desc:p[3], cat})); return a; }
+function produtosFlat(){ 
+  let a = []; 
+  for(const cat in cardapio) {
+    cardapio[cat].forEach(p => {
+      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", cat});
+    });
+  } 
+  return a; 
+}
 
 function itensTempComClientes(){
   let arr = [];
@@ -938,6 +676,12 @@ function itensTempComClientes(){
       if(qtd > 0){
         let pObj = produtosFlat().find(p => p.nome === prod);
         let preco = pObj ? pObj.preco : 0;
+        
+        if(!pObj && comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
+            let itemAntigo = comandas[mesaSelecionada].itens.find(x => x.nome === prod);
+            if(itemAntigo) preco = Number(itemAntigo.preco || 0);
+        }
+        
         arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco });
       }
     }
@@ -976,8 +720,12 @@ function renderProdutos(){
    listaProd = produtosFlat().filter(p => p.nome.toLowerCase().includes(termoBuscaProduto));
  }
 
- el.innerHTML = listaProd.map(p => {
-   const [nome, preco, icon, desc] = p, q = cliMap[nome] || 0;
+ el.innerHTML = listaProd.map(itemBruto => {
+   const nome = itemBruto[0];
+   const preco = itemBruto[1];
+   const icon = itemBruto[2];
+   const desc = itemBruto[3] || "";
+   const q = cliMap[nome] || 0;
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
    if (icon) {
@@ -993,7 +741,7 @@ function renderProdutos(){
      <div class="prod-info">
        <div class="prod-title">${nome}</div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
-       <div class="prod-price">${br(preco)}</div>
+       <div class="prod-price">R$ ${preco.toFixed(2)}</div>
      </div>
      <div class="prod-action-qty">
        ${q === 0 ? `
@@ -1022,48 +770,106 @@ function adicionarNovoClientePrompt(){
   if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
   clienteAtual = nomeCli;
   renderAtendimento();
+  showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-function salvarComanda(){
- const itens = itensTempComClientes(); if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
- const total = itens.reduce((s,i) => s + i.qtd * i.preco, 0);
- const comandaAtual = comandas[mesaSelecionada] || {};
- 
- const itensPagosAntigos = comandaAtual.itensPagos || [];
- const criadoEmOriginal = comandaAtual.criadoEm || Date.now();
- 
- let lotesAntigos = (comandaAtual.lotes || []).map(l => ({ ...l, isNovo: false }));
- 
- let horaAtualStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
- let novoLote = {
-   id: Date.now(),
-   horario: horaAtualStr,
-   isNovo: true,
-   itens: itens.map(i => ({ nome: `${i.qtd}x ${i.nome}`, preco: br(i.qtd * i.preco), cliente: i.cliente }))
- };
+function salvarComanda(numeroMesa, novoPedido) {
+    const numMesaStr = String(numeroMesa);
+    const itens = itensTempComClientes(); 
+    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    
+    if(salvandoPedidoEmAndamento) return;
+    salvandoPedidoEmAndamento = true;
 
- let lotesAtualizados = [...lotesAntigos, novoLote];
- let totalGeralAcumulado = total + (comandaAtual.total || 0);
- let todosItensAcumulados = [...(comandaAtual.itens || []), ...itens];
+    const comandaAtual = comandas[numMesaStr] || {};
+    let totalGeralAcumulado = totalTemp();
 
- const dadosMesa = { 
-   garcom: garcomTemp, 
-   itens: todosItensAcumulados, 
-   lotes: lotesAtualizados,
-   itensPagos: itensPagosAntigos, 
-   total: totalGeralAcumulado, 
-   criadoEm: criadoEmOriginal, 
-   atualizadoEm: Date.now(), 
-   novoPedidoAlerta: true 
- };
+    const dadosMesa = { 
+      garcom: garcomTemp || "Hebster", 
+      itens: itens, 
+      itensPagos: comandaAtual.itensPagos || [], 
+      total: totalGeralAcumulado, 
+      criadoEm: comandaAtual.criadoEm || Date.now(), 
+      atualizadoEm: Date.now(), 
+      novoPedidoAlerta: false,
+      origemPedido: 'garcom'
+    };
 
- db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true })
-   .then(() => {
-     fecharModal();
-     showToast(`Mesa ${pad(mesaSelecionada)} salva com sucesso!`);
-     mudarTela("mesas");
-   })
-   .catch(err => { showToast("Erro ao salvar: " + err.message, true); });
+    db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true })
+      .then(() => {
+        salvandoPedidoEmAndamento = false;
+        pedidoTemp = {}; 
+        fecharModal();
+        showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
+        mudarTela("mesas");
+        carregarMesasSalvas();
+      })
+      .catch(err => { 
+        salvandoPedidoEmAndamento = false;
+        showToast("Erro ao salvar: " + err.message, true); 
+      });
+}
+
+function fecharComanda(numeroMesa) {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    const numMesaStr = String(numeroMesa);
+    
+    delete comandasLocal[numMesaStr];
+    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
+    
+    db.collection("comandas").doc(numMesaStr).delete().then(() => {
+        carregarMesasSalvas();
+        showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
+        renderizar();
+    }).catch(err => {
+        showToast("Erro ao fechar conta: " + err.message, true);
+    });
+}
+
+function carregarMesasSalvas() {
+    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
+    
+    document.querySelectorAll('.card-mesa, .table').forEach(card => {
+        const numMesa = card.getAttribute('data-mesa'); 
+        if(numMesa) atualizarCardMesaVisual(numMesa, null);
+    });
+    
+    Object.keys(comandasLocal).forEach(numeroMesa => {
+        const dadosMesa = comandasLocal[numeroMesa];
+        atualizarCardMesaVisual(numeroMesa, dadosMesa);
+    });
+}
+
+function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
+    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
+    if (!cardMesa) return;
+
+    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
+    const totalEl = cardMesa.querySelector('.total-mesa, .total');
+
+    if (dadosMesa && dadosMesa.total > 0) {
+        cardMesa.classList.remove('livre');
+        cardMesa.classList.add('ocupada', 'busy');
+        if (statusEl) {
+            statusEl.textContent = 'Ocupada';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
+        }
+        if (totalEl) {
+            totalEl.textContent = br(dadosMesa.total);
+            totalEl.style.display = '';
+        }
+    } else {
+        cardMesa.classList.remove('ocupada', 'busy');
+        cardMesa.classList.add('livre');
+        if (statusEl) {
+            statusEl.textContent = 'Livre';
+            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
+        }
+        if (totalEl) {
+            totalEl.textContent = '';
+            totalEl.style.display = 'none';
+        }
+    }
 }
 
 function abrirCarrinho(){
@@ -1094,10 +900,15 @@ function abrirCarrinho(){
    `).join("");
  }
 
+ const pedidoAtualObjeto = {
+   itens: itens.map(i => ({ nome: i.nome, quantidade: i.qtd, valorUnitario: i.preco })),
+   total: totalTemp()
+ };
+
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick="salvarComanda()">Finalizar Pedido →</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}", ${JSON.stringify(pedidoAtualObjeto)})'>Salvar comanda</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1146,17 +957,15 @@ function executarTransferencia(numOrigem){
 
   const dadosDestinoExistente = comandas[numDestino];
   let itensCombinados = [...(dadosOrigem.itens || [])];
-  let lotesCombinados = [...(dadosOrigem.lotes || [])];
   let itensPagosCombinados = [...(dadosOrigem.itensPagos || [])];
-  let totalCombinado = dadosOrigem.total || 0;
+  let totalCombinado = Number(dadosOrigem.total || 0);
   let garcomNovo = dadosOrigem.garcom;
   let criadoEmNovo = dadosOrigem.criadoEm || Date.now();
 
   if(dadosDestinoExistente){
     itensCombinados = [...(dadosDestinoExistente.itens || []), ...itensCombinados];
-    lotesCombinados = [...(dadosDestinoExistente.lotes || []), ...lotesCombinados];
     itensPagosCombinados = [...(dadosDestinoExistente.itensPagos || []), ...itensPagosCombinados];
-    totalCombinado += (dadosDestinoExistente.total || 0);
+    totalCombinado += Number(dadosDestinoExistente.total || 0);
   }
 
   const batch = db.batch();
@@ -1166,7 +975,6 @@ function executarTransferencia(numOrigem){
   batch.set(refDestino, {
     garcom: garcomNovo,
     itens: itensCombinados,
-    lotes: lotesCombinados,
     itensPagos: itensPagosCombinados,
     total: totalCombinado,
     criadoEm: criadoEmNovo,
@@ -1228,7 +1036,7 @@ function dividirContaModal(num){
   </div>
 
   <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
-  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(229,46,46,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
+  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1296,8 +1104,18 @@ function pagarItensSelecionados(num){
       if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
-    const vendaParcial = { mesa: num, total: valTotalSel, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: itensPagosParaHistorico, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-    let novoTotal = Math.max(0, c.total - valTotalSel);
+    const vendaParcial = { 
+        mesa: num, 
+        total: valTotalSel, 
+        pagamento: formaPagamento, 
+        garcom: c.garcom || "Hebster", 
+        itens: itensPagosParaHistorico, 
+        horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+        data: new Date().toLocaleDateString('pt-BR'),
+        timestamp: Date.now()
+    };
+    
+    let novoTotal = Math.max(0, Number(c.total) - valTotalSel);
 
     db.collection("historico").add(vendaParcial).then(() => {
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
@@ -1320,15 +1138,15 @@ function cancelarComandaModal(num){
     totalCancelado: c.total,
     motivo: motivo.trim() || "Não informado",
     horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    data: new Date().toLocaleDateString('pt-BR'),
+    timestamp: Date.now(),
     itens: c.itens || []
   };
 
   db.collection("cancelamentos").add(registroCancelamento).then(() => {
-    db.collection("comandas").doc(String(num)).delete().then(() => {
-      fecharModal();
-      showToast("Comanda cancelada e registrada com sucesso!", true);
-      renderizar();
-    });
+    fecharComanda(num);
+    fecharModal();
+    showToast("Comanda cancelada e registrada com sucesso!", true);
   }).catch(err => {
     showToast("Erro ao registrar cancelamento: " + err.message, true);
   });
@@ -1343,14 +1161,22 @@ function fecharMesaDireto(num){
    let todos = [...(c.itens || [])];
    if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco }));
 
-   const pHist = c.total > 0 && todos.length ? db.collection("historico").add({ mesa: num, total: c.total, pagamento: formaPagamento, garcom: c.garcom || "Geral", itens: todos, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }) : Promise.resolve();
+   let novaVenda = { 
+       mesa: num, 
+       total: c.total, 
+       pagamento: formaPagamento, 
+       garcom: c.garcom || "Hebster", 
+       itens: todos, 
+       horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+       data: new Date().toLocaleDateString('pt-BR'),
+       timestamp: Date.now()
+   };
+
+   const pHist = c.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
 
    pHist.then(() => {
-     db.collection("comandas").doc(String(num)).delete().then(() => {
-       fecharModal();
-       showToast(`Mesa ${pad(num)} fechada e liberada!`);
-       renderizar();
-     });
+     fecharComanda(num);
+     fecharModal();
    });
  }
 }
@@ -1360,14 +1186,23 @@ function adicionarDespesa(){
   let valor = prompt("Valor em R$:"); if(!valor) return;
   valor = parseFloat(valor.replace(",","."));
   if(isNaN(valor) || valor <= 0){ showToast("Valor inválido.", true); return; }
-  db.collection("despesas").add({ desc, valor, horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }).then(() => {
+  
+  let registroDespesa = { 
+      desc, 
+      valor, 
+      horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      data: new Date().toLocaleDateString('pt-BR'),
+      timestamp: Date.now()
+  };
+
+  db.collection("despesas").add(registroDespesa).then(() => {
     showToast("Gasto registrado com sucesso!");
     renderRelatorios();
   });
 }
 
 function limparRelatorios(){
-  if(confirm("Deseja zerar os relatórios do dia?")){
+  if(confirm("Deseja zerar TODAS as movimentações do banco? (Use com cuidado)")){
     const batch = db.batch();
     db.collection("historico").get().then(snap => {
       snap.docs.forEach(d => batch.delete(d.ref));
@@ -1376,13 +1211,131 @@ function limparRelatorios(){
         db.collection("cancelamentos").get().then(snap3 => {
           snap3.docs.forEach(d => batch.delete(d.ref));
           batch.commit().then(() => {
-            showToast("Relatórios zerados com sucesso!");
+            showToast("Banco de relatórios limpo com sucesso!");
             renderRelatorios();
           });
         });
       });
     });
   }
+}
+
+function renderRelatorios(){
+  let hoje = new Date().toLocaleDateString('pt-BR');
+  let vendasHoje = historicoVendas.filter(v => v.data === hoje || !v.data); 
+  let despesasHoje = despesas.filter(d => d.data === hoje || !d.data);
+  
+  let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
+  
+  vendasHoje.forEach(v => {
+    let t = Number(v.total) || 0;
+    totalGeral += t;
+    if(v.pagamento === 'Pix') totalPix += t;
+    else if(v.pagamento === 'Cartão de Crédito') totalCredito += t;
+    else if(v.pagamento === 'Cartão de Débito') totalDebito += t;
+    else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
+  });
+
+  let totalDespesas = despesasHoje.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
+  let saldoLiquido = totalGeral - totalDespesas;
+
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia (${hoje})</span></div>
+      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
+      <div class="card" style="margin:0;padding:12px;text-align:center">
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Entradas</span>
+        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalGeral)}</div>
+      </div>
+      <div class="card" style="margin:0;padding:12px;text-align:center">
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
+        <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
+      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
+      <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Entradas por Forma de Pagamento</h3>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Pix:</span> <b>${br(totalPix)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Vendas e Pagamentos por Garçom Hoje</h3>
+      <div style="display:flex;flex-direction:column;gap:6px">
+      ${(function(){
+         let garcomVendas = {};
+         vendasHoje.forEach(v => {
+            let g = v.garcom || "Hebster";
+            if(!garcomVendas[g]) garcomVendas[g] = { total: 0, qtd: 0 };
+            garcomVendas[g].total += Number(v.total || 0);
+            garcomVendas[g].qtd += 1;
+         });
+         let html = Object.keys(garcomVendas).map(g => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <div>
+                <b>👤 Garçom: ${g}</b>
+                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd} ${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+              </div>
+              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
+            </div>
+         `).join('');
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
+      })()}
+      </div>
+    </div>
+    
+    ${despesasHoje.length ? `
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Hoje</h3>
+      ${despesasHoje.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc}</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
+    </div>` : ''}
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Produtos Vendidos Hoje</h3>
+      <div style="max-height:250px;overflow-y:auto;padding-right:5px">
+      ${(function(){
+         let prodVendidos = {};
+         vendasHoje.forEach(v => {
+            (v.itens || []).forEach(it => {
+               if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
+               prodVendidos[it.nome].qtd += it.qtd;
+               prodVendidos[it.nome].total += (it.qtd * Number(it.preco || 0));
+            });
+         });
+         let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
+              <span>${prodVendidos[nome].qtd}x ${nome}</span>
+              <b>${br(prodVendidos[nome].total)}</b>
+            </div>
+         `).join('');
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido hoje.</div>';
+      })()}
+      </div>
+    </div>
+
+    ${cancelamentos.filter(c => c.data === hoje || !c.data).length ? `
+    <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Hoje</h3>
+      ${cancelamentos.filter(c => c.data === hoje || !c.data).map(c => `
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)}</b> <b>${br(c.totalCancelado)}</b></div>
+          <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    <button class="secondary" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
+  `;
 }
 
 function mudarFiltroMesa(f){
@@ -1410,279 +1363,224 @@ function renderMesas(){
 
  for(let i=1; i<=30; i++){
    let c = comandas[i];
-   let busy = c && (c.itens?.length || c.itensPagos?.length || c.total >= 0);
+   let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || Number(c.total || 0) > 0));
    if(busy) totalAbertas++;
 
    if(filtroMesaAtual === 'livres' && busy) continue;
    if(filtroMesaAtual === 'ocupadas' && !busy) continue;
 
-   let totalRestante = c?.total || 0;
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
-
-   let classeDestaque = "";
-   let badgeTexto = "OCUPADA";
-   let badgeClasse = "ocupada";
-
-   if (busy) {
-     if (c.pediuContaAlerta) {
-       classeDestaque = "pediu-conta-ativo";
-       badgeTexto = "PEDIU A CONTA";
-       badgeClasse = "conta";
-     } else if (c.novoPedidoAlerta) {
-       classeDestaque = "novo-pedido-ativo";
-       badgeTexto = "NOVO PEDIDO";
-       badgeClasse = "novo";
-     }
-   }
+   let statusClass = busy ? 'ocupada' : 'livre';
+   
+   // Borda azul ativa APENAS para novos pedidos vindos do cliente (QR Code)
+   let alertaNovo = (c && c.novoPedidoAlerta && c.origemPedido === 'cliente') ? 'novo-pedido-ativo' : '';
+   let alertaConta = c && c.pediuContaAlerta ? 'pediu-conta-ativo' : '';
 
    arrayMesasHTML.push(`
-     <div class="table ${busy ? "busy" : ""} ${classeDestaque}" onclick="abrirMesa(${i})">
+     <div class="table ${statusClass} ${alertaNovo} ${alertaConta}" data-mesa="${i}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
-       <div class="badge-status ${busy ? badgeClasse : 'livre'}">${busy ? badgeTexto : "LIVRE"}</div>
-       ${busy ? `<div class="total">${br(totalRestante)}</div><div class="timer ${tempoInfo.classe}">⏱️ ${tempoInfo.texto}</div><div class="garcom-tag">👤 ${c.garcom || 'Hebster'}</div>` : ""}
+       <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
+       ${(busy && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
+       ${(busy && tempoInfo) ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
+       ${(busy && c.garcom) ? `<div class="garcom-tag">👤 ${c.garcom}</div>` : ''}
      </div>
    `);
  }
 
  document.getElementById("conteudo").innerHTML = `
- <div class="section-title">
-   <div><h2>Mesas</h2><span class="muted">${totalAbertas} aberta${totalAbertas === 1 ? "" : "s"} no salão</span></div>
-   <span class="tag">30 mesas</span>
- </div>
- 
- <div class="filter-tabs">
-   <button class="filter-tab ${filtroMesaAtual==='todas'?'active':''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
-   <button class="filter-tab ${filtroMesaAtual==='ocupadas'?'active':''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas</button>
-   <button class="filter-tab ${filtroMesaAtual==='livres'?'active':''}" onclick="mudarFiltroMesa('livres')">Livres</button>
- </div>
-
- <div class="tables">${arrayMesasHTML.join("")}</div>`;
+   <div class="filter-tabs">
+     <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
+     <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${totalAbertas})</button>
+     <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${30 - totalAbertas})</button>
+   </div>
+   <div class="tables">
+     ${arrayMesasHTML.join('')}
+   </div>
+ `;
 }
 
 function renderComandas(){
- let abertas = Object.entries(comandas).filter(([m,c]) => {
-   let numMesa = parseInt(m);
-   return !isNaN(numMesa) && numMesa >= 1 && numMesa <= 30 && (c?.itens?.length || c?.itensPagos?.length || c?.total >= 0);
- });
+  let comandasHTML = [];
+  let totalGeral = 0;
 
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Abertas</h2><span class="muted">${abertas.length} mesa${abertas.length === 1 ? "" : "s"} ativa${abertas.length === 1 ? "" : "s"}</span></div></div>
- ${abertas.length ? abertas.map(([m,c]) => {
-   let totalRestante = c.total || 0; 
-   let tempoInfo = calcularTempoDecorrido(c.criadoEm);
-   let avisoContaOuNovo = "";
-   if(c.pediuContaAlerta) avisoContaOuNovo = `<div style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(245,158,11,0.4)">⚠️ ESTA MESA PEDIU A CONTA!</div>`;
-   else if(c.novoPedidoAlerta) avisoContaOuNovo = `<div style="background:rgba(56,189,248,0.2);color:#38bdf8;padding:6px 10px;border-radius:10px;font-size:11px;font-weight:900;margin-bottom:8px;border:1px solid rgba(56,189,248,0.4)">🔔 HÁ UM NOVO PEDIDO NESTA MESA!</div>`;
+  for(let i=1; i<=30; i++){
+    let c = comandas[i];
+    if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
+      totalGeral += Number(c.total || 0);
 
-   let lotesHTML = "";
-   if (c.lotes && c.lotes.length > 0) {
-     let lotesInvertidos = [...c.lotes].reverse();
-     lotesHTML = lotesInvertidos.map(lote => {
-       let itensLoteHTML = lote.itens.map(item => `
-         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
-           <span><b>[${item.cliente || 'Cliente 1'}]</b> ${item.nome}</span>
-           <span>${item.preco}</span>
-         </div>
-       `).join('');
+      /* Produtos agrupados e sumarizados diretamente por cliente e nome (Sem Lotes) */
+      let produtosListaHTML = "";
+      if(c.itens && c.itens.length > 0){
+        produtosListaHTML = `
+          <div class="comanda-produtos-box">
+            ${c.itens.map(it => `
+              <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
 
-       return `
-         <div class="lote-pedido ${lote.isNovo ? 'novo' : ''}">
-           <div class="lote-header">
-             <span>📦 Pedido às ${lote.horario || 'Recente'}</span>
-             ${lote.isNovo ? '<span class="badge-novo">NOVO 🚀</span>' : ''}
-           </div>
-           <div>${itensLoteHTML}</div>
-         </div>
-       `;
-     }).join('');
-   } else {
-     lotesHTML = (c.itens || []).map(i => `<div class="row" style="font-size:12px;margin:4px 0"><span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span><b>${br(i.qtd*i.preco)}</b></div>`).join("");
-   }
+      /* Bloco de exibição de itens já pagos na mesa */
+      let itensPagosHTML = "";
+      if(c.itensPagos && c.itensPagos.length > 0){
+        itensPagosHTML = `
+          <div style="margin-top:8px;padding:8px 10px;background:rgba(16, 185, 129, 0.08);border:1px solid rgba(16, 185, 129, 0.25);border-radius:12px">
+            <div style="font-size:11px;font-weight:900;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:4px">
+              <span>✅</span> ITENS JÁ PAGOS
+            </div>
+            ${c.itensPagos.map(it => `
+              <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
+                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
 
-   return `<div class="card command" style="${c.pediuContaAlerta?'border-color:#f59e0b':c.novoPedidoAlerta?'border-color:#38bdf8':''}">
-     ${avisoContaOuNovo}
-     <div class="row">
-       <h3>Mesa ${pad(m)}</h3>
-       <strong style="color:var(--brand);font-size:16px">${br(totalRestante)}</strong>
-     </div>
-     <div style="display:flex;justify-content:space-between;align-items:center;margin:3px 0 10px">
-       <p class="muted" style="font-size:11px;margin:0">👤 Atendente: <b>${c.garcom || 'Hebster'}</b></p>
-       <span class="tag ${tempoInfo.classe}" style="background:var(--input-bg);color:var(--muted)">⏱️ ${tempoInfo.texto}</span>
-     </div>
-     ${c.itensPagos && c.itensPagos.length ? `<div style="font-size:10px;color:#10b981;margin-bottom:6px"><b>Pagos:</b> ${c.itensPagos.map(ip=>`[${ip.cliente}] ${ip.qtd}x ${ip.nome}`).join(", ")}</div>` : ''}
-     
-     <div style="margin: 8px 0;">${lotesHTML}</div>
+      comandasHTML.push(`
+        <div class="card command">
+          <div class="row" style="align-items:center;margin-bottom:8px">
+            <div>
+              <h3>Mesa ${pad(i)}</h3>
+              <small class="muted">Garçom: ${c.garcom || 'Hebster'}</small>
+            </div>
+            <div class="tag">${br(c.total)}</div>
+          </div>
+          <div style="margin-bottom:10px">
+            ${produtosListaHTML}
+            ${itensPagosHTML}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirMesa(${i})">✏️ Editar / Add</button>
+            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirModalTransferencia(${i})">🔄 Transferir</button>
+            <button class="primary" style="margin:0;flex:1;font-size:11px;background:#10b981" onclick="fecharMesa(${i})">💳 Pagar / Fechar</button>
+          </div>
+        </div>
+      `);
+    }
+  }
 
-     <div style="display:flex;gap:6px;margin-top:12px">
-       <button class="secondary" style="margin:0" onclick="abrirMesa(${m})">✏️ Editar</button>
-       <button class="secondary" style="margin:0;background:rgba(229,46,46,0.1);color:var(--brand);border-color:var(--brand)" onclick="abrirModalTransferencia(${m})">🔄 Transferir</button>
-       <button class="primary" onclick="fecharMesa(${m})">💰 Pagar</button>
-     </div>
-   </div>`;
- }).join("") : `<div class="card empty">📋<br><b>Nenhuma comanda aberta</b></div>`}`;
+  if(comandasHTML.length === 0){
+    document.getElementById("conteudo").innerHTML = `
+      <div class="empty">Nenhuma comanda aberta no momento.</div>
+    `;
+    return;
+  }
+
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <h2>Comandas Abertas</h2>
+      <span class="muted">Total Acumulado: ${br(totalGeral)}</span>
+    </div>
+    ${comandasHTML.join('')}
+  `;
 }
 
-const mapIconesCategoria = {
-  "CHURRASCOS": "🍖",
-  "CARANGUEJO": "🦀",
-  "BEBIDAS": "🍺",
-  "GUARNIÇÕES": "🍚",
-  "PETISCOS": "🍟",
-  "REFRIGERANTES": "🥤",
-  "SUCOS": "🧃",
-  "DIVERSOS": "🚬"
-};
+function obterIconeCategoria(cat){
+  const map = {
+    "CHURRASCOS": "🍢",
+    "CARANGUEJO": "🦀",
+    "BEBIDAS": "🍺",
+    "GUARNIÇÕES": "🍚",
+    "PETISCOS": "🍟",
+    "REFRIGERANTES": "🥤",
+    "SUCOS": "🧃",
+    "DIVERSOS": "📦"
+  };
+  return map[cat] || "🍽️";
+}
 
 function renderAtendimento(){
- const total = totalTemp();
- const cAtual = comandas[mesaSelecionada];
- const itensJaPagosNaMesa = cAtual?.itensPagos || [];
- let clientesLista = Object.keys(pedidoTemp);
- if(!clientesLista.length) clientesLista = ["Cliente 1"];
+  if(!mesaSelecionada) return;
 
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div class="topbar" style="width:100%"><button class="back" onclick="mudarTela('mesas')">←</button><div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>Atendimento por Cliente</p></div><button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:0;background:var(--card);border:1px solid var(--border);color:var(--brand);border-radius:10px;padding:6px 10px;font-weight:900;font-size:11px;cursor:pointer">🔄 Mudar Mesa</button></div></div>
- 
- ${cAtual?.pediuContaAlerta ? `<div class="card" style="border-color:#f59e0b;background:rgba(245,158,11,0.1);padding:10px;margin-bottom:12px"><div style="font-weight:900;font-size:12px;color:#f59e0b">⚠️ Esta mesa solicitou fechamento de conta.</div></div>` : ''}
+  let listaClientes = Object.keys(pedidoTemp);
+  if(!listaClientes.includes(clienteAtual)) listaClientes.unshift(clienteAtual);
 
- ${itensJaPagosNaMesa.length ? `
- <div class="card" style="border-color:#10b981;padding:10px;margin-bottom:12px">
-   <div style="font-weight:900;font-size:12px;color:#10b981;margin-bottom:4px">✅ Já pagos:</div>
-   ${itensJaPagosNaMesa.map(ip => `<div style="font-size:11px;color:var(--muted);display:flex;justify-content:space-between"><span><b>[${ip.cliente}]</b> ${ip.qtd}x ${ip.nome}</span><b>${br(ip.qtd*ip.preco)}</b></div>`).join("")}
- </div>` : ''}
+  let tabsClientesHTML = listaClientes.map(cli => `
+    <button class="filter-tab ${cli === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${cli.replace(/'/g,"\\'")}')">
+      👤 ${cli}
+    </button>
+  `).join('');
 
- <div class="card" style="padding:12px">
-   <div style="font-weight:900;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
-     <span>👤 Pessoa pedindo agora:</span>
-     <button onclick="renomearClienteAtual()" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:900;cursor:pointer">✏️ Renomear "${clienteAtual}"</button>
-   </div>
-   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-     ${clientesLista.map(cli => `<button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:10px;border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};background:${cli===clienteAtual?'var(--brand)':'var(--card)'};color:${cli===clienteAtual?'#fff':'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">${cli}</button>`).join("")}
-     <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:var(--card);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer">+ Nova Pessoa</button>
-   </div>
-   <div style="font-size:11px;color:var(--muted)">Lançando produtos na conta de: <b style="color:var(--brand)">${clienteAtual}</b></div>
- </div>
+  let catsHTML = Object.keys(cardapio).map(cat => `
+    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+      <span class="cat-ico">${obterIconeCategoria(cat)}</span>
+      <span>${cat}</span>
+    </button>
+  `).join('');
 
- <div class="card" style="padding:12px;display:flex;align-items:center;justify-content:space-between">
-   <div style="font-size:12px"><b>👤 Garçom Responsável</b></div>
-   <input id="garcomInput" type="text" value="${garcomTemp}" style="width:130px;border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center;font-weight:900;background:var(--input-bg);color:var(--ink);font-size:12px;outline:none" oninput="atualizarGarcom(this.value)">
- </div>
-
- <div class="search-box">
-   <span>🔍</span>
-   <input type="text" placeholder="Pesquisar produto instantaneamente (ex: skol, frango)..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
- </div>
-
- <div class="atendimento-layout">
-   <div class="side-cats" id="sideCatsContainer">
-     ${Object.keys(cardapio).map(c => `
-       <div class="side-cat ${c === categoriaAtual ? "active" : ""}" data-cat="${c}" onclick="setCategoria('${c}')">
-         <span class="cat-ico">${mapIconesCategoria[c] || '🏷️'}</span>
-         <span>${c}</span>
-       </div>
-     `).join("")}
-   </div>
-   <div>
-     <div class="products-list" id="produtos"></div>
-   </div>
- </div>`;
- renderProdutos();
-}
-
-function renderRelatorios(){
- let totalFaturamento = historicoVendas.reduce((s,v) => s + v.total, 0);
- let totalDespesas = despesas.reduce((s,d) => s + d.valor, 0);
- let lucroLiquido = totalFaturamento - totalDespesas;
- 
- let pagamentosTotais = {};
- historicoVendas.forEach(v => {
-   let meio = v.pagamento || "Pix";
-   pagamentosTotais[meio] = (pagamentosTotais[meio] || 0) + v.total;
- });
-
- let itensConsolidados = {};
- historicoVendas.forEach(v => {
-   if(v.itens && Array.isArray(v.itens)){
-     v.itens.forEach(i => {
-       let nomeProd = i.nome;
-       let qtdProd = i.qtd || 1;
-       if(itensConsolidados[nomeProd]){
-         itensConsolidados[nomeProd] += qtdProd;
-       } else {
-         itensConsolidados[nomeProd] = qtdProd;
-       }
-     });
-   }
- });
-
- let produtosOrdenados = Object.entries(itensConsolidados).sort((a,b) => b[1] - a[1]);
-
- document.getElementById("conteudo").innerHTML = `
-  <div class="section-title"><div><h2>Relatório Financeiro</h2><span class="muted">Resumo</span></div><button onclick="limparRelatorios()" style="border:0;background:rgba(229, 46, 46, 0.15);color:var(--brand);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🗑️ Resetar</button></div>
-  
-  <div class="card" style="background:linear-gradient(135deg,#1f2937,#111827);color:#fff">
-    <div style="font-size:12px;opacity:.85">Lucro Líquido</div>
-    <div style="font-size:26px;font-weight:900;margin-top:2px">${br(lucroLiquido)}</div>
-    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
-      <div>📈 Faturamento: <br><b style="font-size:13px">${br(totalFaturamento)}</b></div>
-      <div>📉 Gastos: <br><b style="font-size:13px">${br(totalDespesas)}</b></div>
+  document.getElementById("conteudo").innerHTML = `
+    <div class="topbar" style="margin-bottom:12px">
+      <button class="back" onclick="mudarTela('mesas')">←</button>
+      <div class="mesa-head">
+        <h2>Mesa ${pad(mesaSelecionada)}</h2>
+        <p>Atendimento por Cliente</p>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
+        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
+      </div>
     </div>
-  </div>
 
-  <div style="margin-bottom:10px"><button class="primary" onclick="adicionarDespesa()" style="font-size:13px;padding:12px">➕ Registrar Gasto</button></div>
-
-  <div class="section-title"><h2>💳 Faturamento por Forma de Pagamento</h2></div>
-  <div class="card">
-    ${Object.keys(pagamentosTotais).length ? Object.entries(pagamentosTotais).map(([meio, val]) => `
-      <div class="line">
-        <span><b>${meio}</b></span>
-        <strong style="color:var(--brand)">${br(val)}</strong>
-      </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum pagamento registrado.</div>`}
-  </div>
-
-  <div class="section-title"><h2>📦 Total Consolidado de Produtos</h2></div>
-  <div class="card">
-    ${produtosOrdenados.length ? produtosOrdenados.map(([nome, qtd]) => `
-      <div class="line">
-        <span>${nome}</span>
-        <strong style="color:var(--brand)">${qtd}x</strong>
-      </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum produto vendido ainda.</div>`}
-  </div>
-
-  <div class="section-title"><h2>⚠️ Registro de Cancelamentos</h2></div>
-  <div class="card">
-    ${cancelamentos.length ? cancelamentos.map(c => `
-      <div class="line" style="flex-direction:column;align-items:flex-start;gap:2px">
-        <div style="display:flex;width:100%;justify-content:space-between">
-          <strong style="color:var(--brand)">Mesa ${pad(c.mesa)} (${c.garcom})</strong>
-          <span style="font-size:11px;color:var(--muted)">${c.horario}</span>
+    <div class="card" style="padding:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1">
+          ${tabsClientesHTML}
         </div>
-        <div style="font-size:12px"><b>Motivo:</b> ${c.motivo}</div>
-        <div style="font-size:11px;color:var(--muted)">Valor estornado/cancelado: <b>${br(c.totalCancelado)}</b></div>
+        <button class="secondary" style="width:auto;margin:0;padding:6px 10px;font-size:11px;white-space:nowrap" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
       </div>
-    `).join("") : `<div class="empty" style="padding:10px">Nenhum cancelamento registrado.</div>`}
-  </div>
 
-  <div class="section-title"><h2>Gastos</h2></div>
-  <div class="card">${despesas.length ? despesas.map(d => `<div class="line"><div><b>${d.desc}</b><br><small>${d.horario}</small></div><strong style="color:var(--brand)">- ${br(d.valor)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhum gasto.</div>`}</div>
-  
-  <div class="section-title"><h2>Histórico de Vendas por Comanda</h2></div>
-  <div class="card">${historicoVendas.length ? historicoVendas.map(v => `<div class="line"><div><b>Mesa ${pad(v.mesa)}</b> (${v.garcom} • ${v.pagamento || 'Pix'})<br><small>${v.horario} • ${(v.itens||[]).map(i=>`[${i.cliente}] ${i.qtd}x ${i.nome}`).join(", ")}</small></div><strong style="color:var(--brand)">${br(v.total)}</strong></div>`).join("") : `<div class="empty" style="padding:10px">Nenhuma venda.</div>`}</div>`;
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 10px;border-radius:12px;border:1px solid var(--border)">
+        <span style="font-size:12px;font-weight:800">Atendendo: <b style="color:var(--brand)">${clienteAtual}</b></span>
+        <button style="border:0;background:none;color:var(--muted);font-weight:900;font-size:11px;cursor:pointer" onclick="renomearClienteAtual()">✏️ Renomear</button>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+    </div>
+
+    <div class="atendimento-layout">
+      <div class="side-cats">
+        ${catsHTML}
+      </div>
+      <div id="produtos" class="products-list"></div>
+    </div>
+  `;
+
+  renderProdutos();
 }
 
 function renderizar(){
- const navM = document.getElementById("navMesas"), navC = document.getElementById("navComandas");
- navM.classList.toggle("active", telaAtual === "mesas" || telaAtual === "atendimento");
- navC.classList.toggle("active", telaAtual === "comandas");
- if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
-   const navR = document.getElementById("navRelatorios");
-   if(navR) navR.classList.toggle("active", telaAtual === "relatorios");
- }
- if(telaAtual === "mesas") renderMesas();
- else if(telaAtual === "atendimento") renderAtendimento();
- else if(telaAtual === "comandas") renderComandas();
- else if(telaAtual === "relatorios") renderRelatorios();
- atualizarBar();
+  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
+  
+  const headerEl = document.querySelector('.header');
+  if(headerEl) {
+    headerEl.style.display = (telaAtual === 'atendimento') ? 'none' : 'flex';
+  }
+
+  if(telaAtual === 'mesas') {
+    const btn = document.getElementById('navMesas');
+    if(btn) btn.classList.add('active');
+    renderMesas();
+  } else if(telaAtual === 'comandas') {
+    const btn = document.getElementById('navComandas');
+    if(btn) btn.classList.add('active');
+    renderComandas();
+  } else if(telaAtual === 'relatorios') {
+    const btn = document.getElementById('navRelatorios');
+    if(btn) btn.classList.add('active');
+    renderRelatorios();
+  } else if(telaAtual === 'atendimento') {
+    renderAtendimento();
+  }
+
+  atualizarBar();
 }
 </script>
 </body>
