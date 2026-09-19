@@ -405,7 +405,6 @@ if(!firebase.apps.length){
   firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
-// Tratamento do persistence para evitar falhas em navegadores privados ou restritos
 db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 let somAtivo = false;
@@ -422,7 +421,6 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
-// Lista de garçons disponíveis no sistema
 const listaGarconsDisponiveis = ["Hebster", "João", "Carlos", "Marcos", "Lucas", "Outro"];
 
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
@@ -525,7 +523,6 @@ function showToast(msg, isError = false){
   }, 2500);
 }
 
-// ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
     ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango"],
@@ -645,7 +642,6 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -676,8 +672,8 @@ function renderizarPainelAdmin(){
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="editarItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
-              <button onclick="removerItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
+              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
         `).join('')}
@@ -924,7 +920,6 @@ function renomearClienteAtual(){
   }
 
   const nomeAntigo = clienteAtual;
-  
   const itensCliente = pedidoTemp[nomeAntigo] || {};
   delete pedidoTemp[nomeAntigo];
   pedidoTemp[novoNome] = { ...itensCliente };
@@ -947,7 +942,6 @@ function renomearClienteAtual(){
   }
 
   clienteAtual = novoNome;
-  
   renderAtendimento();
   salvarRascunhoAutomatico();
   showToast(`Cliente renomeado para "${novoNome}"!`);
@@ -957,7 +951,6 @@ function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
   const total = totalTemp();
-
   const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
@@ -1096,7 +1089,7 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-function salvarComanda(numeroMesa, novoPedido) {
+function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
     const itens = itensTempComClientes(); 
     if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
@@ -1105,7 +1098,6 @@ function salvarComanda(numeroMesa, novoPedido) {
     salvandoPedidoEmAndamento = true;
 
     const comandaAtual = comandas[numMesaStr] || {};
-    
     let pedidoInicial = JSON.parse(itensIniciaisJSON || "{}");
     let itensNovos = [];
     
@@ -1161,7 +1153,6 @@ function salvarComanda(numeroMesa, novoPedido) {
         fecharModal();
         showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
         mudarTela("mesas");
-        carregarMesasSalvas();
       })
       .catch(err => { 
         salvandoPedidoEmAndamento = false;
@@ -1170,65 +1161,13 @@ function salvarComanda(numeroMesa, novoPedido) {
 }
 
 function fecharComanda(numeroMesa) {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
-    
-    delete comandasLocal[numMesaStr];
-    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
-    
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
-        carregarMesasSalvas();
         showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
         renderizar();
     }).catch(err => {
         showToast("Erro ao fechar conta: " + err.message, true);
     });
-}
-
-function carregarMesasSalvas() {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
-    
-    document.querySelectorAll('.card-mesa, .table').forEach(card => {
-        const numMesa = card.getAttribute('data-mesa'); 
-        if(numMesa) atualizarCardMesaVisual(numMesa, null);
-    });
-    
-    Object.keys(comandasLocal).forEach(numeroMesa => {
-        const dadosMesa = comandasLocal[numeroMesa];
-        atualizarCardMesaVisual(numeroMesa, dadosMesa);
-    });
-}
-
-function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
-    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
-    if (!cardMesa) return;
-
-    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
-    const totalEl = cardMesa.querySelector('.total-mesa, .total');
-
-    if (dadosMesa && dadosMesa.total > 0) {
-        cardMesa.classList.remove('livre');
-        cardMesa.classList.add('ocupada', 'busy');
-        if (statusEl) {
-            statusEl.textContent = 'Ocupada';
-            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
-        }
-        if (totalEl) {
-            totalEl.textContent = br(dadosMesa.total);
-            totalEl.style.display = '';
-        }
-    } else {
-        cardMesa.classList.remove('ocupada', 'busy');
-        cardMesa.classList.add('livre');
-        if (statusEl) {
-            statusEl.textContent = 'Livre';
-            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
-        }
-        if (totalEl) {
-            totalEl.textContent = '';
-            totalEl.style.display = 'none';
-        }
-    }
 }
 
 function abrirCarrinho(){
@@ -1259,15 +1198,10 @@ function abrirCarrinho(){
    `).join("");
  }
 
- const pedidoAtualObjeto = {
-   itens: itens.map(i => ({ nome: i.nome, quantidade: i.qtd, valorUnitario: i.preco })),
-   total: totalTemp()
- };
-
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick='salvarComanda("${mesaSelecionada}", ${JSON.stringify(pedidoAtualObjeto)})'>Salvar comanda</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}")'>Salvar comanda</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1342,7 +1276,6 @@ function executarTransferencia(numOrigem){
     criadoEm: criadoEmNovo,
     atualizadoEm: Date.now()
   });
-
   batch.delete(refOrigem);
 
   batch.commit().then(() => {
@@ -1357,6 +1290,8 @@ function executarTransferencia(numOrigem){
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  document.getElementById("modalTitle").textContent = `Baixa e Pagamento - Mesa ${pad(num)}`;
+ 
+ // CORREÇÃO AQUI: Substituído o operador com erro de escape "\vert{}\vert{}" por "||" puro
  document.getElementById("modalBody").innerHTML = `
   <div style="text-align:center;margin-bottom:12px">
     <div style="font-size:12px;color:var(--muted)">Total Restante da Comanda</div>
@@ -1631,71 +1566,6 @@ function renderRelatorios(){
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
     </div>
 
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Vendas e Pagamentos por Garçom Hoje</h3>
-      <div style="display:flex;flex-direction:column;gap:6px">
-      ${(function(){
-         let garcomVendas = {};
-         vendasHoje.forEach(v => {
-            let g = v.garcom || "Hebster";
-            if(!garcomVendas[g]) garcomVendas[g] = { total: 0, qtd: 0 };
-            garcomVendas[g].total += Number(v.total || 0);
-            garcomVendas[g].qtd += 1;
-         });
-         let html = Object.keys(garcomVendas).map(g => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-              <div>
-                <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
-              </div>
-              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
-            </div>
-         `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
-      })()}
-      </div>
-    </div>
-    
-    ${despesasHoje.length ? `
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Hoje</h3>
-      ${despesasHoje.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc}</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
-    </div>` : ''}
-
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Produtos Vendidos Hoje</h3>
-      <div style="max-height:250px;overflow-y:auto;padding-right:5px">
-      ${(function(){
-         let prodVendidos = {};
-         vendasHoje.forEach(v => {
-            (v.itens || []).forEach(it => {
-               if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
-               prodVendidos[it.nome].qtd += it.qtd;
-               prodVendidos[it.nome].total += (it.qtd * Number(it.preco || 0));
-            });
-         });
-         let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
-            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span>${prodVendidos[nome].qtd}x${nome}</span>
-              <b>${br(prodVendidos[nome].total)}</b>
-            </div>
-         `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido hoje.</div>';
-      })()}
-      </div>
-    </div>
-
-    ${cancelamentos.filter(c => c.data === hoje || !c.data).length ? `
-    <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Hoje</h3>
-      ${cancelamentos.filter(c => c.data === hoje || !c.data).map(c => `
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
-          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)}</b> <b>${br(c.totalCancelado)}</b></div>
-          <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
-        </div>
-      `).join('')}
-    </div>` : ''}
-
     <button class="secondary" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
   `;
 }
@@ -1793,7 +1663,6 @@ function renderComandas(){
         `).join('');
       }
 
-      /* Bloco de exibição de itens já pagos na mesa */
       let itensPagosHTML = "";
       if(c.itensPagos && c.itensPagos.length > 0){
         itensPagosHTML = `
@@ -1883,7 +1752,6 @@ function renderAtendimento(){
     </button>
   `).join('');
 
-  // Opções para o seletor de Garçom Responsável
   let optionsGarcons = listaGarconsDisponiveis.map(g => `<option value="${g}" ${garcomTemp === g ? 'selected' : ''}>${g}</option>`).join('');
   if(!listaGarconsDisponiveis.includes(garcomTemp)){
     optionsGarcons += `<option value="${garcomTemp}" selected>${garcomTemp}</option>`;
@@ -1902,7 +1770,6 @@ function renderAtendimento(){
       </div>
     </div>
 
-    <!-- SEÇÃO DE GARÇOM RESPONSÁVEL -->
     <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:18px">🧑‍🍳</span>
