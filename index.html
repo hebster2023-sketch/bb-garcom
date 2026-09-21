@@ -325,7 +325,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 
 <div id="toast-container"></div>
 
-<!-- TELA DE LOGIN FLEXÍVEL (DIRETO AO PONTO) -->
+<!-- TELA DE LOGIN FLEXÍVEL -->
 <div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
     <div style="text-align:center;margin-bottom:20px">
@@ -411,6 +411,20 @@ let usuarioLogadoEmail = "";
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
 
+// Verificação de sessão salva ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('bb_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if(themeBtn) themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+  const usuarioSalvo = localStorage.getItem('bb_usuario_logado');
+  if(usuarioSalvo){
+    usuarioLogadoEmail = usuarioSalvo;
+    concluirLogin(usuarioLogadoEmail, true);
+  }
+});
+
 function toggleSound(){
   somAtivo = !somAtivo;
   const btn = document.getElementById('soundToggleBtn');
@@ -486,12 +500,6 @@ function toggleTheme(){
   document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#f8faf9');
   localStorage.setItem('bb_theme', next);
 }
-const savedTheme = localStorage.getItem('bb_theme') || 'light';
-document.documentElement.setAttribute('data-theme', savedTheme);
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('themeToggleBtn');
-  if(btn) btn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-});
 
 function showToast(msg, isError = false){
   const container = document.getElementById('toast-container');
@@ -825,23 +833,33 @@ function handleLogin(e){
   if(!email) return;
 
   usuarioLogadoEmail = email;
-  concluirLogin(usuarioLogadoEmail);
+  localStorage.setItem('bb_usuario_logado', email);
+  concluirLogin(usuarioLogadoEmail, false);
 }
 
-function concluirLogin(email){
-  document.getElementById('login-screen').style.display = 'none';
+function concluirLogin(email, isRestoring){
+  const loginScreen = document.getElementById('login-screen');
+  if(loginScreen) loginScreen.style.display = 'none';
+
   const isAdmin = email.toLowerCase().includes('admin');
   
   if(!isAdmin){
-    document.getElementById('navRelatorios').style.display = 'none';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(2,1fr)';
-    document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
+    const navRel = document.getElementById('navRelatorios');
+    if(navRel) navRel.style.display = 'none';
+    const bottomNav = document.querySelector('.bottom');
+    if(bottomNav) bottomNav.style.gridTemplateColumns = 'repeat(2,1fr)';
+    const roleLabel = document.getElementById('user-role-label');
+    if(roleLabel) roleLabel.textContent = 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
-    document.getElementById('navRelatorios').style.display = 'flex';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
-    document.getElementById('user-role-label').textContent = 'B.B ADMIN — Gestão Completa';
+    const navRel = document.getElementById('navRelatorios');
+    if(navRel) navRel.style.display = 'flex';
+    const bottomNav = document.querySelector('.bottom');
+    if(bottomNav) bottomNav.style.gridTemplateColumns = 'repeat(3,1fr)';
+    const roleLabel = document.getElementById('user-role-label');
+    if(roleLabel) roleLabel.textContent = 'B.B ADMIN — Gestão Completa';
   }
+  
   iniciarOuvintesFirebase();
   renderizar();
 }
