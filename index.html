@@ -1606,13 +1606,10 @@ function renderMesas(){
 
 function renderComandas(){
   let comandasHTML = [];
-  let totalGeral = 0;
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
-      totalGeral += Number(c.total || 0);
-
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
         produtosListaHTML = `
@@ -1670,7 +1667,6 @@ function renderComandas(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
-      <span style="font-weight:900;color:var(--brand)">Total: ${br(totalGeral)}</span>
     </div>
     ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
   `;
@@ -1703,10 +1699,7 @@ function renderAtendimento(){
         <p>Adicionando para: <b>${clienteAtual}</b></p>
       </div>
       <div>
-        <select onchange="atualizarGarcom(this.value)" style="padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none">
-          <option value="Hebster" ${garcomTemp==='Hebster'?'selected':''}>Garçom: Hebster</option>
-          <option value="Outro" ${garcomTemp!=='Hebster'?'selected':''}>Garçom: Outro</option>
-        </select>
+        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:120px">
       </div>
     </div>
 
@@ -1748,4 +1741,3 @@ if(usuarioLogadoEmail){
 </script>
 </body>
 </html>
-
