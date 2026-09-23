@@ -1655,9 +1655,9 @@ function renderComandas(){
           ${produtosListaHTML}
           ${itensPagosHTML}
           <div style="display:flex;gap:6px;margin-top:12px">
-            <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
             <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
+            <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
           </div>
         </div>
       `);
