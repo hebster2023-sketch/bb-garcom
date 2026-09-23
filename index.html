@@ -634,8 +634,8 @@ function renderizarPainelAdmin(){
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="editarItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
-              <button onclick="removerItemAdmin('${cat}', ${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
+              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
         `).join('')}
@@ -1700,7 +1700,7 @@ function renderComandas(){
             ${c.itensPagos.map(it => `
               <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
                 <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span>
-                <span style="color:#10b981;font-weight:800">PAGO (${br(it.qtd * it.preco)})</span>
+                <span>${br(it.qtd * it.preco)}</span>
               </div>
             `).join('')}
           </div>
@@ -1712,153 +1712,98 @@ function renderComandas(){
           <div class="row" style="align-items:center;margin-bottom:8px">
             <div>
               <h3>Mesa ${pad(i)}</h3>
-              <small class="muted">Garçom: ${c.garcom || 'Hebster'}</small>
+              <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b></small>
             </div>
-            <div class="tag">${br(c.total)}</div>
+            <div style="text-align:right">
+              <span class="tag">${br(c.total)}</span>
+            </div>
           </div>
-          <div style="margin-bottom:10px">
-            ${produtosListaHTML}
-            ${itensPagosHTML}
-          </div>
-          <div style="display:flex;gap:6px;margin-top:10px">
-            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirMesa(${i})">✏️ Editar / Add</button>
-            <button class="secondary" style="margin:0;flex:1;font-size:11px" onclick="abrirModalTransferencia(${i})">🔄 Transferir</button>
-            <button class="primary" style="margin:0;flex:1;font-size:11px;background:#10b981" onclick="fecharMesa(${i})">💳 Pagar / Fechar</button>
+          ${produtosListaHTML}
+          ${itensPagosHTML}
+          <div style="display:flex;gap:6px;margin-top:12px">
+            <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
           </div>
         </div>
       `);
     }
   }
 
-  if(comandasHTML.length === 0){
-    document.getElementById("conteudo").innerHTML = `
-      <div class="empty">Nenhuma comanda aberta no momento.</div>
-    `;
-    return;
-  }
-
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <h2>Comandas Abertas</h2>
-      <span class="muted">Total Acumulado: ${br(totalGeral)}</span>
+      <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
+      <span style="font-weight:900;color:var(--brand)">Total: ${br(totalGeral)}</span>
     </div>
-    ${comandasHTML.join('')}
+    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
   `;
-}
-
-function obterIconeCategoria(cat){
-  const map = {
-    "CHURRASCOS": "🍢",
-    "CARANGUEJO": "🦀",
-    "BEBIDAS": "🍺",
-    "GUARNIÇÕES": "🍚",
-    "PETISCOS": "🍟",
-    "REFRIGERANTES": "🥤",
-    "SUCOS": "🧃",
-    "DIVERSOS": "📦"
-  };
-  return map[cat] || "🍽️";
 }
 
 function renderAtendimento(){
-  if(!mesaSelecionada) return;
+  let catBtns = Object.keys(cardapio).map(cat => {
+    let icoMap = { "CHURRASCOS": "🔥", "CARANGUEJO": "🦀", "BEBIDAS": "🍺", "GUARNIÇÕES": "🍚", "PETISCOS": "🍟", "REFRIGERANTES": "🥤", "SUCOS": "🧃", "DIVERSOS": "🚬" };
+    return `
+      <div class="side-cat ${categoriaAtual === cat ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+        <span class="cat-ico">${icoMap[cat] || '🍽️'}</span>
+        <span>${cat}</span>
+      </div>
+    `;
+  }).join('');
 
-  let listaClientes = Object.keys(pedidoTemp);
-  if(!listaClientes.includes(clienteAtual)) listaClientes.unshift(clienteAtual);
+  let clientesLista = Object.keys(pedidoTemp);
+  if(!clientesLista.length) clientesLista = ["Cliente 1"];
+  if(!clientesLista.includes(clienteAtual)) clienteAtual = clientesLista[0];
 
-  let tabsClientesHTML = listaClientes.map(cli => `
-    <button class="filter-tab ${cli === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${cli.replace(/'/g,"\\'")}')">
-      👤 ${cli}
-    </button>
-  `).join('');
-
-  let catsHTML = Object.keys(cardapio).map(cat => `
-    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
-      <span class="cat-ico">${obterIconeCategoria(cat)}</span>
-      <span>${cat}</span>
-    </button>
+  let clientesBotoesHTML = clientesLista.map(cli => `
+    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:999px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap">${cli}</button>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="topbar" style="margin-bottom:12px">
+    <div class="topbar" style="margin-bottom:14px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
         <h2>Mesa ${pad(mesaSelecionada)}</h2>
-        <p>Atendimento por Cliente</p>
+        <p>Atendimento por cliente / pessoa</p>
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="secondary" style="margin:0;padding:6px 10px;font-size:11px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir</button>
-        <button class="primary" style="margin:0;padding:6px 10px;font-size:11px;background:#10b981" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar</button>
-      </div>
-    </div>
-
-    <!-- SELETOR / ABA DO GARÇOM -->
-    <div class="card" style="padding:10px;margin-bottom:12px;background:var(--input-bg);border:1px solid var(--border)">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:16px">👨‍🍳</span>
-          <span style="font-size:12px;font-weight:900">Garçom Responsável:</span>
-        </div>
-        <input type="text" id="inputGarcomNome" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:6px 10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:12px;font-weight:800;outline:none;width:150px">
+      <div>
+        <select onchange="atualizarGarcom(this.value)" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:700;outline:none">
+          <option value="Hebster" ${garcomTemp==='Hebster'?'selected':''}>Garçom: Hebster</option>
+          <option value="Outro" ${garcomTemp!=='Hebster'?'selected':''}>Garçom: Outro</option>
+        </select>
       </div>
     </div>
 
-    <div class="card" style="padding:10px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-        <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1">
-          ${tabsClientesHTML}
-        </div>
-        <button class="secondary" style="width:auto;margin:0;padding:6px 10px;font-size:11px;white-space:nowrap" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 10px;border-radius:12px;border:1px solid var(--border)">
-        <span style="font-size:12px;font-weight:800">Atendendo: <b style="color:var(--brand)">${clienteAtual}</b></span>
-        <button style="border:0;background:none;color:var(--muted);font-weight:900;font-size:11px;cursor:pointer" onclick="renomearClienteAtual()">✏️ Renomear</button>
-      </div>
+    <!-- SELETOR DE CLIENTES -->
+    <div class="card" style="padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;overflow-x:auto">
+      <span style="font-size:11px;font-weight:900;color:var(--muted);white-space:nowrap">Pessoa:</span>
+      <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;flex:1">${clientesBotoesHTML}</div>
+      <button onclick="adicionarNovoClientePrompt()" style="background:var(--brand);color:#fff;border:0;border-radius:50%;width:28px;height:28px;font-weight:900;font-size:16px;cursor:pointer;display:grid;place-items:center;flex-shrink:0" title="Adicionar nova pessoa">+</button>
+      <button onclick="renomearClienteAtual()" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap" title="Renomear pessoa atual">✏️ Renomear</button>
     </div>
 
+    <!-- BUSCA DE PRODUTOS -->
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar produto por nome..." value="${termoBuscaProduto}" oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Buscar prato ou bebida..." oninput="filtrarProdutosInput(this.value)" value="${termoBuscaProduto}">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">
-        ${catsHTML}
-      </div>
-      <div id="produtos" class="products-list"></div>
+      <div class="side-cats">${catBtns}</div>
+      <div class="products-list" id="produtos"></div>
     </div>
   `;
-
   renderProdutos();
 }
 
 function renderizar(){
-  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  
-  const headerEl = document.querySelector('.header');
-  if(headerEl) {
-    headerEl.style.display = (telaAtual === 'atendimento') ? 'none' : 'flex';
-  }
-
-  if(telaAtual === 'mesas') {
-    const btn = document.getElementById('navMesas');
-    if(btn) btn.classList.add('active');
-    renderMesas();
-  } else if(telaAtual === 'comandas') {
-    const btn = document.getElementById('navComandas');
-    if(btn) btn.classList.add('active');
-    renderComandas();
-  } else if(telaAtual === 'relatorios') {
-    const btn = document.getElementById('navRelatorios');
-    if(btn) btn.classList.add('active');
-    renderRelatorios();
-  } else if(telaAtual === 'atendimento') {
-    renderAtendimento();
-  }
-
-  atualizarBar();
+  if(telaAtual === "mesas") renderMesas();
+  else if(telaAtual === "comandas") renderComandas();
+  else if(telaAtual === "atendimento") renderAtendimento();
+  else if(telaAtual === "relatorios") renderRelatorios();
 }
+
+// Inicialização automática após carregar dados básicos
+carregarCardapioDinamico();
 </script>
 </body>
 </html>
