@@ -169,11 +169,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   border-color: var(--brand);
   box-shadow: 0 6px 16px rgba(211,47,47,0.1);
 }
-.product-card.esgotado {
-  opacity: 0.55;
-  background: rgba(0,0,0,0.03);
-  border-style: dashed;
-}
 .prod-thumb {
   width: 65px;
   height: 65px;
@@ -224,16 +219,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   gap: 8px;
 }
 
-.badge-esgotado-tag {
-  background: #d32f2f;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 900;
-  padding: 3px 8px;
-  border-radius: 99px;
-  letter-spacing: 0.5px;
-}
-
 .btn-circle-plus {
   width: 38px;
   height: 38px;
@@ -279,22 +264,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   font-size: 13px;
   min-width: 16px;
   text-align: center;
-}
-
-/* Tag Novo em Comandas */
-.tag-novo-item {
-  background: #0284c7;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 900;
-  padding: 2px 6px;
-  border-radius: 6px;
-  margin-left: 6px;
-  animation: pulseNovoItem 1s infinite alternate;
-}
-@keyframes pulseNovoItem {
-  from { opacity: 0.7; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1.05); }
 }
 
 /* Barra Flutuante de Carrinho */
@@ -516,89 +485,82 @@ function showToast(msg, isError = false){
 // ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
-    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false],
-    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado", false],
-    ["Linguiça", 8, "🍖", "", false],
-    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado", false],
-    ["Coração de boi", 8, "🍖", "", false],
-    ["Carne", 8, "🍖", "", false],
-    ["Tripa", 8, "🍖", "", false]
+    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango"],
+    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado"],
+    ["Linguiça", 8, "🍖", ""],
+    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado"],
+    ["Coração de boi", 8, "🍖", ""],
+    ["Carne", 8, "🍖", ""],
+    ["Tripa", 8, "🍖", ""]
   ],
   "CARANGUEJO":[
-    ["Caranguejo Unidade", 8, "🦀", "", false],
-    ["Combo 4 Caranguejos", 28, "🦀", "", false],
-    ["Caldo de Caranguejo", 5, "🦀", "", false]
+    ["Caranguejo Unidade", 8, "🦀", ""],
+    ["Combo 4 Caranguejos", 28, "🦀", ""],
+    ["Caldo de Caranguejo", 5, "🦀", ""]
   ],
   "BEBIDAS":[
-    ["Skol", 5, "🍺", "", false],
-    ["Brahma Chopp", 5, "🍺", "", false],
-    ["Brahma Puro Malte", 5, "🍺", "", false],
-    ["Império", 9, "🍺", "", false],
-    ["Heineken", 9, "🍺", "", false],
-    ["Corona Extra", 10, "🍺", "", false],
-    ["Budweiser", 8, "🍺", "", false],
-    ["Vinho", 8, "🍷", "", false],
-    ["Caipirinha", 15, "🍸", "", false],
-    ["Energético Red bull", 12, "🥤", "Lata", false],
-    ["Kit gin", 80, "🍸", "Gin rock’s / energético Baly / Gelo", false],
-    ["Stella gold", 11, "🍺", "", false],
-    ["Ice cabaré", 9, "🍺", "", false],
-    ["Balde Skol", 50, "🍺", "", false],
-    ["Balde Brahma", 50, "🍺", "", false],
-    ["Terça amarela", 7, "🍺", "", false],
-    ["Terça prata", 6, "🍺", "", false],
-    ["Meio litro amarela", 16, "🍺", "", false],
-    ["Meio litro prata", 15, "🍺", "", false],
-    ["Litro da amarela", 35, "🍺", "", false],
-    ["Litro da prata", 30, "🍺", "", false]
+    ["Skol", 5, "🍺", ""],
+    ["Brahma Chopp", 5, "🍺", ""],
+    ["Brahma Puro Malte", 5, "🍺", ""],
+    ["Império", 9, "🍺", ""],
+    ["Heineken", 9, "🍺", ""],
+    ["Corona Extra", 10, "🍺", ""],
+    ["Budweiser", 8, "🍺", ""],
+    ["Vinho", 8, "🍷", ""],
+    ["Caipirinha", 15, "🍸", ""],
+    ["Energético Red bull", 12, "🥤", "Lata"],
+    ["Kit gin", 80, "🍸", "Gin rock’s / energético Baly / Gelo"],
+    ["Stella gold", 11, "🍺", ""],
+    ["Ice cabaré", 9, "🍺", ""],
+    ["Balde Skol", 50, "🍺", ""],
+    ["Balde Brahma", 50, "🍺", ""],
+    ["Terça amarela", 7, "🍺", ""],
+    ["Terça prata", 6, "🍺", ""],
+    ["Meio litro amarela", 16, "🍺", ""],
+    ["Meio litro prata", 15, "🍺", ""],
+    ["Litro da amarela", 35, "🍺", ""],
+    ["Litro da prata", 30, "🍺", ""]
   ],
   "GUARNIÇÕES":[
-    ["Baião caseiro grande", 8, "🍚", "", false],
-    ["Baião caseiro pequeno", 4, "🍚", "", false],
-    ["Baião cremoso grande", 10, "🍚", "", false],
-    ["Baião cremoso pequeno", 5, "🍚", "", false],
-    ["Feijão verde", 25, "🍲", "Combo", false],
-    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false]
+    ["Baião caseiro grande", 8, "🍚", ""],
+    ["Baião caseiro pequeno", 4, "🍚", ""],
+    ["Baião cremoso grande", 10, "🍚", ""],
+    ["Baião cremoso pequeno", 5, "🍚", ""],
+    ["Feijão verde", 25, "🍲", "Combo"],
+    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz"]
   ],
   "PETISCOS":[
-    ["Batata frita", 15, "🍟", "", false],
-    ["Calabresa acebolada", 15, "🍢", "", false],
-    ["Camarão (porção)", 25, "🍤", "", false],
-    ["Bolinha carne do sol", 18, "🧀", "", false],
-    ["Bolinha de queijo", 15, "🧀", "", false]
+    ["Batata frita", 15, "🍟", ""],
+    ["Calabresa acebolada", 15, "🍢", ""],
+    ["Camarão (porção)", 25, "🍤", ""],
+    ["Bolinha carne do sol", 18, "🧀", ""],
+    ["Bolinha de queijo", 15, "🧀", ""]
   ],
   "REFRIGERANTES":[
-    ["Coca-Cola 1L", 8, "🥤", "", false],
-    ["Guaraná 1L", 7, "🥤", "", false],
-    ["Pepsi 1L", 7, "🥤", "", false],
-    ["Coca-Cola lata", 5, "🥤", "", false],
-    ["Fanta lata", 5, "🥤", "", false],
-    ["Sprite lata", 6, "🥤", "", false],
-    ["Água", 3, "💧", "", false],
-    ["Água com gás", 4, "💧", "", false]
+    ["Coca-Cola 1L", 8, "🥤", ""],
+    ["Guaraná 1L", 7, "🥤", ""],
+    ["Pepsi 1L", 7, "🥤", ""],
+    ["Coca-Cola lata", 5, "🥤", ""],
+    ["Fanta lata", 5, "🥤", ""],
+    ["Sprite lata", 6, "🥤", ""],
+    ["Água", 3, "💧", ""],
+    ["Água com gás", 4, "💧", ""]
   ],
   "SUCOS":[
-    ["Suco Maracujá 400ml", 8, "🧃", "", false],
-    ["Suco Manga 400ml", 7, "🧃", "", false],
-    ["Suco Goiaba 400ml", 7, "🧃", "", false]
+    ["Suco Maracujá 400ml", 8, "🧃", ""],
+    ["Suco Manga 400ml", 7, "🧃", ""],
+    ["Suco Goiaba 400ml", 7, "🧃", ""]
   ],
   "DIVERSOS":[
-    ["Cigarro", 7, "🚬", "Carteira", false],
-    ["Partilha halls", 3, "🍬", "", false]
+    ["Cigarro", 7, "🚬", "Carteira"],
+    ["Partilha halls", 3, "🍬", ""]
   ]
 };
 
 function carregarCardapioDinamico(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
-      let dadosRemotos = doc.data().dados;
-      for(let cat in dadosRemotos){
-        dadosRemotos[cat] = dadosRemotos[cat].map(item => {
-          if(item.length < 5) return [item[0], item[1], item[2], item[3] || "", false];
-          return item;
-        });
-      }
-      cardapio = dadosRemotos;
+      cardapio = doc.data().dados;
       if(telaAtual === "atendimento") renderProdutos();
     }
   }).catch(()=>{});
@@ -659,26 +621,23 @@ function renderizarPainelAdmin(){
         <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${cat}')">+ Novo Item</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        ${cardapio[cat].map((item, idx) => {
-          let esgotado = item[4] === true;
-          return `
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px;opacity:${esgotado ? '0.6' : '1'}">
+        ${cardapio[cat].map((item, idx) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
               <div style="width:36px;height:36px;border-radius:8px;background:var(--card);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
-                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${esgotado ? '<span style="color:#d32f2f;font-size:10px">(ESGOTADO)</span>' : ''}</b>
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]}</b>
                 <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="alternarEsgotadoAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:${esgotado ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.15)'};color:${esgotado ? '#10b981' : '#d32f2f'};cursor:pointer;font-weight:900;font-size:11px" title="Marcar como esgotado ou disponível">${esgotado ? '✅ Disponibilizar' : '🛑 Esgotar'}</button>
-              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900;font-size:11px">✏️</button>
-              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900;font-size:11px">🗑️</button>
+              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
+              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
-        `;}).join('')}
+        `).join('')}
       </div>
     </div>
   `).join('');
@@ -693,15 +652,6 @@ function renderizarPainelAdmin(){
     <button class="secondary" onclick="fecharModal()">Fechar Painel</button>
   `;
   document.getElementById("modal").classList.add("show");
-}
-
-function alternarEsgotadoAdmin(cat, idx){
-  let item = cardapio[cat][idx];
-  let estadoAtual = item[4] === true;
-  item[4] = !estadoAtual;
-  salvarCardapioDinamicoNoFirebase();
-  renderizarPainelAdmin();
-  showToast(`Item "${item[0]}" marcado como ${item[4] ? 'Esgotado' : 'Disponível'}!`);
 }
 
 function adicionarCategoriaAdmin(){
@@ -741,12 +691,12 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   const fileInput = document.getElementById('inputFotoNovoItem');
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat].push([nome, preco, base64, desc, false]);
+      cardapio[cat].push([nome, preco, base64, desc]);
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat].push([nome, preco, "🍖", desc, false]);
+    cardapio[cat].push([nome, preco, "🍖", desc]);
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -779,16 +729,15 @@ function editarItemAdmin(cat, idx){
 function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
   const itemAntigo = cardapio[cat][idx];
   const fileInput = document.getElementById('inputFotoItemAdmin');
-  let esgotadoAntigo = itemAntigo[4] || false;
   
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat][idx] = [nome, preco, base64, desc, esgotadoAntigo];
+      cardapio[cat][idx] = [nome, preco, base64, desc];
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, esgotadoAntigo];
+    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc];
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -853,8 +802,7 @@ function handleLogin(e){
       usuarioLogadoEmail = userCredential.user.email;
       concluirLogin(usuarioLogadoEmail);
     })
-    .catch((error)=>{
-      console.error("Erro no login:", error);
+    .catch(()=>{
       document.getElementById('login-error').style.display = 'block';
     });
 }
@@ -966,12 +914,6 @@ function salvarRascunhoAutomatico(){
 }
 
 function alterarQtd(nome, delta){ 
-  let pObj = produtosFlat().find(p => p.nome === nome);
-  if(pObj && pObj.esgotado && delta > 0){
-    showToast(`Este item ("${nome}") está esgotado no momento!`, true);
-    return;
-  }
-
   if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
   pedidoTemp[clienteAtual][nome] = (pedidoTemp[clienteAtual][nome] || 0) + delta; 
   if(pedidoTemp[clienteAtual][nome] < 0) pedidoTemp[clienteAtual][nome] = 0; 
@@ -984,7 +926,7 @@ function produtosFlat(){
   let a = []; 
   for(const cat in cardapio) {
     cardapio[cat].forEach(p => {
-      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", esgotado: p[4] === true, cat});
+      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", cat});
     });
   } 
   return a; 
@@ -1039,7 +981,7 @@ function renderProdutos(){
  
  let listaProd = cardapio[categoriaAtual] || [];
  if(termoBuscaProduto){
-   listaProd = produtosFlat().filter(p => p.nome.toLowerCase().includes(termoBuscaProduto)).map(p => [p.nome, p.preco, p.icon, p.desc, p.esgotado]);
+   listaProd = produtosFlat().filter(p => p.nome.toLowerCase().includes(termoBuscaProduto));
  }
 
  el.innerHTML = listaProd.map(itemBruto => {
@@ -1047,7 +989,6 @@ function renderProdutos(){
    const preco = itemBruto[1];
    const icon = itemBruto[2];
    const desc = itemBruto[3] || "";
-   const esgotado = itemBruto[4] === true;
    const q = cliMap[nome] || 0;
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
@@ -1059,17 +1000,15 @@ function renderProdutos(){
      }
    }
    
-   return `<div class="product-card ${q ? "selected" : ""} ${esgotado ? "esgotado" : ""}">
+   return `<div class="product-card ${q ? "selected" : ""}">
      <div class="prod-thumb">${renderThumb}</div>
      <div class="prod-info">
-       <div class="prod-title">${nome} ${esgotado ? '<span class="badge-esgotado-tag">ESGOTADO</span>' : ''}</div>
+       <div class="prod-title">${nome}</div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
        <div class="prod-price">R$ ${preco.toFixed(2)}</div>
      </div>
      <div class="prod-action-qty">
-       ${esgotado ? `
-         <span style="font-size:11px;font-weight:900;color:#d32f2f">Indisponível</span>
-       ` : (q === 0 ? `
+       ${q === 0 ? `
          <button class="btn-circle-plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
        ` : `
          <div class="qty-control-inline">
@@ -1077,9 +1016,9 @@ function renderProdutos(){
            <span>${q}</span>
            <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
          </div>
-       `)}
+       `}
      </div>
-   `;
+   </div>`;
  }).join("");
  
  if(!termoBuscaProduto) {
@@ -1100,57 +1039,22 @@ function adicionarNovoClientePrompt(){
 
 function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
-    const novosItensTemp = itensTempComClientes(); 
-    if(!novosItensTemp.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    const itens = itensTempComClientes(); 
+    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
 
     const comandaAtual = comandas[numMesaStr] || {};
-    let itensAntigos = comandaAtual.itens || [];
-    let timestampAgora = Date.now();
-
-    let mapaItensConsolidados = {};
-
-    itensAntigos.forEach(it => {
-      let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
-      mapaItensConsolidados[chave] = {
-        cliente: it.cliente || "Cliente 1",
-        nome: it.nome,
-        qtd: it.qtd,
-        preco: it.preco,
-        adicionadoEm: it.adicionadoEm || timestampAgora
-      };
-    });
-
-    novosItensTemp.forEach(it => {
-      let chave = it.cliente + "_" + it.nome;
-      if(mapaItensConsolidados[chave]){
-        if(it.qtd > mapaItensConsolidados[chave].qtd){
-          mapaItensConsolidados[chave].adicionadoEm = timestampAgora;
-        }
-        mapaItensConsolidados[chave].qtd = it.qtd;
-      } else {
-        mapaItensConsolidados[chave] = {
-          cliente: it.cliente,
-          nome: it.nome,
-          qtd: it.qtd,
-          preco: it.preco,
-          adicionadoEm: timestampAgora
-        };
-      }
-    });
-
-    let itensFinaisParaSalvar = Object.values(mapaItensConsolidados);
-    let totalGeralAcumulado = itensFinaisParaSalvar.reduce((acc, i) => acc + (i.qtd * i.preco), 0);
+    let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
       garcom: garcomTemp || "Hebster", 
-      itens: itensFinaisParaSalvar, 
+      itens: itens, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
-      criadoEm: comandaAtual.criadoEm || timestampAgora, 
-      atualizadoEm: timestampAgora, 
+      criadoEm: comandaAtual.criadoEm || Date.now(), 
+      atualizadoEm: Date.now(), 
       novoPedidoAlerta: false,
       origemPedido: 'garcom'
     };
@@ -1403,7 +1307,7 @@ function pagarItensSelecionados(num){
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, adicionadoEm: it.adicionadoEm || Date.now() });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
     const vendaParcial = { 
@@ -1702,29 +1606,20 @@ function renderMesas(){
 
 function renderComandas(){
   let comandasHTML = [];
-  let agora = Date.now();
-  let tresMinutosMs = 3 * 60 * 1000;
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
-        let itensOrdenados = [...c.itens].sort((a, b) => (b.adicionadoEm || 0) - (a.adicionadoEm || 0));
-
         produtosListaHTML = `
           <div class="comanda-produtos-box">
-            ${itensOrdenados.map(it => {
-              let tempoAdicao = it.adicionadoEm || 0;
-              let ehNovo = (agora - tempoAdicao) < tresMinutosMs;
-              return `
-              <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
-                <div>
-                  <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.qtd}x${it.nome}</span>${ehNovo ? '<span class="tag-novo-item">NOVO</span>' : ''}
-                </div>
+            ${c.itens.map(it => `
+              <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span>
                 <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
               </div>
-            `;}).join('')}
+            `).join('')}
           </div>
         `;
       }
@@ -1760,9 +1655,9 @@ function renderComandas(){
           ${produtosListaHTML}
           ${itensPagosHTML}
           <div style="display:flex;gap:6px;margin-top:12px">
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
             <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
           </div>
         </div>
       `);
@@ -1837,6 +1732,11 @@ function renderizar(){
   else if(telaAtual === 'comandas') renderComandas();
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
+}
+
+if(usuarioLogadoEmail){
+  iniciarOuvintesFirebase();
+  renderizar();
 }
 </script>
 </body>
