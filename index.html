@@ -592,7 +592,6 @@ function carregarCardapioDinamico(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       let dadosRemotos = doc.data().dados;
-      // Compatibilidade retroativa caso os itens venham sem o indicador de esgotado (índice 4)
       for(let cat in dadosRemotos){
         dadosRemotos[cat] = dadosRemotos[cat].map(item => {
           if(item.length < 5) return [item[0], item[1], item[2], item[3] || "", false];
@@ -854,7 +853,8 @@ function handleLogin(e){
       usuarioLogadoEmail = userCredential.user.email;
       concluirLogin(usuarioLogadoEmail);
     })
-    .catch(()=>{
+    .catch((error)=>{
+      console.error("Erro no login:", error);
       document.getElementById('login-error').style.display = 'block';
     });
 }
@@ -1079,7 +1079,7 @@ function renderProdutos(){
          </div>
        `)}
      </div>
-   </div>`;
+   `;
  }).join("");
  
  if(!termoBuscaProduto) {
@@ -1110,10 +1110,8 @@ function salvarComanda(numeroMesa) {
     let itensAntigos = comandaAtual.itens || [];
     let timestampAgora = Date.now();
 
-    // Mescla itens novos com existentes e marca os novos com timestamp de inserção
     let mapaItensConsolidados = {};
 
-    // Preserva itens antigos e seus timestamps de criação se já existirem
     itensAntigos.forEach(it => {
       let chave = (it.cliente || "Cliente 1") + "_" + it.nome;
       mapaItensConsolidados[chave] = {
@@ -1125,11 +1123,9 @@ function salvarComanda(numeroMesa) {
       };
     });
 
-    // Adiciona ou incrementa os itens novos vindos da tela de atendimento atual
     novosItensTemp.forEach(it => {
       let chave = it.cliente + "_" + it.nome;
       if(mapaItensConsolidados[chave]){
-        // Se a quantidade mudou para mais, atualiza o timestamp para exibir a tag "novo" no topo
         if(it.qtd > mapaItensConsolidados[chave].qtd){
           mapaItensConsolidados[chave].adicionadoEm = timestampAgora;
         }
@@ -1714,7 +1710,6 @@ function renderComandas(){
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
-        // Ordena os itens para que os recém-adicionados fiquem no topo (com base no timestamp adicionadoEm)
         let itensOrdenados = [...c.itens].sort((a, b) => (b.adicionadoEm || 0) - (a.adicionadoEm || 0));
 
         produtosListaHTML = `
@@ -1842,11 +1837,6 @@ function renderizar(){
   else if(telaAtual === 'comandas') renderComandas();
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
-}
-
-if(usuarioLogadoEmail){
-  iniciarOuvintesFirebase();
-  renderizar();
 }
 </script>
 </body>
