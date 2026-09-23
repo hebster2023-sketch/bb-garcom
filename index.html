@@ -372,7 +372,6 @@ db.enablePersistence().catch(() => {});
 let somAtivo = false;
 let primeiraCargaFirebase = true;
 let salvandoPedidoEmAndamento = false; 
-let itensIniciaisJSON = "{}";
 
 let comandas = {};
 let historicoVendas = [];
@@ -630,7 +629,7 @@ function renderizarPainelAdmin(){
               </div>
               <div style="min-width:0;flex:1">
                 <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]}</b>
-                <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small> ${item[3] ? `<small>• ${item[3]}</small>` : ''}
+                <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
@@ -853,7 +852,6 @@ function abrirMesa(num){
     }
   }
 
-  itensIniciaisJSON = JSON.stringify(pedidoTemp);
   mudarTela("atendimento", num);
 }
 
@@ -879,7 +877,6 @@ function renomearClienteAtual(){
   }
 
   const nomeAntigo = clienteAtual;
-  
   const itensCliente = pedidoTemp[nomeAntigo] || {};
   delete pedidoTemp[nomeAntigo];
   pedidoTemp[novoNome] = { ...itensCliente };
@@ -893,7 +890,6 @@ function renomearClienteAtual(){
   }
 
   clienteAtual = novoNome;
-  
   renderAtendimento();
   salvarRascunhoAutomatico();
   showToast(`Cliente renomeado para "${novoNome}"!`);
@@ -903,7 +899,6 @@ function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
   const total = totalTemp();
-
   const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
@@ -1042,7 +1037,7 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-function salvarComanda(numeroMesa, novoPedido) {
+function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
     const itens = itensTempComClientes(); 
     if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
@@ -1071,7 +1066,6 @@ function salvarComanda(numeroMesa, novoPedido) {
         fecharModal();
         showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
         mudarTela("mesas");
-        carregarMesasSalvas();
       })
       .catch(err => { 
         salvandoPedidoEmAndamento = false;
@@ -1080,65 +1074,13 @@ function salvarComanda(numeroMesa, novoPedido) {
 }
 
 function fecharComanda(numeroMesa) {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
     const numMesaStr = String(numeroMesa);
-    
-    delete comandasLocal[numMesaStr];
-    localStorage.setItem('comandas_mesas', JSON.stringify(comandasLocal));
-    
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
-        carregarMesasSalvas();
         showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
         renderizar();
     }).catch(err => {
         showToast("Erro ao fechar conta: " + err.message, true);
     });
-}
-
-function carregarMesasSalvas() {
-    const comandasLocal = JSON.parse(localStorage.getItem('comandas_mesas')) || {};
-    
-    document.querySelectorAll('.card-mesa, .table').forEach(card => {
-        const numMesa = card.getAttribute('data-mesa'); 
-        if(numMesa) atualizarCardMesaVisual(numMesa, null);
-    });
-    
-    Object.keys(comandasLocal).forEach(numeroMesa => {
-        const dadosMesa = comandasLocal[numeroMesa];
-        atualizarCardMesaVisual(numeroMesa, dadosMesa);
-    });
-}
-
-function atualizarCardMesaVisual(numeroMesa, dadosMesa) {
-    const cardMesa = document.querySelector(`[data-mesa="${numeroMesa}"]`);
-    if (!cardMesa) return;
-
-    const statusEl = cardMesa.querySelector('.status-mesa, .badge-status');
-    const totalEl = cardMesa.querySelector('.total-mesa, .total');
-
-    if (dadosMesa && dadosMesa.total > 0) {
-        cardMesa.classList.remove('livre');
-        cardMesa.classList.add('ocupada', 'busy');
-        if (statusEl) {
-            statusEl.textContent = 'Ocupada';
-            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status ocupada' : 'status-mesa';
-        }
-        if (totalEl) {
-            totalEl.textContent = br(dadosMesa.total);
-            totalEl.style.display = '';
-        }
-    } else {
-        cardMesa.classList.remove('ocupada', 'busy');
-        cardMesa.classList.add('livre');
-        if (statusEl) {
-            statusEl.textContent = 'Livre';
-            statusEl.className = statusEl.className.includes('badge-status') ? 'badge-status livre' : 'status-mesa';
-        }
-        if (totalEl) {
-            totalEl.textContent = '';
-            totalEl.style.display = 'none';
-        }
-    }
 }
 
 function abrirCarrinho(){
@@ -1169,15 +1111,10 @@ function abrirCarrinho(){
    `).join("");
  }
 
- const pedidoAtualObjeto = {
-   itens: itens.map(i => ({ nome: i.nome, quantidade: i.qtd, valorUnitario: i.preco })),
-   total: totalTemp()
- };
-
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick='salvarComanda("${mesaSelecionada}", ${JSON.stringify(pedidoAtualObjeto)})'>Salvar comanda</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}")'>Salvar comanda</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1802,7 +1739,7 @@ function renderizar(){
   else if(telaAtual === "relatorios") renderRelatorios();
 }
 
-// Inicialização automática após carregar dados básicos
+// Inicialização automática
 carregarCardapioDinamico();
 </script>
 </body>
