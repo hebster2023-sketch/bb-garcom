@@ -169,10 +169,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   border-color: var(--brand);
   box-shadow: 0 6px 16px rgba(211,47,47,0.1);
 }
-.product-card.esgotado {
-  opacity: 0.55;
-  background: rgba(211, 47, 47, 0.03);
-}
 .prod-thumb {
   width: 65px;
   height: 65px;
@@ -269,22 +265,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   min-width: 16px;
   text-align: center;
 }
-
-/* Tag Novo Animada */
-.tag-novo-item {
-  background: #38bdf8;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 900;
-  padding: 2px 6px;
-  border-radius: 99px;
-  margin-left: 6px;
-  display: inline-block;
-  vertical-align: middle;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-  animation: pulseNovoTag 1.2s infinite;
-}
-@keyframes pulseNovoTag { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
 
 /* Barra Flutuante de Carrinho */
 .cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
@@ -397,8 +377,6 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-let itensEsgotados = {};
-
 let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
@@ -504,6 +482,7 @@ function showToast(msg, isError = false){
   }, 2500);
 }
 
+// ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
     ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango"],
@@ -580,30 +559,20 @@ let cardapio = {
 
 function carregarCardapioDinamico(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
-    if(doc.exists){
-      if(doc.data().dados) cardapio = doc.data().dados;
-      if(doc.data().esgotados) itensEsgotados = doc.data().esgotados;
+    if(doc.exists && doc.data().dados){
+      cardapio = doc.data().dados;
       if(telaAtual === "atendimento") renderProdutos();
     }
   }).catch(()=>{});
 }
 
 function salvarCardapioDinamicoNoFirebase(){
-  db.collection("configuracoes").doc("cardapio").set({ 
-    dados: cardapio,
-    esgotados: itensEsgotados 
-  }).then(() => {
-    showToast("Cardápio e status de estoque salvos com sucesso!");
+  db.collection("configuracoes").doc("cardapio").set({ dados: cardapio }).then(() => {
+    showToast("Cardápio atualizado e salvo no banco com sucesso!");
     renderizar();
   }).catch(err => {
     showToast("Erro ao salvar cardápio: " + err.message, true);
   });
-}
-
-function alternarEsgotadoAdmin(nomeProduto){
-  itensEsgotados[nomeProduto] = !itensEsgotados[nomeProduto];
-  salvarCardapioDinamicoNoFirebase();
-  renderizarPainelAdmin();
 }
 
 function comprimirImagemParaBase64(file, callback) {
@@ -633,6 +602,7 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
+// ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -651,31 +621,28 @@ function renderizarPainelAdmin(){
         <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${cat}')">+ Novo Item</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        ${cardapio[cat].map((item, idx) => {
-          let esgotado = !!itensEsgotados[item[0]];
-          return `
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid ${esgotado ? '#d32f2f' : 'var(--border)'};font-size:12px">
+        ${cardapio[cat].map((item, idx) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
               <div style="width:36px;height:36px;border-radius:8px;background:var(--card);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
-                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${esgotado ? '<span style="color:#d32f2f">(ESGOTADO)</span>' : ''}</b>
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]}</b>
                 <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="alternarEsgotadoAdmin('${item[0].replace(/'/g,"\\'")}')" style="padding:6px 8px;border-radius:6px;border:0;background:${esgotado ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.15)'};color:${esgotado ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900;font-size:10px">${esgotado ? 'Disponibilizar' : 'Esgotado'}</button>
-              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900;font-size:10px">✏️</button>
-              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900;font-size:10px">🗑️</button>
+              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
+              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
-        `}).join('')}
+        `).join('')}
       </div>
     </div>
   `).join('');
 
-  document.getElementById("modalTitle").textContent = "⚙️ Painel Administrativo — Gestão de Cardápio e Estoque";
+  document.getElementById("modalTitle").textContent = "⚙️ Painel Administrativo — Gestão de Cardápio";
   document.getElementById("modalBody").innerHTML = `
     <div style="margin-bottom:14px">
       <button class="primary" onclick="adicionarCategoriaAdmin()" style="font-size:12px;padding:10px">+ Criar Nova Categoria</button>
@@ -947,10 +914,6 @@ function salvarRascunhoAutomatico(){
 }
 
 function alterarQtd(nome, delta){ 
-  if(itensEsgotados[nome] && delta > 0){
-    showToast("Este item está esgotado no momento!", true);
-    return;
-  }
   if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
   pedidoTemp[clienteAtual][nome] = (pedidoTemp[clienteAtual][nome] || 0) + delta; 
   if(pedidoTemp[clienteAtual][nome] < 0) pedidoTemp[clienteAtual][nome] = 0; 
@@ -1027,7 +990,6 @@ function renderProdutos(){
    const icon = itemBruto[2];
    const desc = itemBruto[3] || "";
    const q = cliMap[nome] || 0;
-   const esgotado = !!itensEsgotados[nome];
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
    if (icon) {
@@ -1038,17 +1000,15 @@ function renderProdutos(){
      }
    }
    
-   return `<div class="product-card ${q ? "selected" : ""} ${esgotado ? "esgotado" : ""}">
+   return `<div class="product-card ${q ? "selected" : ""}">
      <div class="prod-thumb">${renderThumb}</div>
      <div class="prod-info">
-       <div class="prod-title">${nome} ${esgotado ? '<span style="color:#d32f2f;font-size:11px">(ESGOTADO)</span>' : ''}</div>
+       <div class="prod-title">${nome}</div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
        <div class="prod-price">R$ ${preco.toFixed(2)}</div>
      </div>
      <div class="prod-action-qty">
-       ${esgotado ? `
-         <span style="font-size:10px;font-weight:900;color:#d32f2f;background:rgba(211,47,47,0.1);padding:4px 8px;border-radius:8px">Indisponível</span>
-       ` : (q === 0 ? `
+       ${q === 0 ? `
          <button class="btn-circle-plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
        ` : `
          <div class="qty-control-inline">
@@ -1056,7 +1016,7 @@ function renderProdutos(){
            <span>${q}</span>
            <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
          </div>
-       `)}
+       `}
      </div>
    </div>`;
  }).join("");
@@ -1079,36 +1039,22 @@ function adicionarNovoClientePrompt(){
 
 function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
-    const itensNovos = itensTempComClientes(); 
-    if(!itensNovos.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    const itens = itensTempComClientes(); 
+    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
 
     const comandaAtual = comandas[numMesaStr] || {};
-    let itensAntigos = comandaAtual.itens || [];
-    let timestampAgora = Date.now();
-
-    let novosItensProcessados = itensNovos.map(itemNovo => {
-        let existente = itensAntigos.find(ant => ant.cliente === itemNovo.cliente && ant.nome === itemNovo.nome);
-        return {
-            ...itemNovo,
-            adicionadoEm: (existente && existente.adicionadoEm && (timestampAgora - existente.adicionadoEm < 180000)) ? existente.adicionadoEm : timestampAgora
-        };
-    });
-
-    let itensRestantesAntigos = itensAntigos.filter(ant => !itensNovos.some(nv => nv.cliente === ant.cliente && nv.nome === ant.nome));
-
-    let itensFinaisCombinados = [...novosItensProcessados, ...itensRestantesAntigos];
-    let totalGeralAcumulado = itensFinaisCombinados.reduce((acc, i) => acc + (i.qtd * i.preco), 0);
+    let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
       garcom: garcomTemp || "Hebster", 
-      itens: itensFinaisCombinados, 
+      itens: itens, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
-      criadoEm: comandaAtual.criadoEm || timestampAgora, 
-      atualizadoEm: timestampAgora, 
+      criadoEm: comandaAtual.criadoEm || Date.now(), 
+      atualizadoEm: Date.now(), 
       novoPedidoAlerta: false,
       origemPedido: 'garcom'
     };
@@ -1174,10 +1120,6 @@ function abrirCarrinho(){
 }
 
 function alterarQtdCarrinhoModal(cli, nomeProd, delta){
-  if(itensEsgotados[nomeProd] && delta > 0){
-    showToast("Este item está esgotado!", true);
-    return;
-  }
   if(!pedidoTemp[cli]) pedidoTemp[cli] = {};
   pedidoTemp[cli][nomeProd] = (pedidoTemp[cli][nomeProd] || 0) + delta;
   if(pedidoTemp[cli][nomeProd] < 0) pedidoTemp[cli][nomeProd] = 0;
@@ -1365,7 +1307,7 @@ function pagarItensSelecionados(num){
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, adicionadoEm: it.adicionadoEm || Date.now() });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
     const vendaParcial = { 
@@ -1664,7 +1606,6 @@ function renderMesas(){
 
 function renderComandas(){
   let comandasHTML = [];
-  let agora = Date.now();
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
@@ -1673,17 +1614,12 @@ function renderComandas(){
       if(c.itens && c.itens.length > 0){
         produtosListaHTML = `
           <div class="comanda-produtos-box">
-            ${c.itens.map(it => {
-              let tempoDecorridoMs = agora - (it.adicionadoEm || 0);
-              let mostrarTagNovo = tempoDecorridoMs < 180000;
-              return `
-              <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
-                <div>
-                  <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.qtd}x ${it.nome}</span>${mostrarTagNovo ? '<span class="tag-novo-item">NOVO</span>' : ''}
-                </div>
+            ${c.itens.map(it => `
+              <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span>
                 <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
               </div>
-            `}).join('')}
+            `).join('')}
           </div>
         `;
       }
@@ -1720,8 +1656,8 @@ function renderComandas(){
           ${itensPagosHTML}
           <div style="display:flex;gap:6px;margin-top:12px">
             <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="abrirMesa(${i})">✏️ Atender</button>
-            <button class="primary" style="padding:10px;font-size:12px;margin:0" onclick="fecharMesa(${i})">💳 Fechar Conta</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
+            <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
           </div>
         </div>
       `);
@@ -1730,73 +1666,61 @@ function renderComandas(){
 
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <h2>Comandas Abertas</h2>
-      <span class="muted">${comandasHTML.length} ${comandasHTML.length === 1 ? 'mesa ativa' : 'mesas ativas'}</span>
+      <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
     </div>
-    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda aberta no momento.</div>'}
+    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
   `;
 }
 
 function renderAtendimento(){
-  const num = mesaSelecionada;
-  const c = comandas[num] || {};
-  let totalM = totalTemp();
-  
-  let pessoas = Object.keys(pedidoTemp);
-  if(!pessoas.length) pessoas = ["Cliente 1"];
-  if(!pessoas.includes(clienteAtual)) clienteAtual = pessoas[0];
+  let catBtns = Object.keys(cardapio).map(cat => {
+    let icoMap = { "CHURRASCOS": "🔥", "CARANGUEJO": "🦀", "BEBIDAS": "🍺", "GUARNIÇÕES": "🍚", "PETISCOS": "🍟", "REFRIGERANTES": "🥤", "SUCOS": "🧃", "DIVERSOS": "🚬" };
+    return `
+      <div class="side-cat ${categoriaAtual === cat ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+        <span class="cat-ico">${icoMap[cat] || '🍽️'}</span>
+        <span>${cat}</span>
+      </div>
+    `;
+  }).join('');
 
-  let botoesPessoasHTML = pessoas.map(p => `
-    <button class="filter-tab ${p === clienteAtual ? 'active' : ''}" onclick="mudarClienteAtual('${p.replace(/'/g,"\\'")}')">👤 ${p}</button>
+  let listaPessoasClientes = Object.keys(pedidoTemp);
+  if(!listaPessoasClientes.length) listaPessoasClientes = ["Cliente 1"];
+  if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
+
+  let pillsPessoasHTML = listaPessoasClientes.map(cli => `
+    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${cli}</button>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="topbar" style="margin-bottom:12px">
+    <div class="topbar" style="margin-bottom:14px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
-        <h2>Mesa ${pad(num)}</h2>
-        <p>Atendimento individualizado por cliente</p>
+        <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
+        <p>Adicionando para: <b>${clienteAtual}</b></p>
       </div>
       <div>
-        <button onclick="abrirModalTransferencia(${num})" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:11px;font-weight:900;cursor:pointer;border:1px solid var(--border)">🔄 Transferir</button>
+        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:120px">
       </div>
     </div>
 
-    <div class="card" style="padding:12px;margin-bottom:12px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <div style="flex:1">
-          <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Garçom Responsável</label>
-          <input type="text" id="inputGarcom" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none" placeholder="Nome do garçom">
-        </div>
-        <div style="flex:1">
-          <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Pessoa / Cliente Atual</label>
-          <div style="display:flex;gap:4px">
-            <input type="text" value="${clienteAtual}" readonly style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700">
-            <button onclick="renomearClienteAtual()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:0 10px;cursor:pointer;font-size:12px" title="Renomear pessoa atual">✏️</button>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;margin-top:10px;overflow-x:auto;padding-bottom:2px">
+    <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-x:auto">
+      <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px;flex:1">
         <span style="font-size:11px;font-weight:900;color:var(--muted);white-space:nowrap">Pessoas:</span>
-        ${botoesPessoasHTML}
-        <button class="filter-tab" style="background:rgba(211,47,47,0.1);color:var(--brand);border-color:rgba(211,47,47,0.3)" onclick="adicionarNovoClientePrompt()">+ Adicionar Pessoa</button>
+        ${pillsPessoasHTML}
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
+        <button onclick="renomearClienteAtual()" style="padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
       </div>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar prato, bebida ou porção..." oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Pesquisar qualquer produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">
-        ${Object.keys(cardapio).map(cat => `
-          <div class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
-            <span class="cat-ico">${cat === 'CHURRASCOS' ? '🥩' : cat === 'CARANGUEJO' ? '🦀' : cat === 'BEBIDAS' ? '🍺' : cat === 'GUARNIÇÕES' ? '🍚' : cat === 'PETISCOS' ? '🍟' : cat === 'REFRIGERANTES' ? '🥤' : cat === 'SUCOS' ? '🧃' : '📦'}</span>
-            <span>${cat}</span>
-          </div>
-        `).join('')}
-      </div>
+      <div class="side-cats">${catBtns}</div>
       <div class="products-list" id="produtos"></div>
     </div>
   `;
@@ -1804,19 +1728,15 @@ function renderAtendimento(){
 }
 
 function renderizar(){
-  if(document.getElementById('login-screen').style.display !== 'none' && !usuarioLogadoEmail){
-    return;
-  }
-  
-  document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
-  if(telaAtual === 'mesas') document.getElementById('navMesas').classList.add('active');
-  else if(telaAtual === 'comandas') document.getElementById('navComandas').classList.add('active');
-  else if(telaAtual === 'relatorios') document.getElementById('navRelatorios').classList.add('active');
+  if(telaAtual === 'mesas') renderMesas();
+  else if(telaAtual === 'comandas') renderComandas();
+  else if(telaAtual === 'relatorios') renderRelatorios();
+  else if(telaAtual === 'atendimento') renderAtendimento();
+}
 
-  if(telaAtual === "mesas") renderMesas();
-  else if(telaAtual === "comandas") renderComandas();
-  else if(telaAtual === "atendimento") renderAtendimento();
-  else if(telaAtual === "relatorios") renderRelatorios();
+if(usuarioLogadoEmail){
+  iniciarOuvintesFirebase();
+  renderizar();
 }
 </script>
 </body>
