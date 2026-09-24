@@ -1811,7 +1811,7 @@ function renderizar(){
   document.querySelectorAll('.bottom button').forEach(b => b.classList.remove('active'));
   if(telaAtual === 'mesas') document.getElementById('navMesas').classList.add('active');
   else if(telaAtual === 'comandas') document.getElementById('navComandas').classList.add('active');
-  else if(telaAtual === 'relatorios') document.getElementById('navRelatorios').classList.add('clear');
+  else if(telaAtual === 'relatorios') document.getElementById('navRelatorios').classList.add('active');
 
   if(telaAtual === "mesas") renderMesas();
   else if(telaAtual === "comandas") renderComandas();
