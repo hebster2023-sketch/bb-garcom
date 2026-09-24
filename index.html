@@ -1091,7 +1091,6 @@ function salvarComanda(numeroMesa) {
     let itensAntigos = comandaAtual.itens || [];
     let timestampAgora = Date.now();
 
-    // Mescla mantendo novos itens no topo com timestamp de inclusão recente
     let novosItensProcessados = itensNovos.map(itemNovo => {
         let existente = itensAntigos.find(ant => ant.cliente === itemNovo.cliente && ant.nome === itemNovo.nome);
         return {
@@ -1100,10 +1099,8 @@ function salvarComanda(numeroMesa) {
         };
     });
 
-    // Mantém itens antigos que não estão no pedido atual
     let itensRestantesAntigos = itensAntigos.filter(ant => !itensNovos.some(nv => nv.cliente === ant.cliente && nv.nome === ant.nome));
 
-    // Junta colocando os recém-adicionados no topo
     let itensFinaisCombinados = [...novosItensProcessados, ...itensRestantesAntigos];
     let totalGeralAcumulado = itensFinaisCombinados.reduce((acc, i) => acc + (i.qtd * i.preco), 0);
 
@@ -1684,7 +1681,7 @@ function renderComandas(){
               return `
               <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
                 <div>
-                  <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.qtd}x${it.nome}</span>${mostrarTagNovo ? '<span class="tag-novo-item">NOVO</span>' : ''}
+                  <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.qtd}x ${it.nome}</span>${mostrarTagNovo ? '<span class="tag-novo-item">NOVO</span>' : ''}
                 </div>
                 <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
               </div>
