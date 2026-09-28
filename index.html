@@ -320,7 +320,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
         <input type="password" id="login-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
       </div>
-      <!-- CORREÇÃO: Exibição dinâmica do erro do Firebase -->
+      <!-- Exibição dinâmica corrigida do erro do Firebase -->
       <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none"></div>
       <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(211,47,47,0.25)">Entrar no Sistema</button>
     </form>
@@ -811,7 +811,7 @@ function iniciarOuvintesFirebase() {
   }, err => console.error(err));
 }
 
-// CORREÇÃO: Tratamento detalhado do erro de login do Firebase
+// CORREÇÃO ROBUSTA: Tratamento detalhado de erros do Firebase Auth para login
 function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
@@ -826,16 +826,20 @@ function handleLogin(e){
     })
     .catch((error)=>{
       errorEl.style.display = 'block';
+      console.error("Erro de autenticação:", error.code, error.message);
+      
       if(error.code === 'auth/user-not-found') {
         errorEl.textContent = 'Usuário não cadastrado.';
       } else if(error.code === 'auth/wrong-password') {
         errorEl.textContent = 'Senha incorreta.';
       } else if(error.code === 'auth/invalid-email') {
         errorEl.textContent = 'E-mail inválido.';
-      } else if(error.code === 'auth/invalid-credential') {
+      } else if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-mismatch' || error.code === 'auth/wrong-password') {
         errorEl.textContent = 'E-mail ou senha incorretos.';
+      } else if(error.code === 'auth/too-many-requests') {
+        errorEl.textContent = 'Muitas tentativas sem sucesso. Tente novamente mais tarde.';
       } else {
-        errorEl.textContent = 'Erro: ' + error.message;
+        errorEl.textContent = 'Erro ao entrar: ' + (error.message || error.code);
       }
     });
 }
