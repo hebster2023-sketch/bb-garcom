@@ -48,7 +48,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
 /* Navegação Inferior */
-.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
 .bottom button{border:0;background:none;color:var(--muted);font-weight:800;font-size:11px;padding:8px 4px;border-radius:16px;display:flex;flex-direction:column;align-items:center;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);cursor:pointer}
 .bottom button.active{color:var(--brand);background:rgba(211, 47, 47, 0.1);transform:translateY(-2px)}
 .bottom button:active{transform:scale(0.92)}
@@ -85,6 +85,28 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .timer.tempo-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
 .timer.tempo-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Estilo para novo item adicionado recentemente (agora com destaque mais chamativo) */
+.item-novo-destaque {
+  border: 2px solid #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.18) !important;
+  position: relative;
+  animation: pulseItemNovo 1.5s infinite;
+}
+@keyframes pulseItemNovo { 0%{transform:scale(1)} 50%{transform:scale(1.01)} 100%{transform:scale(1)} }
+
+.badge-novo-item {
+  font-size: 9px;
+  background: #38bdf8;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 900;
+  margin-left: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.4);
+}
 
 /* Cards Genéricos */
 .card{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px}
@@ -303,8 +325,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 
 <div id="toast-container"></div>
 
-<!-- TELA DE LOGIN ISOLADA -->
-<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
+<!-- TELA DE LOGIN -->
+<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:32px;margin-bottom:6px">🔥</div>
@@ -349,7 +371,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 <nav class="bottom">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
- <button id="navCozinha" onclick="mudarTela('cozinha')"><span class="ico">🍳</span>Cozinha</button>
  <button id="navRelatorios" onclick="mudarTela('relatorios')"><span class="ico">📊</span>Relatórios</button>
 </nav>
 
@@ -487,6 +508,7 @@ function showToast(msg, isError = false){
   }, 2500);
 }
 
+// ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
     ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false],
@@ -613,6 +635,7 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
+// ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -788,7 +811,7 @@ function iniciarOuvintesFirebase() {
     verificarNovosPedidos(novasComandas);
     comandas = novasComandas;
 
-    if(telaAtual === "mesas" || telaAtual === "comandas" || telaAtual === "cozinha") renderizar();
+    if(telaAtual === "mesas" || telaAtual === "comandas") renderizar();
   }, err => console.error(err));
 
   db.collection("historico").onSnapshot(snapshot => {
@@ -828,66 +851,25 @@ function handleLogin(e){
 
 function concluirLogin(email){
   document.getElementById('login-screen').style.display = 'none';
-  const emailLower = email.toLowerCase();
-  const isAdmin = emailLower.includes('admin');
-  const isCozinha = emailLower.includes('cozinha@bbchurrasco.com') || emailLower.includes('cozinha');
+  const isAdmin = email.toLowerCase().includes('admin');
   
-  if(isCozinha){
-    // PERFIL COZINHA: Restringe navegação e abre direto na tela de cozinha
-    document.getElementById('navMesas').style.display = 'none';
-    document.getElementById('navComandas').style.display = 'none';
+  if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(1,1fr)';
-    document.getElementById('user-role-label').textContent = 'B.B COZINHA — KDS de Preparo';
-    telaAtual = 'cozinha';
-  } else if(!isAdmin){
-    // PERFIL GARÇOM: Oculta relatórios
-    document.getElementById('navRelatorios').style.display = 'none';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(2,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
-    if(telaAtual === 'relatorios' || telaAtual === 'cozinha') telaAtual = 'mesas';
+    if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
-    // PERFIL ADMIN: Visualiza tudo
     document.getElementById('navRelatorios').style.display = 'flex';
-    document.getElementById('navMesas').style.display = 'flex';
-    document.getElementById('navComandas').style.display = 'flex';
-    document.getElementById('navCozinha').style.display = 'flex';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(4,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B ADMIN — Gestão Completa';
   }
-  
   iniciarOuvintesFirebase();
   renderizar();
 }
 
 function mudarTela(t, num=null){
-  const emailLower = usuarioLogadoEmail.toLowerCase();
-  const isCozinha = emailLower.includes('cozinha@bbchurrasco.com') || emailLower.includes('cozinha');
-  
-  if(isCozinha && t !== 'cozinha') return; // Cozinha só acessa a própria tela
-  if(t === 'relatorios' && emailLower && !emailLower.includes('admin')) return;
-  
-  telaAtual = t; 
-  if(num !== null) mesaSelecionada = Number(num); 
-  renderizar(); 
-  scrollTo(0,0);
-}
-
-function renderizar(){
-  const emailLower = usuarioLogadoEmail.toLowerCase();
-  const isCozinha = emailLower.includes('cozinha@bbchurrasco.com') || emailLower.includes('cozinha');
-  
-  // Se for cozinha, força sempre a renderização da cozinha
-  if(isCozinha){
-    renderCozinha();
-    return;
-  }
-
-  if(telaAtual === "mesas") renderMesas();
-  else if(telaAtual === "comandas") renderComandas();
-  else if(telaAtual === "cozinha") renderCozinha();
-  else if(telaAtual === "relatorios") renderRelatorios();
-  else if(telaAtual === "atendimento") renderAtendimento();
+  if(t === 'relatorios' && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) return;
+  telaAtual = t; if(num !== null) mesaSelecionada = Number(num); renderizar(); scrollTo(0,0);
 }
 
 function abrirMesa(num){
@@ -1019,13 +1001,7 @@ function itensTempComClientes(){
             if(itemAntigo) preco = Number(itemAntigo.preco || 0);
         }
         
-        let statusExistente = 'pendente';
-        if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens){
-          let itAnt = comandas[mesaSelecionada].itens.find(x => x.cliente === cli && x.nome === prod);
-          if(itAnt && itAnt.statusCozinha) statusExistente = itAnt.statusCozinha;
-        }
-
-        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, statusCozinha: statusExistente });
+        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco });
       }
     }
   }
@@ -1060,6 +1036,7 @@ function renderProdutos(){
  
  let listaProd = [...(cardapio[categoriaAtual] || [])];
  
+ // ORDENAÇÃO: Garante que itens novos criados recentemente apareçam no topo
  listaProd.sort((a, b) => {
    let timeA = a[5] || 0;
    let timeB = b[5] || 0;
@@ -1073,7 +1050,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 300000;
+ const tempoDestaqueLimite = 300000; // 5 minutos de destaque visível para novos itens
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1126,73 +1103,70 @@ function renderProdutos(){
  atualizarBar();
 }
 
-function atualizarStatusItemCozinha(mesaNum, idxItem, novoStatus){
-  const comanda = comandas[mesaNum];
-  if(!comanda || !comanda.itens) return;
-
-  comanda.itens[idxItem].statusCozinha = novoStatus;
-
-  db.collection("comandas").doc(String(mesaNum)).update({
-    itens: comanda.itens,
-    atualizadoEm: Date.now()
-  }).then(() => {
-    showToast(`Item atualizado para: ${novoStatus.toUpperCase()}`);
-    renderCozinha();
-  }).catch(err => {
-    showToast("Erro ao atualizar status na cozinha: " + err.message, true);
-  });
-}
-
-function renderCozinha(){
-  let cardsCozinhaHTML = [];
-
-  for(let i=1; i<=30; i++){
-    let c = comandas[i];
-    if(c && c.itens && c.itens.length > 0){
-      cardsCozinhaHTML.push(`
-        <div class="card command" style="border-left: 4px solid var(--brand)">
-          <div class="row" style="align-items:center;margin-bottom:10px">
-            <div>
-              <h3>Mesa ${pad(i)}</h3>
-              <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b> • Pedido feito ${calcularTempoDecorrido(c.criadoEm).texto}</small>
-            </div>
-            <div>
-              <span class="tag">Mesa ${pad(i)}</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            ${c.itens.map((it, idx) => {
-              let status = it.statusCozinha || 'pendente';
-              let corStatus = status === 'preparando' ? '#f59e0b' : (status === 'pronto' ? '#10b981' : 'var(--brand)');
-              let labelStatus = status === 'preparando' ? '🔥 Preparando' : (status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
-
-              return `
-                <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
-                  <div style="flex:1">
-                    <div style="font-size:13px;font-weight:900">
-                      <span style="color:var(--brand)">[${it.cliente || 'Cliente 1'}]</span> ${it.qtd}x${it.nome}
-                    </div>
-                    <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
-                  </div>
-                  <div style="display:flex;gap:4px">
-                    ${status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
-                    ${status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Servido/Pronto</span>`}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `);
-    }
+// ----------------- ANOTAÇÃO DE PEDIDOS POR VOZ -----------------
+function anotarPedidoPorVoz() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast("Seu navegador não suporta reconhecimento de voz.", true);
+    return;
   }
 
-  document.getElementById("conteudo").innerHTML = `
-    <div class="section-title">
-      <div><h2>Módulo Cozinha (KDS)</h2><span class="muted">Controle de preparo de pratos e petiscos</span></div>
-    </div>
-    ${cardsCozinhaHTML.length ? cardsCozinhaHTML.join('') : '<div class="empty">Nenhum pedido na cozinha no momento.</div>'}
-  `;
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'pt-BR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  showToast("Ouvindo... Fale os itens (ex: 2 frango, 1 coca-cola)");
+
+  recognition.onresult = function(event) {
+    const textoFalado = event.results[0][0].transcript.toLowerCase();
+    showToast(`Comando de voz: "${textoFalado}"`);
+    processarTextoVoz(textoFalado);
+  };
+
+  recognition.onerror = function(event) {
+    showToast("Erro no reconhecimento de voz: " + event.error, true);
+  };
+
+  recognition.start();
+}
+
+function processarTextoVoz(texto) {
+  let todosProdutos = produtosFlat();
+  let adicionados = 0;
+  todosProdutos.forEach(p => {
+    let nomeLower = p.nome.toLowerCase();
+    if(texto.includes(nomeLower) && !p.indisponivel) {
+      let qtd = 1;
+      const regex = new RegExp(`(\\d+)\\s*(?:x)?\\s*${nomeLower}`, 'i');
+      const match = texto.match(regex);
+      if(match && match[1]) {
+        qtd = parseInt(match[1]);
+      }
+      if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
+      pedidoTemp[clienteAtual][p.nome] = (pedidoTemp[clienteAtual][p.nome] || 0) + qtd;
+      adicionados++;
+    }
+  });
+
+  if(adicionados > 0) {
+    renderProdutos();
+    atualizarBar();
+    salvarRascunhoAutomatico();
+    showToast(`Itens adicionados por voz para ${clienteAtual}!`);
+  } else {
+    showToast("Não reconheci nenhum produto válido no áudio.", true);
+  }
+}
+
+function adicionarNovoClientePrompt(){
+  let nomeCli = prompt("Digite o nome ou apelido da nova pessoa (ex: João, Maria):");
+  if(!nomeCli || !nomeCli.trim()) return;
+  nomeCli = nomeCli.trim();
+  if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
+  clienteAtual = nomeCli;
+  renderAtendimento();
+  showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
 function salvarComanda(numeroMesa) {
@@ -1496,7 +1470,7 @@ function pagarItensSelecionados(num){
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || 'pendente' });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
     });
 
     const vendaParcial = { 
@@ -1865,7 +1839,7 @@ function renderComandas(){
     <div class="section-title">
       <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
     </div>
-    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
+    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no moment.</div>'}
   `;
 }
 
@@ -1884,54 +1858,57 @@ function renderAtendimento(){
   if(!listaPessoasClientes.length) listaPessoasClientes = ["Cliente 1"];
   if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
 
-  let pillsClientesHTML = listaPessoasClientes.map(cli => `
-    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">👤 ${cli}</button>
+  let pillsPessoasHTML = listaPessoasClientes.map(cli => `
+    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${cli}</button>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="topbar" style="margin-bottom:12px">
+    <div class="topbar" style="margin-bottom:14px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
-        <h2>Mesa ${pad(mesaSelecionada)}</h2>
-        <p>Atendimento individual por cliente</p>
+        <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
+        <p>Adicionando para: <b>${clienteAtual}</b></p>
       </div>
-      <button onclick="anotarPedidoPorVoz()" style="background:var(--brand);border:0;color:#fff;border-radius:12px;padding:8px 12px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:4px">🎙️ Falar</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>
+        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:105px">
+      </div>
     </div>
 
-    <div class="card" style="padding:12px;margin-bottom:12px">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-        <div style="flex:1">
-          <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Garçom</label>
-          <input type="text" id="inputGarcomNome" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
-        </div>
-        <div style="flex:1">
-          <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Pessoa / Cliente Atual</label>
-          <div style="display:flex;gap:4px;align-items:center">
-            <input type="text" id="inputClienteNome" value="${clienteAtual}" oninput="mudarClienteAtual(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
-            <button onclick="renomearClienteAtual()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:13px" title="Renomear Cliente">✏️</button>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:4px">
+    <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-x:auto">
+      <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px;flex:1">
         <span style="font-size:11px;font-weight:900;color:var(--muted);white-space:nowrap">Pessoas:</span>
-        ${pillsClientesHTML}
-        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:99px;border:1px dashed var(--brand);background:transparent;color:var(--brand);font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap">+ Nova Pessoa</button>
+        ${pillsPessoasHTML}
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
+        <button onclick="renomearClienteAtual()" style="padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
       </div>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Buscar prato, bebida ou petisco..." oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Pesquisar qualquer produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">
-        ${catBtns}
-      </div>
+      <div class="side-cats">${catBtns}</div>
       <div class="products-list" id="produtos"></div>
     </div>
   `;
   renderProdutos();
+}
+
+function renderizar(){
+  if(telaAtual === 'mesas') renderMesas();
+  else if(telaAtual === 'comandas') renderComandas();
+  else if(telaAtual === 'relatorios') renderRelatorios();
+  else if(telaAtual === 'atendimento') renderAtendimento();
+}
+
+if(usuarioLogadoEmail){
+  iniciarOuvintesFirebase();
+  renderizar();
 }
 </script>
 </body>
