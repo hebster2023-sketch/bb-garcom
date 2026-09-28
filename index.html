@@ -1133,8 +1133,6 @@ function renderCozinha(){
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c && c.itens && c.itens.length > 0){
-      let itensPendentesOuPreparando = c.itens.filter(it => it.statusCozinha !== 'pronto');
-      
       cardsCozinhaHTML.push(`
         <div class="card command" style="border-left: 4px solid var(--brand)">
           <div class="row" style="align-items:center;margin-bottom:10px">
@@ -1941,37 +1939,47 @@ function renderAtendimento(){
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="topbar" style="margin-bottom:14px">
+    <div class="topbar" style="margin-bottom:12px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
-        <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
-        <p>Adicionando para: <b>${clienteAtual}</b></p>
+        <h2>Mesa ${pad(mesaSelecionada)}</h2>
+        <p>Atendimento por cliente e controle de comanda</p>
       </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>
-        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:105px">
+      <button onclick="anotarPedidoPorVoz()" style="background:var(--brand);color:#fff;border:0;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center" title="Falar Pedido por Voz">🎙️</button>
+    </div>
+
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">👤 Atendendo agora:</label>
+        <div style="display:flex;gap:6px">
+          <button class="secondary" style="width:auto;margin:0;padding:2px 8px;font-size:10px" onclick="adicionarNovoClientePrompt()">+ Nova Pessoa</button>
+          <button class="secondary" style="width:auto;margin:0;padding:2px 8px;font-size:10px" onclick="renomearClienteAtual()">✏️ Renomear</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none">
+        ${pillsPessoasHTML}
       </div>
     </div>
 
-    <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-x:auto">
-      <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px;flex:1">
-        <span style="font-size:11px;font-weight:900;color:var(--muted);white-space:nowrap">Pessoas:</span>
-        ${pillsPessoasHTML}
-      </div>
-      <div style="display:flex;gap:4px;flex-shrink:0">
-        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
-        <button onclick="renomearClienteAtual()" style="padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div style="display:flex;gap:10px">
+        <div style="flex:1">
+          <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Garçom</label>
+          <input type="text" id="inputGarcom" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
+        </div>
       </div>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Pesquisar qualquer produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Pesquisar prato, bebida ou porção..." oninput="filtrarProdutosInput(this.value)" value="${termoBuscaProduto}">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">${catBtns}</div>
-      <div class="products-list" id="produtos"></div>
+      <div class="side-cats">
+        ${catBtns}
+      </div>
+      <div id="produtos" class="products-list"></div>
     </div>
   `;
   renderProdutos();
@@ -1983,11 +1991,6 @@ function renderizar(){
   else if(telaAtual === 'cozinha') renderCozinha();
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
-}
-
-if(usuarioLogadoEmail){
-  iniciarOuvintesFirebase();
-  renderizar();
 }
 </script>
 </body>
