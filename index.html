@@ -728,7 +728,6 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   const fileInput = document.getElementById('inputFotoNovoItem');
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      // Adicionando timestamp para o destaque de novo item (válido por 1 min e meio)
       cardapio[cat].push([nome, preco, base64, desc, false, Date.now()]);
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
@@ -770,12 +769,12 @@ function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
   
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat][idx] = [nome, preco, base64, desc, itemAntigo[4] || false, itemAntigo[5] || 0];
+      cardapio[cat][idx] = [nome, preco, base64, desc, itemAntigo[4] || false, itemAntigo[5] || Date.now()];
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, itemAntigo[4] || false, itemAntigo[5] || 0];
+    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, itemAntigo[4] || false, itemAntigo[5] || Date.now()];
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -1046,7 +1045,6 @@ function renderProdutos(){
    const indisponivel = itemBruto[4] === true;
    const timestampCriacao = itemBruto[5] || 0;
    
-   // Verifica se o item foi criado há menos de 1 minuto e meio (destaque)
    const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < umMinutoMeio));
    const q = cliMap[nome] || 0;
    
@@ -1319,33 +1317,13 @@ function executarTransferencia(numOrigem){
 
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
- document.getElementById("modalTitle").textContent = `Resumo e Baixa - Mesa ${pad(num)}`;
+ document.getElementById("modalTitle").textContent = `Pagamento — Mesa ${pad(num)}`;
  
- // Tela de resumo do cliente mais discreta e limpa, mostrando apenas o que consumiu e o que já foi pago
- let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
-   <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-     <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
-     <b>${br(i.qtd * i.preco)}</b>
-   </div>
- `).join('') : '<div style="font-size:11px;color:var(--muted)">Nenhum consumo pendente.</div>';
-
- let itensPagosAnterioresHTML = (c.itensPagos || []).length ? (c.itensPagos || []).map(i => `
-   <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#10b981">
-     <span>✅ <b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome} (Pago)</span>
-     <span>${br(i.qtd * i.preco)}</span>
-   </div>
- `).join('') : '';
-
  document.getElementById("modalBody").innerHTML = `
-  <div style="background:var(--input-bg);padding:12px;border-radius:14px;margin-bottom:14px;border:1px solid var(--border)">
-    <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🧾 CONSUMO DO CLIENTE:</div>
-    <div style="max-height:140px;overflow:auto">${itensPendentesHTML}</div>
-    ${itensPagosAnterioresHTML ? `<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:6px">${itensPagosAnterioresHTML}</div>` : ''}
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:6px;border-top:1px solid var(--border);font-size:13px">
-      <span style="font-weight:700">Total Consumido:</span>
-      <b style="color:var(--brand);font-size:15px">${br(c.total)}</b>
-    </div>
-  </div>
+  <!-- Botão grande vermelho discreto para abrir a janela de consumo do cliente -->
+  <button class="primary" style="background:var(--brand);margin-bottom:14px;font-size:13px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="abrirJanelaConsumoCliente(${num})">
+    <span>🧾</span> Consumo do Cliente
+  </button>
 
   <div style="margin-bottom:12px">
     <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💳 Forma de Pagamento</label>
@@ -1385,6 +1363,37 @@ function dividirContaModal(num){
   <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
+}
+
+function abrirJanelaConsumoCliente(num){
+  const c = comandas[num]; if(!c) return;
+  
+  let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
+    <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
+      <b>${br(i.qtd * i.preco)}</b>
+    </div>
+  `).join('') : '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px">Nenhum consumo pendente.</div>';
+
+  let itensPagosAnterioresHTML = (c.itensPagos || []).length ? (c.itensPagos || []).map(i => `
+    <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;color:#10b981">
+      <span>✅ <b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome} (Pago)</span>
+      <span>${br(i.qtd * i.preco)}</span>
+    </div>
+  `).join('') : '';
+
+  document.getElementById("modalTitle").textContent = `🧾 Consumo do Cliente — Mesa ${pad(num)}`;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="background:var(--input-bg);padding:12px;border-radius:14px;margin-bottom:14px;border:1px solid var(--border)">
+      <div style="max-height:220px;overflow:auto">${itensPendentesHTML}</div>
+      ${itensPagosAnterioresHTML ? `<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px">${itensPagosAnterioresHTML}</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:13px">
+        <span style="font-weight:700">Total Consumido:</span>
+        <b style="color:var(--brand);font-size:16px">${br(c.total)}</b>
+      </div>
+    </div>
+    <button class="secondary" onclick="dividirContaModal(${num})">← Voltar para Pagamento</button>
+  `;
 }
 
 function mudarQtdPagamento(idx, delta, maxQtd){
@@ -1615,7 +1624,6 @@ function renderRelatorios(){
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
     </div>
 
-    <!-- RELATÓRIO DETALHADO DOS GARÇONS (Com mesas, lucro/total gerado e data/horário exato) -->
     <div class="card" style="padding:14px;margin-bottom:14px">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (Hoje)</h3>
       <div style="display:flex;flex-direction:column;gap:8px">
