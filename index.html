@@ -86,6 +86,24 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .timer.tempo-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* Estilo para novo item adicionado recentemente (1 minuto e meio) */
+.item-novo-destaque {
+  border: 2px solid #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  position: relative;
+}
+.badge-novo-item {
+  font-size: 8px;
+  background: #38bdf8;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 900;
+  margin-left: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 /* Cards Genéricos */
 .card{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px}
 .section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 10px;font-size:1.1rem;color:#ff5252;border-bottom:2px solid var(--brand);padding-bottom:5px}.section-title h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
@@ -565,10 +583,9 @@ function carregarCardapioDinamico(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       cardapio = doc.data().dados;
-      // Normalizar formato antigo caso não tenha o 5º elemento (indisponível)
       for(let cat in cardapio){
         cardapio[cat] = cardapio[cat].map(item => {
-          if(item.length < 5) item[5] = false; // índice 4 é indisponível
+          if(item.length < 5) item[5] = false; 
           return item;
         });
       }
@@ -711,12 +728,13 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   const fileInput = document.getElementById('inputFotoNovoItem');
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat].push([nome, preco, base64, desc, false]);
+      // Adicionando timestamp para o destaque de novo item (válido por 1 min e meio)
+      cardapio[cat].push([nome, preco, base64, desc, false, Date.now()]);
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat].push([nome, preco, "🍖", desc, false]);
+    cardapio[cat].push([nome, preco, "🍖", desc, false, Date.now()]);
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -752,12 +770,12 @@ function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
   
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat][idx] = [nome, preco, base64, desc, itemAntigo[4] || false];
+      cardapio[cat][idx] = [nome, preco, base64, desc, itemAntigo[4] || false, itemAntigo[5] || 0];
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, itemAntigo[4] || false];
+    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, itemAntigo[4] || false, itemAntigo[5] || 0];
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -951,7 +969,15 @@ function produtosFlat(){
   let a = []; 
   for(const cat in cardapio) {
     cardapio[cat].forEach(p => {
-      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", indisponivel: p[4] === true, cat});
+      a.push({
+        nome: p[0], 
+        preco: p[1], 
+        icon: p[2], 
+        desc: p[3] || "", 
+        indisponivel: p[4] === true, 
+        criadoEmItem: p[5] || 0,
+        cat
+      });
     });
   } 
   return a; 
@@ -1009,12 +1035,19 @@ function renderProdutos(){
    listaProd = produtosFlat().filter(p => p.nome.toLowerCase().includes(termoBuscaProduto));
  }
 
+ const agora = Date.now();
+ const umMinutoMeio = 90000; // 1 minuto e meio em milissegundos
+
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
    const preco = itemBruto[1];
    const icon = itemBruto[2];
    const desc = itemBruto[3] || "";
    const indisponivel = itemBruto[4] === true;
+   const timestampCriacao = itemBruto[5] || 0;
+   
+   // Verifica se o item foi criado há menos de 1 minuto e meio (destaque)
+   const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < umMinutoMeio));
    const q = cliMap[nome] || 0;
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
@@ -1026,10 +1059,14 @@ function renderProdutos(){
      }
    }
    
-   return `<div class="product-card ${q ? "selected" : ""} ${indisponivel ? "indisponivel" : ""}">
+   return `<div class="product-card ${q ? "selected" : ""} ${indisponivel ? "indisponivel" : ""} ${ehNovoDestaque ? "item-novo-destaque" : ""}">
      <div class="prod-thumb">${renderThumb}</div>
      <div class="prod-info">
-       <div class="prod-title">${nome} ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}</div>
+       <div class="prod-title">
+         ${nome} 
+         ${ehNovoDestaque ? '<span class="badge-novo-item">NOVO!</span>' : ''}
+         ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
+       </div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
        <div class="prod-price">R$ ${preco.toFixed(2)}</div>
      </div>
@@ -1083,12 +1120,10 @@ function anotarPedidoPorVoz() {
 
 function processarTextoVoz(texto) {
   let todosProdutos = produtosFlat();
-  // Exemplo simples de extração baseada em correspondência de nome no cardápio
   let adicionados = 0;
   todosProdutos.forEach(p => {
     let nomeLower = p.nome.toLowerCase();
     if(texto.includes(nomeLower) && !p.indisponivel) {
-      // Tenta achar um número antes do nome ou assume 1
       let qtd = 1;
       const regex = new RegExp(`(\\d+)\\s*(?:x)?\\s*${nomeLower}`, 'i');
       const match = texto.match(regex);
@@ -1284,15 +1319,15 @@ function executarTransferencia(numOrigem){
 
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
- document.getElementById("modalTitle").textContent = `Baixa e Pagamento - Mesa ${pad(num)}`;
+ document.getElementById("modalTitle").textContent = `Resumo e Baixa - Mesa ${pad(num)}`;
  
- // Exibição detalhada de itens pendentes e pagos para o cliente conferir
+ // Tela de resumo do cliente mais discreta e limpa, mostrando apenas o que consumiu e o que já foi pago
  let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
-   <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)">
+   <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
      <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
-     <b style="color:var(--brand)">${br(i.qtd * i.preco)}</b>
+     <b>${br(i.qtd * i.preco)}</b>
    </div>
- `).join('') : '<div style="font-size:11px;color:var(--muted)">Nenhum item pendente.</div>';
+ `).join('') : '<div style="font-size:11px;color:var(--muted)">Nenhum consumo pendente.</div>';
 
  let itensPagosAnterioresHTML = (c.itensPagos || []).length ? (c.itensPagos || []).map(i => `
    <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#10b981">
@@ -1302,15 +1337,14 @@ function dividirContaModal(num){
  `).join('') : '';
 
  document.getElementById("modalBody").innerHTML = `
-  <div style="background:var(--input-bg);padding:10px;border-radius:12px;margin-bottom:12px;border:1px solid var(--border)">
-    <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px">📋 RESUMO PARA O CLIENTE CONFERIR:</div>
-    <div style="max-height:110px;overflow:auto;margin-bottom:6px">${itensPendentesHTML}</div>
-    ${itensPagosAnterioresHTML ? `<div style="margin-top:6px;border-top:1px dashed var(--border);padding-top:4px">${itensPagosAnterioresHTML}</div>` : ''}
-  </div>
-
-  <div style="text-align:center;margin-bottom:12px">
-    <div style="font-size:12px;color:var(--muted)">Total Restante da Comanda</div>
-    <div style="font-size:22px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
+  <div style="background:var(--input-bg);padding:12px;border-radius:14px;margin-bottom:14px;border:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🧾 CONSUMO DO CLIENTE:</div>
+    <div style="max-height:140px;overflow:auto">${itensPendentesHTML}</div>
+    ${itensPagosAnterioresHTML ? `<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:6px">${itensPagosAnterioresHTML}</div>` : ''}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:6px;border-top:1px solid var(--border);font-size:13px">
+      <span style="font-weight:700">Total Consumido:</span>
+      <b style="color:var(--brand);font-size:15px">${br(c.total)}</b>
+    </div>
   </div>
 
   <div style="margin-bottom:12px">
@@ -1581,27 +1615,36 @@ function renderRelatorios(){
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
     </div>
 
+    <!-- RELATÓRIO DETALHADO DOS GARÇONS (Com mesas, lucro/total gerado e data/horário exato) -->
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Vendas e Pagamentos por Garçom Hoje</h3>
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (Hoje)</h3>
+      <div style="display:flex;flex-direction:column;gap:8px">
       ${(function(){
-         let garcomVendas = {};
+         let htmlGarcons = "";
+         if(!vendasHoje.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons hoje.</div>';
+
          vendasHoje.forEach(v => {
-            let g = v.garcom || "Hebster";
-            if(!garcomVendas[g]) garcomVendas[g] = { total: 0, qtd: 0 };
-            garcomVendas[g].total += Number(v.total || 0);
-            garcomVendas[g].qtd += 1;
+           let garcomNome = v.garcom || "Hebster";
+           let mesaNum = pad(v.mesa || 0);
+           let horarioExato = v.horario || "--:--";
+           let dataExata = v.data || hoje;
+           let valorGerado = Number(v.total || 0);
+           let formaPag = v.pagamento || "Pix";
+
+           htmlGarcons += `
+             <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);font-size:12px">
+               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                 <b style="color:var(--brand)">👤 Garçom: ${garcomNome}</b>
+                 <span style="font-size:11px;color:var(--muted);font-weight:700">📅 ${dataExata} às ${horarioExato}</span>
+               </div>
+               <div style="display:flex;justify-content:space-between;align-items:center">
+                 <span>🪑 Mesa atendida/fechada: <b>Mesa ${mesaNum}</b> (${formaPag})</span>
+                 <b style="color:#10b981;font-size:13px">${br(valorGerado)}</b>
+               </div>
+             </div>
+           `;
          });
-         let html = Object.keys(garcomVendas).map(g => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-              <div>
-                <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
-              </div>
-              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
-            </div>
-         `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
+         return htmlGarcons;
       })()}
       </div>
     </div>
