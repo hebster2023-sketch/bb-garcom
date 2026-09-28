@@ -169,6 +169,10 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   border-color: var(--brand);
   box-shadow: 0 6px 16px rgba(211,47,47,0.1);
 }
+.product-card.indisponivel {
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
 .prod-thumb {
   width: 65px;
   height: 65px;
@@ -485,75 +489,75 @@ function showToast(msg, isError = false){
 // ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
-    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango"],
-    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado"],
-    ["Linguiça", 8, "🍖", ""],
-    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado"],
-    ["Coração de boi", 8, "🍖", ""],
-    ["Carne", 8, "🍖", ""],
-    ["Tripa", 8, "🍖", ""]
+    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false],
+    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado", false],
+    ["Linguiça", 8, "🍖", "", false],
+    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado", false],
+    ["Coração de boi", 8, "🍖", "", false],
+    ["Carne", 8, "🍖", "", false],
+    ["Tripa", 8, "🍖", "", false]
   ],
   "CARANGUEJO":[
-    ["Caranguejo Unidade", 8, "🦀", ""],
-    ["Combo 4 Caranguejos", 28, "🦀", ""],
-    ["Caldo de Caranguejo", 5, "🦀", ""]
+    ["Caranguejo Unidade", 8, "🦀", "", false],
+    ["Combo 4 Caranguejos", 28, "🦀", "", false],
+    ["Caldo de Caranguejo", 5, "🦀", "", false]
   ],
   "BEBIDAS":[
-    ["Skol", 5, "🍺", ""],
-    ["Brahma Chopp", 5, "🍺", ""],
-    ["Brahma Puro Malte", 5, "🍺", ""],
-    ["Império", 9, "🍺", ""],
-    ["Heineken", 9, "🍺", ""],
-    ["Corona Extra", 10, "🍺", ""],
-    ["Budweiser", 8, "🍺", ""],
-    ["Vinho", 8, "🍷", ""],
-    ["Caipirinha", 15, "🍸", ""],
-    ["Energético Red bull", 12, "🥤", "Lata"],
-    ["Kit gin", 80, "🍸", "Gin rock’s / energético Baly / Gelo"],
-    ["Stella gold", 11, "🍺", ""],
-    ["Ice cabaré", 9, "🍺", ""],
-    ["Balde Skol", 50, "🍺", ""],
-    ["Balde Brahma", 50, "🍺", ""],
-    ["Terça amarela", 7, "🍺", ""],
-    ["Terça prata", 6, "🍺", ""],
-    ["Meio litro amarela", 16, "🍺", ""],
-    ["Meio litro prata", 15, "🍺", ""],
-    ["Litro da amarela", 35, "🍺", ""],
-    ["Litro da prata", 30, "🍺", ""]
+    ["Skol", 5, "🍺", "", false],
+    ["Brahma Chopp", 5, "🍺", "", false],
+    ["Brahma Puro Malte", 5, "🍺", "", false],
+    ["Império", 9, "🍺", "", false],
+    ["Heineken", 9, "🍺", "", false],
+    ["Corona Extra", 10, "🍺", "", false],
+    ["Budweiser", 8, "🍺", "", false],
+    ["Vinho", 8, "🍷", "", false],
+    ["Caipirinha", 15, "🍸", "", false],
+    ["Energético Red bull", 12, "🥤", "Lata", false],
+    ["Kit gin", 80, "🍸", "Gin rock’s / energético Baly / Gelo", false],
+    ["Stella gold", 11, "🍺", "", false],
+    ["Ice cabaré", 9, "🍺", "", false],
+    ["Balde Skol", 50, "🍺", "", false],
+    ["Balde Brahma", 50, "🍺", "", false],
+    ["Terça amarela", 7, "🍺", "", false],
+    ["Terça prata", 6, "🍺", "", false],
+    ["Meio litro amarela", 16, "🍺", "", false],
+    ["Meio litro prata", 15, "🍺", "", false],
+    ["Litro da amarela", 35, "🍺", "", false],
+    ["Litro da prata", 30, "🍺", "", false]
   ],
   "GUARNIÇÕES":[
-    ["Baião caseiro grande", 8, "🍚", ""],
-    ["Baião caseiro pequeno", 4, "🍚", ""],
-    ["Baião cremoso grande", 10, "🍚", ""],
-    ["Baião cremoso pequeno", 5, "🍚", ""],
-    ["Feijão verde", 25, "🍲", "Combo"],
-    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz"]
+    ["Baião caseiro grande", 8, "🍚", "", false],
+    ["Baião caseiro pequeno", 4, "🍚", "", false],
+    ["Baião cremoso grande", 10, "🍚", "", false],
+    ["Baião cremoso pequeno", 5, "🍚", "", false],
+    ["Feijão verde", 25, "🍲", "Combo", false],
+    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false]
   ],
   "PETISCOS":[
-    ["Batata frita", 15, "🍟", ""],
-    ["Calabresa acebolada", 15, "🍢", ""],
-    ["Camarão (porção)", 25, "🍤", ""],
-    ["Bolinha carne do sol", 18, "🧀", ""],
-    ["Bolinha de queijo", 15, "🧀", ""]
+    ["Batata frita", 15, "🍟", "", false],
+    ["Calabresa acebolada", 15, "🍢", "", false],
+    ["Camarão (porção)", 25, "🍤", "", false],
+    ["Bolinha carne do sol", 18, "🧀", "", false],
+    ["Bolinha de queijo", 15, "🧀", "", false]
   ],
   "REFRIGERANTES":[
-    ["Coca-Cola 1L", 8, "🥤", ""],
-    ["Guaraná 1L", 7, "🥤", ""],
-    ["Pepsi 1L", 7, "🥤", ""],
-    ["Coca-Cola lata", 5, "🥤", ""],
-    ["Fanta lata", 5, "🥤", ""],
-    ["Sprite lata", 6, "🥤", ""],
-    ["Água", 3, "💧", ""],
-    ["Água com gás", 4, "💧", ""]
+    ["Coca-Cola 1L", 8, "🥤", "", false],
+    ["Guaraná 1L", 7, "🥤", "", false],
+    ["Pepsi 1L", 7, "🥤", "", false],
+    ["Coca-Cola lata", 5, "🥤", "", false],
+    ["Fanta lata", 5, "🥤", "", false],
+    ["Sprite lata", 6, "🥤", "", false],
+    ["Água", 3, "💧", "", false],
+    ["Água com gás", 4, "💧", "", false]
   ],
   "SUCOS":[
-    ["Suco Maracujá 400ml", 8, "🧃", ""],
-    ["Suco Manga 400ml", 7, "🧃", ""],
-    ["Suco Goiaba 400ml", 7, "🧃", ""]
+    ["Suco Maracujá 400ml", 8, "🧃", "", false],
+    ["Suco Manga 400ml", 7, "🧃", "", false],
+    ["Suco Goiaba 400ml", 7, "🧃", "", false]
   ],
   "DIVERSOS":[
-    ["Cigarro", 7, "🚬", "Carteira"],
-    ["Partilha halls", 3, "🍬", ""]
+    ["Cigarro", 7, "🚬", "Carteira", false],
+    ["Partilha halls", 3, "🍬", "", false]
   ]
 };
 
@@ -561,6 +565,13 @@ function carregarCardapioDinamico(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       cardapio = doc.data().dados;
+      // Normalizar formato antigo caso não tenha o 5º elemento (indisponível)
+      for(let cat in cardapio){
+        cardapio[cat] = cardapio[cat].map(item => {
+          if(item.length < 5) item[5] = false; // índice 4 é indisponível
+          return item;
+        });
+      }
       if(telaAtual === "atendimento") renderProdutos();
     }
   }).catch(()=>{});
@@ -621,23 +632,26 @@ function renderizarPainelAdmin(){
         <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${cat}')">+ Novo Item</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        ${cardapio[cat].map((item, idx) => `
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px">
+        ${cardapio[cat].map((item, idx) => {
+          let indisponivel = item[4] === true;
+          return `
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:10px;border:1px solid var(--border);font-size:12px;opacity:${indisponivel ? '0.6' : '1'}">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
               <div style="width:36px;height:36px;border-radius:8px;background:var(--card);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
-                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]}</b>
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
                 <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️ Editar</button>
-              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 10px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="alternarIndisponivelAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.1)'};color:${indisponivel ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Disponível' : 'Esgotar'}</button>
+              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
+              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
     </div>
   `).join('');
@@ -652,6 +666,12 @@ function renderizarPainelAdmin(){
     <button class="secondary" onclick="fecharModal()">Fechar Painel</button>
   `;
   document.getElementById("modal").classList.add("show");
+}
+
+function alternarIndisponivelAdmin(cat, idx){
+  cardapio[cat][idx][4] = !cardapio[cat][idx][4];
+  salvarCardapioDinamicoNoFirebase();
+  renderizarPainelAdmin();
 }
 
 function adicionarCategoriaAdmin(){
@@ -691,12 +711,12 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   const fileInput = document.getElementById('inputFotoNovoItem');
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat].push([nome, preco, base64, desc]);
+      cardapio[cat].push([nome, preco, base64, desc, false]);
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat].push([nome, preco, "🍖", desc]);
+    cardapio[cat].push([nome, preco, "🍖", desc, false]);
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -732,12 +752,12 @@ function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
   
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat][idx] = [nome, preco, base64, desc];
+      cardapio[cat][idx] = [nome, preco, base64, desc, itemAntigo[4] || false];
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc];
+    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, itemAntigo[4] || false];
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -914,6 +934,11 @@ function salvarRascunhoAutomatico(){
 }
 
 function alterarQtd(nome, delta){ 
+  let pObj = produtosFlat().find(p => p.nome === nome);
+  if(pObj && pObj.indisponivel){
+    showToast(`O item "${nome}" está esgotado no momento.`, true);
+    return;
+  }
   if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
   pedidoTemp[clienteAtual][nome] = (pedidoTemp[clienteAtual][nome] || 0) + delta; 
   if(pedidoTemp[clienteAtual][nome] < 0) pedidoTemp[clienteAtual][nome] = 0; 
@@ -926,7 +951,7 @@ function produtosFlat(){
   let a = []; 
   for(const cat in cardapio) {
     cardapio[cat].forEach(p => {
-      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", cat});
+      a.push({nome: p[0], preco: p[1], icon: p[2], desc: p[3] || "", indisponivel: p[4] === true, cat});
     });
   } 
   return a; 
@@ -989,6 +1014,7 @@ function renderProdutos(){
    const preco = itemBruto[1];
    const icon = itemBruto[2];
    const desc = itemBruto[3] || "";
+   const indisponivel = itemBruto[4] === true;
    const q = cliMap[nome] || 0;
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
@@ -1000,15 +1026,15 @@ function renderProdutos(){
      }
    }
    
-   return `<div class="product-card ${q ? "selected" : ""}">
+   return `<div class="product-card ${q ? "selected" : ""} ${indisponivel ? "indisponivel" : ""}">
      <div class="prod-thumb">${renderThumb}</div>
      <div class="prod-info">
-       <div class="prod-title">${nome}</div>
+       <div class="prod-title">${nome} ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}</div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
        <div class="prod-price">R$ ${preco.toFixed(2)}</div>
      </div>
      <div class="prod-action-qty">
-       ${q === 0 ? `
+       ${indisponivel ? `<span style="font-size:11px;color:#d32f2f;font-weight:900">Indisponível</span>` : (q === 0 ? `
          <button class="btn-circle-plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
        ` : `
          <div class="qty-control-inline">
@@ -1016,7 +1042,7 @@ function renderProdutos(){
            <span>${q}</span>
            <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
          </div>
-       `}
+       `)}
      </div>
    </div>`;
  }).join("");
@@ -1025,6 +1051,64 @@ function renderProdutos(){
    document.querySelectorAll(".side-cat").forEach(x => x.classList.toggle("active", x.dataset.cat === categoriaAtual));
  }
  atualizarBar();
+}
+
+// ----------------- ANOTAÇÃO DE PEDIDOS POR VOZ -----------------
+function anotarPedidoPorVoz() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast("Seu navegador não suporta reconhecimento de voz.", true);
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'pt-BR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  showToast("Ouvindo... Fale os itens (ex: 2 frango, 1 coca-cola)");
+
+  recognition.onresult = function(event) {
+    const textoFalado = event.results[0][0].transcript.toLowerCase();
+    showToast(`Comando de voz: "${textoFalado}"`);
+    processarTextoVoz(textoFalado);
+  };
+
+  recognition.onerror = function(event) {
+    showToast("Erro no reconhecimento de voz: " + event.error, true);
+  };
+
+  recognition.start();
+}
+
+function processarTextoVoz(texto) {
+  let todosProdutos = produtosFlat();
+  // Exemplo simples de extração baseada em correspondência de nome no cardápio
+  let adicionados = 0;
+  todosProdutos.forEach(p => {
+    let nomeLower = p.nome.toLowerCase();
+    if(texto.includes(nomeLower) && !p.indisponivel) {
+      // Tenta achar um número antes do nome ou assume 1
+      let qtd = 1;
+      const regex = new RegExp(`(\\d+)\\s*(?:x)?\\s*${nomeLower}`, 'i');
+      const match = texto.match(regex);
+      if(match && match[1]) {
+        qtd = parseInt(match[1]);
+      }
+      if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
+      pedidoTemp[clienteAtual][p.nome] = (pedidoTemp[clienteAtual][p.nome] || 0) + qtd;
+      adicionados++;
+    }
+  });
+
+  if(adicionados > 0) {
+    renderProdutos();
+    atualizarBar();
+    salvarRascunhoAutomatico();
+    showToast(`Itens adicionados por voz para ${clienteAtual}!`);
+  } else {
+    showToast("Não reconheci nenhum produto válido no áudio.", true);
+  }
 }
 
 function adicionarNovoClientePrompt(){
@@ -1201,7 +1285,29 @@ function executarTransferencia(numOrigem){
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  document.getElementById("modalTitle").textContent = `Baixa e Pagamento - Mesa ${pad(num)}`;
+ 
+ // Exibição detalhada de itens pendentes e pagos para o cliente conferir
+ let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
+   <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)">
+     <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
+     <b style="color:var(--brand)">${br(i.qtd * i.preco)}</b>
+   </div>
+ `).join('') : '<div style="font-size:11px;color:var(--muted)">Nenhum item pendente.</div>';
+
+ let itensPagosAnterioresHTML = (c.itensPagos || []).length ? (c.itensPagos || []).map(i => `
+   <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#10b981">
+     <span>✅ <b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome} (Pago)</span>
+     <span>${br(i.qtd * i.preco)}</span>
+   </div>
+ `).join('') : '';
+
  document.getElementById("modalBody").innerHTML = `
+  <div style="background:var(--input-bg);padding:10px;border-radius:12px;margin-bottom:12px;border:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px">📋 RESUMO PARA O CLIENTE CONFERIR:</div>
+    <div style="max-height:110px;overflow:auto;margin-bottom:6px">${itensPendentesHTML}</div>
+    ${itensPagosAnterioresHTML ? `<div style="margin-top:6px;border-top:1px dashed var(--border);padding-top:4px">${itensPagosAnterioresHTML}</div>` : ''}
+  </div>
+
   <div style="text-align:center;margin-bottom:12px">
     <div style="font-size:12px;color:var(--muted)">Total Restante da Comanda</div>
     <div style="font-size:22px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
@@ -1428,8 +1534,8 @@ function limparRelatorios(){
 
 function renderRelatorios(){
   let hoje = new Date().toLocaleDateString('pt-BR');
-  let vendasHoje = historicoVendas.filter(v => v.data === hoje || !v.data); 
-  let despesasHoje = despesas.filter(d => d.data === hoje || !d.data);
+  let vendasHoje = historicoVendas.filter(v => v.data === hoje); 
+  let despesasHoje = despesas.filter(d => d.data === hoje);
   
   let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
   
@@ -1529,10 +1635,10 @@ function renderRelatorios(){
       </div>
     </div>
 
-    ${cancelamentos.filter(c => c.data === hoje || !c.data).length ? `
+    ${cancelamentos.filter(c => c.data === hoje).length ? `
     <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Hoje</h3>
-      ${cancelamentos.filter(c => c.data === hoje || !c.data).map(c => `
+      ${cancelamentos.filter(c => c.data === hoje).map(c => `
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
           <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)}</b> <b>${br(c.totalCancelado)}</b></div>
           <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
@@ -1698,8 +1804,9 @@ function renderAtendimento(){
         <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
         <p>Adicionando para: <b>${clienteAtual}</b></p>
       </div>
-      <div>
-        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:120px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>
+        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:105px">
       </div>
     </div>
 
