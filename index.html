@@ -320,7 +320,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
         <input type="password" id="login-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
       </div>
-      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
+      <!-- CORREÇÃO: Exibição dinâmica do erro do Firebase -->
+      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none"></div>
       <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(211,47,47,0.25)">Entrar no Sistema</button>
     </form>
   </div>
@@ -810,19 +811,32 @@ function iniciarOuvintesFirebase() {
   }, err => console.error(err));
 }
 
+// CORREÇÃO: Tratamento detalhado do erro de login do Firebase
 function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  document.getElementById('login-error').style.display = 'none';
+  const errorEl = document.getElementById('login-error');
+  errorEl.style.display = 'none';
 
   firebase.auth().signInWithEmailAndPassword(email, pass)
     .then((userCredential)=>{
       usuarioLogadoEmail = userCredential.user.email;
       concluirLogin(usuarioLogadoEmail);
     })
-    .catch(()=>{
-      document.getElementById('login-error').style.display = 'block';
+    .catch((error)=>{
+      errorEl.style.display = 'block';
+      if(error.code === 'auth/user-not-found') {
+        errorEl.textContent = 'Usuário não cadastrado.';
+      } else if(error.code === 'auth/wrong-password') {
+        errorEl.textContent = 'Senha incorreta.';
+      } else if(error.code === 'auth/invalid-email') {
+        errorEl.textContent = 'E-mail inválido.';
+      } else if(error.code === 'auth/invalid-credential') {
+        errorEl.textContent = 'E-mail ou senha incorretos.';
+      } else {
+        errorEl.textContent = 'Erro: ' + error.message;
+      }
     });
 }
 
@@ -1140,7 +1154,6 @@ function salvarComanda(numeroMesa) {
     const comandaAtual = comandas[numMesaStr] || {};
     let totalGeralAcumulado = totalTemp();
 
-    // Mantém o timestamp de criação original se já existir, senão define agora para novos itens
     const itensComTimestamp = itens.map(it => {
       let existente = comandaAtual.itens ? comandaAtual.itens.find(i => i.cliente === it.cliente && i.nome === it.nome) : null;
       return {
@@ -1303,7 +1316,6 @@ function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  document.getElementById("modalTitle").textContent = `Resumo e Baixa - Mesa ${pad(num)}`;
  
- // Tela discreta para o cliente conferir somente o que ele já passou/consumiu (sem os botões e confusões extras)
  let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
      <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
@@ -1740,7 +1752,6 @@ function renderComandas(){
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
-        // Ordena para que itens adicionados recentemente (dentro de 1 minuto e meio / 90 segundos) fiquem no topo
         let agora = Date.now();
         let itensOrdenados = [...c.itens].sort((a, b) => {
           let tempoA = a.adicionadoEm || 0;
@@ -1877,11 +1888,6 @@ function renderizar(){
   else if(telaAtual === 'comandas') renderComandas();
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
-}
-
-if(usuarioLogadoEmail){
-  iniciarOuvintesFirebase();
-  renderizar();
 }
 </script>
 </body>
