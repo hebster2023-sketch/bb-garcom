@@ -325,8 +325,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 
 <div id="toast-container"></div>
 
-<!-- TELA DE LOGIN -->
-<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
+<!-- TELA DE LOGIN ISOLADA -->
+<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:32px;margin-bottom:6px">🔥</div>
@@ -509,7 +509,6 @@ function showToast(msg, isError = false){
   }, 2500);
 }
 
-// ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
     ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false],
@@ -636,7 +635,6 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
   let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
   if(senha === null) return;
@@ -1109,7 +1107,6 @@ function renderProdutos(){
  atualizarBar();
 }
 
-// ----------------- MÓDULO DA COZINHA (KDS) -----------------
 function atualizarStatusItemCozinha(mesaNum, idxItem, novoStatus){
   const comanda = comandas[mesaNum];
   if(!comanda || !comanda.itens) return;
@@ -1179,7 +1176,6 @@ function renderCozinha(){
   `;
 }
 
-// ----------------- ANOTAÇÃO DE PEDIDOS POR VOZ -----------------
 function anotarPedidoPorVoz() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -1915,7 +1911,7 @@ function renderComandas(){
     <div class="section-title">
       <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
     </div>
-    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no moment.</div>'}
+    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
   `;
 }
 
@@ -1934,63 +1930,61 @@ function renderAtendimento(){
   if(!listaPessoasClientes.length) listaPessoasClientes = ["Cliente 1"];
   if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
 
-  let pillsPessoasHTML = listaPessoasClientes.map(cli => `
-    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${cli}</button>
+  let pillsClientesHTML = listaPessoasClientes.map(cli => `
+    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:11px;cursor:pointer">👤 ${cli}</button>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:12px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
-        <h2>Mesa ${pad(mesaSelecionada)}</h2>
-        <p>Atendimento por cliente e controle de comanda</p>
+        <h2>Atendimento • Mesa ${pad(mesaSelecionada)}</h2>
+        <p>Adicionando itens para <b style="color:var(--brand)">${clienteAtual}</b></p>
       </div>
-      <button onclick="anotarPedidoPorVoz()" style="background:var(--brand);color:#fff;border:0;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center" title="Falar Pedido por Voz">🎙️</button>
+      <button onclick="anotarPedidoPorVoz()" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid #10b981;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center" title="Falar pedido por voz">🎤</button>
     </div>
 
     <div class="card" style="padding:12px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">👤 Atendendo agora:</label>
-        <div style="display:flex;gap:6px">
-          <button class="secondary" style="width:auto;margin:0;padding:2px 8px;font-size:10px" onclick="adicionarNovoClientePrompt()">+ Nova Pessoa</button>
-          <button class="secondary" style="width:auto;margin:0;padding:2px 8px;font-size:10px" onclick="renomearClienteAtual()">✏️ Renomear</button>
+        <span style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase">👥 Pessoas na Mesa</span>
+        <div style="display:flex;gap:4px">
+          <button onclick="renomearClienteAtual()" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer">✏️ Renomear</button>
+          <button onclick="adicionarNovoClientePrompt()" style="background:var(--brand);color:#fff;border:0;border-radius:8px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer">+ Nova Pessoa</button>
         </div>
       </div>
-      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none">
-        ${pillsPessoasHTML}
-      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">${pillsClientesHTML}</div>
     </div>
 
-    <div class="card" style="padding:12px;margin-bottom:12px">
-      <div style="display:flex;gap:10px">
-        <div style="flex:1">
-          <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Garçom</label>
-          <input type="text" id="inputGarcom" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
-        </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Garçom</label>
+        <input type="text" id="inputGarcom" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:700;outline:none">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Ações Rápidas</label>
+        <button class="primary" style="padding:10px;font-size:12px" onclick="abrirCarrinho()">Ver Resumo / Salvar</button>
       </div>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" placeholder="Pesquisar prato, bebida ou porção..." oninput="filtrarProdutosInput(this.value)" value="${termoBuscaProduto}">
+      <input type="text" id="inputBuscaProd" placeholder="Pesquisar prato, bebida ou petisco..." oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">
-        ${catBtns}
-      </div>
-      <div id="produtos" class="products-list"></div>
+      <div class="side-cats">${catBtns}</div>
+      <div class="products-list" id="produtos"></div>
     </div>
   `;
   renderProdutos();
 }
 
 function renderizar(){
-  if(telaAtual === 'mesas') renderMesas();
-  else if(telaAtual === 'comandas') renderComandas();
-  else if(telaAtual === 'cozinha') renderCozinha();
-  else if(telaAtual === 'relatorios') renderRelatorios();
-  else if(telaAtual === 'atendimento') renderAtendimento();
+  if(telaAtual === "mesas") renderMesas();
+  else if(telaAtual === "comandas") renderComandas();
+  else if(telaAtual === "cozinha") renderCozinha();
+  else if(telaAtual === "relatorios") renderRelatorios();
+  else if(telaAtual === "atendimento") renderAtendimento();
 }
 </script>
 </body>
