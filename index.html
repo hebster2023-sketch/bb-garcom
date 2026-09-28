@@ -48,7 +48,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
 /* Navegação Inferior */
-.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
 .bottom button{border:0;background:none;color:var(--muted);font-weight:800;font-size:11px;padding:8px 4px;border-radius:16px;display:flex;flex-direction:column;align-items:center;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);cursor:pointer}
 .bottom button.active{color:var(--brand);background:rgba(211, 47, 47, 0.1);transform:translateY(-2px)}
 .bottom button:active{transform:scale(0.92)}
@@ -86,7 +86,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .timer.tempo-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Estilo para novo item adicionado recentemente (agora com destaque mais chamativo) */
+/* Estilo para novo item adicionado recentemente */
 .item-novo-destaque {
   border: 2px solid #38bdf8 !important;
   background: rgba(56, 189, 248, 0.18) !important;
@@ -371,6 +371,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 <nav class="bottom">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
+ <button id="navCozinha" onclick="mudarTela('cozinha')"><span class="ico">🍳</span>Cozinha</button>
  <button id="navRelatorios" onclick="mudarTela('relatorios')"><span class="ico">📊</span>Relatórios</button>
 </nav>
 
@@ -811,7 +812,7 @@ function iniciarOuvintesFirebase() {
     verificarNovosPedidos(novasComandas);
     comandas = novasComandas;
 
-    if(telaAtual === "mesas" || telaAtual === "comandas") renderizar();
+    if(telaAtual === "mesas" || telaAtual === "comandas" || telaAtual === "cozinha") renderizar();
   }, err => console.error(err));
 
   db.collection("historico").onSnapshot(snapshot => {
@@ -855,12 +856,12 @@ function concluirLogin(email){
   
   if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(2,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
     document.getElementById('navRelatorios').style.display = 'flex';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(3,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(4,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B ADMIN — Gestão Completa';
   }
   iniciarOuvintesFirebase();
@@ -1001,7 +1002,13 @@ function itensTempComClientes(){
             if(itemAntigo) preco = Number(itemAntigo.preco || 0);
         }
         
-        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco });
+        let statusExistente = 'pendente';
+        if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens){
+          let itAnt = comandas[mesaSelecionada].itens.find(x => x.cliente === cli && x.nome === prod);
+          if(itAnt && itAnt.statusCozinha) statusExistente = itAnt.statusCozinha;
+        }
+
+        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, statusCozinha: statusExistente });
       }
     }
   }
@@ -1036,7 +1043,6 @@ function renderProdutos(){
  
  let listaProd = [...(cardapio[categoriaAtual] || [])];
  
- // ORDENAÇÃO: Garante que itens novos criados recentemente apareçam no topo
  listaProd.sort((a, b) => {
    let timeA = a[5] || 0;
    let timeB = b[5] || 0;
@@ -1050,7 +1056,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 300000; // 5 minutos de destaque visível para novos itens
+ const tempoDestaqueLimite = 300000;
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1101,6 +1107,78 @@ function renderProdutos(){
    document.querySelectorAll(".side-cat").forEach(x => x.classList.toggle("active", x.dataset.cat === categoriaAtual));
  }
  atualizarBar();
+}
+
+// ----------------- MÓDULO DA COZINHA (KDS) -----------------
+function atualizarStatusItemCozinha(mesaNum, idxItem, novoStatus){
+  const comanda = comandas[mesaNum];
+  if(!comanda || !comanda.itens) return;
+
+  comanda.itens[idxItem].statusCozinha = novoStatus;
+
+  db.collection("comandas").doc(String(mesaNum)).update({
+    itens: comanda.itens,
+    atualizadoEm: Date.now()
+  }).then(() => {
+    showToast(`Item atualizado para: ${novoStatus.toUpperCase()}`);
+    renderCozinha();
+  }).catch(err => {
+    showToast("Erro ao atualizar status na cozinha: " + err.message, true);
+  });
+}
+
+function renderCozinha(){
+  let cardsCozinhaHTML = [];
+
+  for(let i=1; i<=30; i++){
+    let c = comandas[i];
+    if(c && c.itens && c.itens.length > 0){
+      let itensPendentesOuPreparando = c.itens.filter(it => it.statusCozinha !== 'pronto');
+      
+      cardsCozinhaHTML.push(`
+        <div class="card command" style="border-left: 4px solid var(--brand)">
+          <div class="row" style="align-items:center;margin-bottom:10px">
+            <div>
+              <h3>Mesa ${pad(i)}</h3>
+              <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b> • Pedido feito ${calcularTempoDecorrido(c.criadoEm).texto}</small>
+            </div>
+            <div>
+              <span class="tag">Mesa ${pad(i)}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${c.itens.map((it, idx) => {
+              let status = it.statusCozinha || 'pendente';
+              let corStatus = status === 'preparando' ? '#f59e0b' : (status === 'pronto' ? '#10b981' : 'var(--brand)');
+              let labelStatus = status === 'preparando' ? '🔥 Preparando' : (status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
+
+              return `
+                <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
+                  <div style="flex:1">
+                    <div style="font-size:13px;font-weight:900">
+                      <span style="color:var(--brand)">[${it.cliente || 'Cliente 1'}]</span> ${it.qtd}x${it.nome}
+                    </div>
+                    <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
+                  </div>
+                  <div style="display:flex;gap:4px">
+                    ${status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
+                    ${status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Servido/Pronto</span>`}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `);
+    }
+  }
+
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <div><h2>Módulo Cozinha (KDS)</h2><span class="muted">Controle de preparo de pratos e petiscos</span></div>
+    </div>
+    ${cardsCozinhaHTML.length ? cardsCozinhaHTML.join('') : '<div class="empty">Nenhum pedido na cozinha no momento.</div>'}
+  `;
 }
 
 // ----------------- ANOTAÇÃO DE PEDIDOS POR VOZ -----------------
@@ -1470,7 +1548,7 @@ function pagarItensSelecionados(num){
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || 'pendente' });
     });
 
     const vendaParcial = { 
@@ -1902,6 +1980,7 @@ function renderAtendimento(){
 function renderizar(){
   if(telaAtual === 'mesas') renderMesas();
   else if(telaAtual === 'comandas') renderComandas();
+  else if(telaAtual === 'cozinha') renderCozinha();
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
 }
