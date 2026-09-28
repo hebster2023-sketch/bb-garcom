@@ -565,10 +565,9 @@ function carregarCardapioDinamico(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       cardapio = doc.data().dados;
-      // Normalizar formato antigo caso não tenha o 5º elemento (indisponível)
       for(let cat in cardapio){
         cardapio[cat] = cardapio[cat].map(item => {
-          if(item.length < 5) item[5] = false; // índice 4 é indisponível
+          if(item.length < 5) item[5] = false;
           return item;
         });
       }
@@ -959,6 +958,14 @@ function produtosFlat(){
 
 function itensTempComClientes(){
   let arr = [];
+  const comandaAntiga = comandas[mesaSelecionada] || {};
+  const itensAntigosMap = {};
+  if(comandaAntiga.itens){
+    comandaAntiga.itens.forEach(i => {
+      itensAntigosMap[i.cliente + "_" + i.nome] = i.adicionadoEm || Date.now();
+    });
+  }
+
   for(const cli in pedidoTemp){
     for(const prod in pedidoTemp[cli]){
       let qtd = pedidoTemp[cli][prod];
@@ -966,12 +973,15 @@ function itensTempComClientes(){
         let pObj = produtosFlat().find(p => p.nome === prod);
         let preco = pObj ? pObj.preco : 0;
         
-        if(!pObj && comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
-            let itemAntigo = comandas[mesaSelecionada].itens.find(x => x.nome === prod);
+        if(!pObj && comandaAntiga.itens) {
+            let itemAntigo = comandaAntiga.itens.find(x => x.nome === prod);
             if(itemAntigo) preco = Number(itemAntigo.preco || 0);
         }
         
-        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco });
+        let chave = cli + "_" + prod;
+        let timestampItem = itensAntigosMap[chave] || Date.now();
+
+        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, adicionadoEm: timestampItem });
       }
     }
   }
@@ -1083,12 +1093,10 @@ function anotarPedidoPorVoz() {
 
 function processarTextoVoz(texto) {
   let todosProdutos = produtosFlat();
-  // Exemplo simples de extração baseada em correspondência de nome no cardápio
   let adicionados = 0;
   todosProdutos.forEach(p => {
     let nomeLower = p.nome.toLowerCase();
     if(texto.includes(nomeLower) && !p.indisponivel) {
-      // Tenta achar um número antes do nome ou assume 1
       let qtd = 1;
       const regex = new RegExp(`(\\d+)\\s*(?:x)?\\s*${nomeLower}`, 'i');
       const match = texto.match(regex);
@@ -1132,9 +1140,18 @@ function salvarComanda(numeroMesa) {
     const comandaAtual = comandas[numMesaStr] || {};
     let totalGeralAcumulado = totalTemp();
 
+    // Mantém o timestamp de criação original se já existir, senão define agora para novos itens
+    const itensComTimestamp = itens.map(it => {
+      let existente = comandaAtual.itens ? comandaAtual.itens.find(i => i.cliente === it.cliente && i.nome === it.nome) : null;
+      return {
+        ...it,
+        adicionadoEm: existente ? existente.adicionadoEm : Date.now()
+      };
+    });
+
     const dadosMesa = { 
       garcom: garcomTemp || "Hebster", 
-      itens: itens, 
+      itens: itensComTimestamp, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
       criadoEm: comandaAtual.criadoEm || Date.now(), 
@@ -1284,36 +1301,28 @@ function executarTransferencia(numOrigem){
 
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
- document.getElementById("modalTitle").textContent = `Baixa e Pagamento - Mesa ${pad(num)}`;
+ document.getElementById("modalTitle").textContent = `Resumo e Baixa - Mesa ${pad(num)}`;
  
- // Exibição detalhada de itens pendentes e pagos para o cliente conferir
+ // Tela discreta para o cliente conferir somente o que ele já passou/consumiu (sem os botões e confusões extras)
  let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
-   <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)">
+   <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
      <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
      <b style="color:var(--brand)">${br(i.qtd * i.preco)}</b>
    </div>
  `).join('') : '<div style="font-size:11px;color:var(--muted)">Nenhum item pendente.</div>';
 
- let itensPagosAnterioresHTML = (c.itensPagos || []).length ? (c.itensPagos || []).map(i => `
-   <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#10b981">
-     <span>✅ <b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome} (Pago)</span>
-     <span>${br(i.qtd * i.preco)}</span>
-   </div>
- `).join('') : '';
-
  document.getElementById("modalBody").innerHTML = `
-  <div style="background:var(--input-bg);padding:10px;border-radius:12px;margin-bottom:12px;border:1px solid var(--border)">
-    <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px">📋 RESUMO PARA O CLIENTE CONFERIR:</div>
-    <div style="max-height:110px;overflow:auto;margin-bottom:6px">${itensPendentesHTML}</div>
-    ${itensPagosAnterioresHTML ? `<div style="margin-top:6px;border-top:1px dashed var(--border);padding-top:4px">${itensPagosAnterioresHTML}</div>` : ''}
+  <div style="background:var(--input-bg);padding:12px;border-radius:14px;margin-bottom:14px;border:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:6px">📋 RESUMO DOS ITENS CONSUMIDOS:</div>
+    <div style="max-height:160px;overflow:auto">${itensPendentesHTML}</div>
   </div>
 
-  <div style="text-align:center;margin-bottom:12px">
-    <div style="font-size:12px;color:var(--muted)">Total Restante da Comanda</div>
-    <div style="font-size:22px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
+  <div style="text-align:center;margin-bottom:14px">
+    <div style="font-size:12px;color:var(--muted)">Valor Total Restante</div>
+    <div style="font-size:24px;font-weight:900;color:var(--brand)">${br(c.total)}</div>
   </div>
 
-  <div style="margin-bottom:12px">
+  <div style="margin-bottom:14px">
     <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💳 Forma de Pagamento</label>
     <select id="formaPagamentoSelect" style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
       <option value="Pix">Pix</option>
@@ -1324,31 +1333,31 @@ function dividirContaModal(num){
   </div>
 
   <div class="card" style="padding:14px;margin-bottom:12px">
-    <div style="font-weight:900;margin-bottom:4px;font-size:13px">🎯 Quantidades a Baixar / Pagar na Hora:</div>
-    <div style="max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px">
+    <div style="font-weight:900;margin-bottom:4px;font-size:13px">🎯 Baixa Parcial (Selecione se necessário):</div>
+    <div style="max-height:150px;overflow:auto;display:flex;flex-direction:column;gap:6px">
       ${(c.itens || []).map((i, idx) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:6px 8px;border-radius:10px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
-            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente ?? 'Cliente 1'}]</span>${i.nome}</div>
-            <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
+            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente ?? 'Cliente 1'}]</span> ${i.nome}</div>
+            <div style="font-size:10px;color:var(--muted)"><b>${i.qtd}x</b> (${br(i.preco)})</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
-            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente ?? 'Cliente 1'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
-            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
+            <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:28px;height:28px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:14px;cursor:pointer">−</button>
+            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente ?? 'Cliente 1'}" style="font-weight:900;width:20px;text-align:center;font-size:13px">0</span>
+            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:28px;height:28px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:14px;cursor:pointer">+</button>
           </div>
         </div>
       `).join("")}
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:13px">
-      <span style="font-weight:700">Total Selecionado:</span>
-      <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:12px">
+      <span>Selecionado:</span>
+      <b id="lblTotalSelecionado" style="color:var(--brand);font-size:14px">R$ 0,00</b>
     </div>
-    <button class="primary" style="margin-top:10px;background:#10b981;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="pagarItensSelecionados(${num})">✅ Pagar na Hora (Manter Mesa Aberta)</button>
+    <button class="primary" style="margin-top:8px;background:#10b981;font-size:12px;padding:10px" onclick="pagarItensSelecionados(${num})">✅ Pagar Selecionados</button>
   </div>
 
-  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
-  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
+  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:12px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:10px">⚠️ Cancelar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1413,7 +1422,7 @@ function pagarItensSelecionados(num){
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, adicionadoEm: it.adicionadoEm });
     });
 
     const vendaParcial = { 
@@ -1582,23 +1591,36 @@ function renderRelatorios(){
     </div>
 
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Vendas e Pagamentos por Garçom Hoje</h3>
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado por Garçom Hoje</h3>
+      <div style="display:flex;flex-direction:column;gap:10px">
       ${(function(){
-         let garcomVendas = {};
+         let garcomAtendimentos = {};
          vendasHoje.forEach(v => {
             let g = v.garcom || "Hebster";
-            if(!garcomVendas[g]) garcomVendas[g] = { total: 0, qtd: 0 };
-            garcomVendas[g].total += Number(v.total || 0);
-            garcomVendas[g].qtd += 1;
+            if(!garcomAtendimentos[g]) garcomAtendimentos[g] = { total: 0, operacoes: [] };
+            garcomAtendimentos[g].total += Number(v.total || 0);
+            garcomAtendimentos[g].operacoes.push({
+               mesa: v.mesa,
+               total: Number(v.total || 0),
+               horario: v.horario,
+               pagamento: v.pagamento
+            });
          });
-         let html = Object.keys(garcomVendas).map(g => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-              <div>
-                <b>👤 Garçom: ${g}</b>
-                <div style="font-size:10px;color:var(--muted)">${garcomVendas[g].qtd}${garcomVendas[g].qtd === 1 ? 'operação registrada' : 'operações registradas'}</div>
+         let html = Object.keys(garcomAtendimentos).map(g => `
+            <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <b style="font-size:13px;color:var(--brand)">👤 Garçom: ${g}</b>
+                <b style="color:#10b981;font-size:14px">Total: ${br(garcomAtendimentos[g].total)}</b>
               </div>
-              <b style="color:#10b981">${br(garcomVendas[g].total)}</b>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Mesas atendidas e fechadas hoje:</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                ${garcomAtendimentos[g].operacoes.map(op => `
+                  <div style="display:flex;justify-content:space-between;background:var(--card);padding:4px 8px;border-radius:6px;border:1px solid var(--border)">
+                    <span>🪑 Mesa ${pad(op.mesa)} • <small>${op.horario}</small> • <small>${op.pagamento}</small></span>
+                    <b>${br(op.total)}</b>
+                  </div>
+                `).join('')}
+              </div>
             </div>
          `).join('');
          return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma venda registrada por garçom hoje.</div>';
@@ -1718,14 +1740,30 @@ function renderComandas(){
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
+        // Ordena para que itens adicionados recentemente (dentro de 1 minuto e meio / 90 segundos) fiquem no topo
+        let agora = Date.now();
+        let itensOrdenados = [...c.itens].sort((a, b) => {
+          let tempoA = a.adicionadoEm || 0;
+          let tempoB = b.adicionadoEm || 0;
+          let eRecenteA = (agora - tempoA) <= 90000;
+          let eRecenteB = (agora - tempoB) <= 90000;
+          if (eRecenteA && !eRecenteB) return -1;
+          if (!eRecenteA && eRecenteB) return 1;
+          return tempoB - tempoA;
+        });
+
         produtosListaHTML = `
           <div class="comanda-produtos-box">
-            ${c.itens.map(it => `
-              <div style="font-size:12px;display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span>
+            ${itensOrdenados.map(it => {
+              let eRecente = (agora - (it.adicionadoEm || 0)) <= 90000;
+              return `
+              <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+                <div>
+                  <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.qtd}x ${it.nome}</span>${eRecente ? '<span style="background:#38bdf8;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:4px;margin-left:6px">NOVO</span>' : ''}
+                </div>
                 <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
               </div>
-            `).join('')}
+            `;}).join('')}
           </div>
         `;
       }
