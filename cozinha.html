@@ -47,28 +47,28 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
 /* Grid de Pedidos da Cozinha */
-.kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px}
+.kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px}
 .kitchen-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,0.03);display:flex;flex-direction:column;position:relative}
 
 .card-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px}
 .card-header h3{margin:0;font-size:16px;font-weight:900;color:var(--brand)}
 .garcom-badge{font-size:10px;background:var(--input-bg);padding:2px 8px;border-radius:8px;font-weight:800;border:1px solid var(--border)}
 
-.item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
 .item-row:last-child{border-bottom:0}
 .item-name{font-weight:800;color:var(--ink)}
 .item-qty{font-size:14px;font-weight:900;background:rgba(211, 47, 47, 0.1);color:var(--brand);padding:2px 8px;border-radius:8px}
 
-.timer-box{font-size:10px;font-weight:800;margin-top:10px;padding:6px;border-radius:8px;text-align:center;margin-bottom:12px}
+.timer-box{font-size:10px;font-weight:800;margin-top:10px;padding:4px 8px;border-radius:6px;text-align:center}
 .timer-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
 .timer-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
 .timer-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
 
-.actions-box{display:flex;gap:8px;margin-top:auto}
-.btn-preparar{flex:1;background:#f59e0b;color:#fff;border:0;border-radius:10px;padding:10px;font-size:12px;font-weight:800;cursor:pointer}
-.btn-preparar:hover{background:#d97706}
-.btn-pronto{flex:1;background:#10b981;color:#fff;border:0;border-radius:10px;padding:10px;font-size:12px;font-weight:800;cursor:pointer}
-.btn-pronto:hover{background:#059669}
+.actions-box{display:flex;gap:8px;margin-top:12px}
+.btn-action{flex:1;padding:8px;border-radius:10px;font-size:11px;font-weight:800;cursor:pointer;border:0;transition:opacity .2s}
+.btn-action:active{transform:scale(0.96)}
+.btn-preparando{background:#f59e0b;color:#fff}
+.btn-pronto{background:#10b981;color:#fff}
 
 .empty-kitchen{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);font-weight:700;font-size:14px}
 </style>
@@ -81,7 +81,7 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
   <header class="header">
     <div>
       <h1>🍳 B.B COZINHA</h1>
-      <p>Apenas: Caranguejos, Petiscos, Guarnições e Sucos</p>
+      <p>Caranguejo, Petiscos, Guarnições e Sucos</p>
     </div>
     <div class="header-actions">
       <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
@@ -90,7 +90,7 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
   </header>
 
   <div id="kitchen-container" class="kitchen-grid">
-    <div class="empty-kitchen">Aguardando novos pedidos da cozinha...</div>
+    <div class="empty-kitchen">Aguardando novos pedidos...</div>
   </div>
 </div>
 
@@ -109,8 +109,8 @@ const db = firebase.firestore();
 
 let somAtivo = false;
 let comandasCozinha = {};
-// Categorias estritas permitidas na Cozinha
-const CATEGORIAS_COZINHA = ["GUARNIÇÕES", "GUARNICOS", "CARANGUEJO", "PETISCOS", "PETISCO", "SUCOS", "SUCO", "PORÇÕES", "PORCAO"];
+// Apenas as categorias permitidas
+const CATEGORIAS_COZINHA = ["CARANGUEJO", "PETISCOS", "PETISCO", "GUARNIÇÕES", "GUARNICAO", "SUCOS", "SUCO"];
 let cardapioCategoriasMap = {};
 
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -154,32 +154,37 @@ function toggleTheme(){
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀' : '🌙';
   localStorage.setItem('bb_kitchen_theme', next);
 }
 const savedTheme = localStorage.getItem('bb_kitchen_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
 window.addEventListener('DOMContentLoaded', () => {
-  iniciarOuvinteCozinha();
+  carregarCardapioEMapear();
 });
 
-function iniciarOuvinteCozinha(){
-  // 1. Mapeia o cardápio rigorosamente pelas categorias do Firebase
+function carregarCardapioEMapear(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       const cardapioData = doc.data().dados;
       for(let cat in cardapioData){
-        let catUpper = cat.toUpperCase().trim();
+        let catUpper = cat.trim().toUpperCase();
         cardapioData[cat].forEach(item => {
-          let nomeItem = (Array.isArray(item) ? item[0] : item.nome || "").trim().toLowerCase();
-          cardapioCategoriasMap[nomeItem] = catUpper;
+          let nomeItem = Array.isArray(item) ? item[0] : item.nome;
+          if(nomeItem){
+            cardapioCategoriasMap[nomeItem.trim().toLowerCase()] = catUpper;
+          }
         });
       }
     }
-  }).catch(()=>{});
+    iniciarOuvinteCozinha();
+  }).catch(()=>{
+    iniciarOuvinteCozinha();
+  });
+}
 
-  // 2. Ouve comandas em tempo real
+function iniciarOuvinteCozinha(){
   db.collection("comandas").onSnapshot(snapshot => {
     let novasComandas = {};
     let temPedidoNovo = false;
@@ -188,7 +193,7 @@ function iniciarOuvinteCozinha(){
       let mesaId = doc.id;
       let dados = doc.data();
       
-      // Filtra estritamente apenas itens que pertencem às categorias da cozinha
+      // Filtra estritamente apenas os itens que pertencem às categorias permitidas
       let itensCozinha = (dados.itens || []).filter(i => {
         let nomeItemLower = (i.nome || "").trim().toLowerCase();
         let catItem = cardapioCategoriasMap[nomeItemLower] || "";
@@ -200,7 +205,7 @@ function iniciarOuvinteCozinha(){
           id: mesaId,
           garcom: dados.garcom || "Garçom",
           criadoEm: dados.criadoEm || dados.atualizadoEm || Date.now(),
-          atualizadoEm: dados.atualizadoEm || dados.criadoEm || Date.now(),
+          statusCozinha: dados.statusCozinha || "pendente", // pendente, preparando, pronto
           itens: itensCozinha
         };
         temPedidoNovo = true;
@@ -215,34 +220,12 @@ function iniciarOuvinteCozinha(){
   });
 }
 
-// Função para atualizar o status do pedido na cozinha e avisar o garçom
 function atualizarStatusPedido(mesaId, novoStatus){
-  const comandaRef = db.collection("comandas").doc(String(mesaId));
-  
-  comandaRef.get().then(doc => {
-    if(!doc.exists) return;
-    let dados = doc.data();
-    let itens = dados.itens || [];
-
-    // Atualiza o status apenas dos itens que pertencem à cozinha
-    itens = itens.map(i => {
-      let nomeItemLower = (i.nome || "").trim().toLowerCase();
-      let catItem = cardapioCategoriasMap[nomeItemLower] || "";
-      if(CATEGORIAS_COZINHA.includes(catItem)){
-        return { ...i, statusCozinha: novoStatus };
-      }
-      return i;
-    });
-
-    comandaRef.update({
-      itens: itens,
-      atualizadoEm: Date.now()
-    }).then(() => {
-      showToast(novoStatus === 'preparando' ? `Pedido da Mesa ${mesaId} em preparo!` : `Pedido da Mesa ${mesaId} marcado como PRONTO!`);
-      if(novoStatus === 'pronto' && somAtivo){
-        falarTexto(`Pedido da mesa ${mesaId} pronto para entrega!`);
-      }
-    });
+  db.collection("comandas").doc(mesaId).update({
+    statusCozinha: novoStatus,
+    atualizadoEm: Date.now()
+  }).then(() => {
+    showToast(`Pedido da Mesa ${pad(mesaId)} atualizado para: ${novoStatus.toUpperCase()}`);
   }).catch(err => {
     showToast("Erro ao atualizar status", true);
   });
@@ -250,43 +233,39 @@ function atualizarStatusPedido(mesaId, novoStatus){
 
 function renderizarCozinha(){
   const container = document.getElementById("kitchen-container");
-  let comandasArray = Object.values(comandasCozinha);
+  let comandasArr = Object.values(comandasCozinha);
 
-  if(comandasArray.length === 0){
-    container.innerHTML = `<div class="empty-kitchen">Nenhum pedido pendente nas guarnições, caranguejos, petiscos ou sucos.</div>`;
+  // Ordena por ordem cronológica (o pedido mais antigo / que chegou primeiro fica no topo)
+  comandasArr.sort((a, b) => a.criadoEm - b.criadoEm);
+
+  if(comandasArr.length === 0){
+    container.innerHTML = `<div class="empty-kitchen">Nenhum pedido pendente nas categorias permitidas.</div>`;
     return;
   }
 
-  // ORDENAÇÃO POR ORDEM DE CHEGADA (Do mais antigo para o mais recente)
-  comandasArray.sort((a, b) => a.criadoEm - b.criadoEm);
-
   const agora = Date.now();
 
-  container.innerHTML = comandasArray.map(comanda => {
+  container.innerHTML = comandasArr.map(comanda => {
     const tempoDecorridoMin = Math.floor((agora - comanda.criadoEm) / 60000);
     
     let timerClass = "timer-verde";
     if(tempoDecorridoMin >= 10 && tempoDecorridoMin < 20) timerClass = "timer-amarelo";
     else if(tempoDecorridoMin >= 20) timerClass = "timer-vermelho";
 
-    // Verifica o status geral atual dos itens da cozinha
-    let statusAtual = comanda.itens[0]?.statusCozinha || 'pendente';
-    let statusBadgeText = '🔴 Pendente';
-    if(statusAtual === 'preparando') statusBadgeText = '🟡 Preparando...';
-    if(statusAtual === 'pronto') statusBadgeText = '🟢 Pronto!';
+    let statusBadge = '';
+    if(comanda.statusCozinha === 'preparando') statusBadge = '<span style="color:#f59e0b; font-size:10px; font-weight:800;">👨‍🍳 Preparando...</span>';
+    else if(comanda.statusCozinha === 'pronto') statusBadge = '<span style="color:#10b981; font-size:10px; font-weight:800;">✅ Pronto!</span>';
 
     return `
       <div class="kitchen-card">
         <div class="card-header">
-          <h3>Mesa ${pad(comanda.id)}</h3>
+          <div>
+            <h3>Mesa ${pad(comanda.id)}</h3>
+            ${statusBadge}
+          </div>
           <span class="garcom-badge">👤 ${comanda.garcom}</span>
         </div>
-        
-        <div class="timer-box ${timerClass}">
-          ⏱️ Chegou há ${tempoDecorridoMin} min (Ordem de Chegada) | ${statusBadgeText}
-        </div>
-
-        <div style="flex:1; margin-bottom: 12px;">
+        <div style="flex:1">
           ${comanda.itens.map(i => {
             let nomeCliente = i.cliente ? i.cliente : 'Cliente 1';
             return `
@@ -297,10 +276,12 @@ function renderizarCozinha(){
             `;
           }).join('')}
         </div>
-
+        <div class="timer-box ${timerClass}">
+          ⏱️ Chegou há ${tempoDecorridoMin} min
+        </div>
         <div class="actions-box">
-          <button class="btn-preparar" onclick="atualizarStatusPedido('${comanda.id}', 'preparando')">👨‍🍳 Preparar</button>
-          <button class="btn-pronto" onclick="atualizarStatusPedido('${comanda.id}', 'pronto')">✅ Pronto</button>
+          <button class="btn-action btn-preparando" onclick="atualizarStatusPedido('${comanda.id}', 'preparando')">👨‍🍳 Preparando</button>
+          <button class="btn-action btn-pronto" onclick="atualizarStatusPedido('${comanda.id}', 'pronto')">✅ Pronto</button>
         </div>
       </div>
     `;
