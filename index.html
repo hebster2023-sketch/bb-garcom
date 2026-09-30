@@ -74,10 +74,20 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.2), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.4) !important;animation: pulseConta 1.2s infinite}
 @keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
 
-/* Estilos de Status da Cozinha na Tela do Garçom */
-.table.status-preparando{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.1), var(--card)) !important;}
-.table.status-pronto{border-color:#10b981 !important;background:linear-gradient(135deg, rgba(16, 185, 129, 0.15), var(--card)) !important;box-shadow:0 0 20px rgba(16, 185, 129, 0.3) !important;animation: pulsePronto 1.2s infinite}
+/* --- NOVAS REGRAS CSS: Status da Cozinha na Tela Inicial --- */
+.table.status-preparando {
+  border-color: #38bdf8 !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), var(--card)) !important;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.25) !important;
+}
+.table.status-pronto {
+  border-color: #10b981 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), var(--card)) !important;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.4) !important;
+  animation: pulsePronto 1s infinite;
+}
 @keyframes pulsePronto { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
+/* ----------------------------------------------------------- */
 
 .table .num, .card-mesa h3{font-size:15px;font-weight:900;margin:0}
 .badge-status, .status-mesa{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
@@ -91,7 +101,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .timer.tempo-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Estilo para novo item adicionado recentemente */
+/* Estilo para novo item adicionado recentemente (1 minuto e meio) */
 .item-novo-destaque {
   border: 2px solid #38bdf8 !important;
   background: rgba(56, 189, 248, 0.12) !important;
@@ -409,9 +419,6 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
-// Variáveis para rastrear estados anteriores da cozinha e disparar alertas de áudio/toast no garçom
-let statusCozinhaAnterior = {};
-
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
 
@@ -439,6 +446,29 @@ function falarTexto(texto){
   utterance.pitch = 1.0;
   window.speechSynthesis.speak(utterance);
 }
+
+// --- NOVO: Ouvinte de Atualizações da Cozinha e Alertas Automáticos ---
+let statusCozinhaAnterior = {};
+
+function verificarAtualizacoesCozinha(novasComandas) {
+  for (const mesaId in novasComandas) {
+    const atual = novasComandas[mesaId];
+    const statusAntigo = statusCozinhaAnterior[mesaId];
+    const statusNovo = atual ? atual.statusCozinha : null;
+
+    if (!primeiraCargaFirebase && statusNovo && statusNovo !== statusAntigo) {
+      if (statusNovo === 'preparando') {
+        showToast(`🍳 Pedido da Mesa ${pad(mesaId)} está sendo preparado!`);
+        falarTexto(`Atenção, o pedido da mesa ${mesaId} está sendo preparado.`);
+      } else if (statusNovo === 'pronto') {
+        showToast(`🔔 Pedido da Mesa ${pad(mesaId)} está pronto para entrega!`);
+        falarTexto(`Atenção! O pedido da mesa ${mesaId} está pronto para entrega.`);
+      }
+    }
+    statusCozinhaAnterior[mesaId] = statusNovo;
+  }
+}
+// --------------------------------------------------------------------
 
 function processarAlertaPedido(mesaId, atual) {
   if (!somAtivo) return;
@@ -469,29 +499,18 @@ function processarAlertaPedido(mesaId, atual) {
   }
 }
 
-function verificarAtualizacoesCozinha(mesaId, atual) {
-  const statusAtual = atual.statusCozinha || 'pendente';
-  const statusAntigo = statusCozinhaAnterior[mesaId];
-
-  if (statusAntigo && statusAntigo !== statusAtual) {
-    if (statusAtual === 'preparando') {
-      showToast(`🔥 Pedido da Mesa ${pad(mesaId)} está SENDO PREPARADO na cozinha!`);
-      falarTexto(`Atenção garçom, pedido da Mesa ${mesaId} está sendo preparado.`);
-    } else if (statusAtual === 'pronto') {
-      showToast(`✅ Pedido da Mesa ${pad(mesaId)} está PRONTO na cozinha!`);
-      falarTexto(`Atenção garçom! Pedido da Mesa ${mesaId} está pronto para retirada.`);
-    }
-  }
-  statusCozinhaAnterior[mesaId] = statusAtual;
-}
-
 function verificarNovosPedidos(novasComandas){
+  verificarAtualizacoesCozinha(novasComandas);
+
+  if(primeiraCargaFirebase){
+    primeiraCargaFirebase = false;
+    return;
+  }
+
   for(const mesaId in novasComandas){
     const atual = novasComandas[mesaId];
     processarAlertaPedido(mesaId, atual);
-    verificarAtualizacoesCozinha(mesaId, atual);
   }
-  primeiraCargaFirebase = false;
 }
 
 function toggleTheme(){
@@ -499,7 +518,7 @@ function toggleTheme(){
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️️' : '🌙';
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
   document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#f8faf9');
   localStorage.setItem('bb_theme', next);
 }
@@ -516,7 +535,7 @@ function showToast(msg, isError = false){
   const t = document.createElement('div');
   t.className = 'toast';
   t.style.borderLeft = isError ? '4px solid #d32f2f' : '4px solid #10b981';
-  t.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${msg}</span>`;
+  t.innerHTML = `<span>${isError ? '⚠️️' : '✅'}</span> <span>${msg}</span>`;
   container.appendChild(t);
   setTimeout(() => {
     t.style.opacity = '0';
@@ -679,7 +698,7 @@ function renderizarPainelAdmin(){
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
-                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]}${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
                 <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
@@ -1379,7 +1398,7 @@ function dividirContaModal(num){
   </div>
 
   <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
-  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
+  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️️ Cancelar/Estornar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1555,282 +1574,132 @@ function fecharMesaDireto(num){
  }
 }
 
-function adicionarDespesa(){
-  let desc = prompt("Nome da despesa:"); if(!desc) return;
-  let valor = prompt("Valor em R$:"); if(!valor) return;
-  valor = parseFloat(valor.replace(",","."));
-  if(isNaN(valor) || valor <= 0){ showToast("Valor inválido.", true); return; }
-  
-  let registroDespesa = { 
-      desc, 
-      valor, 
-      horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
-      data: new Date().toLocaleDateString('pt-BR'),
-      timestamp: Date.now()
-  };
+function renderizar() {
+  const container = document.getElementById('conteudo');
+  if(!container) return;
 
-  db.collection("despesas").add(registroDespesa).then(() => {
-    showToast("Gasto registrado com sucesso!");
-    renderRelatorios();
-  });
-}
+  if(telaAtual === 'mesas') {
+    let htmlMesas = '';
+    for(let i = 1; i <= 30; i++) {
+      let comanda = comandas[i];
+      let ocupada = !!comanda;
+      let total = ocupada ? Number(comanda.total || 0) : 0;
+      let garcom = ocupada ? (comanda.garcom || 'Hebster') : '';
+      let statusCozinha = ocupada ? (comanda.statusCozinha || '') : '';
+      
+      let classeStatus = '';
+      let badgeTexto = 'Livre';
+      let badgeClass = 'livre';
 
-function limparRelatorios(){
-  if(confirm("Deseja zerar TODAS as movimentações do banco? (Use com cuidado)")){
-    const batch = db.batch();
-    db.collection("historico").get().then(snap => {
-      snap.docs.forEach(d => batch.delete(d.ref));
-      db.collection("despesas").get().then(snap2 => {
-        snap2.docs.forEach(d => batch.delete(d.ref));
-        db.collection("cancelamentos").get().then(snap3 => {
-          snap3.docs.forEach(d => batch.delete(d.ref));
-          batch.commit().then(() => {
-            showToast("Banco de relatórios limpo com sucesso!");
-            renderRelatorios();
-          });
-        });
-      });
-    });
-  }
-}
-
-function renderRelatorios(){
-  let hoje = new Date().toLocaleDateString('pt-BR');
-  let vendasHoje = historicoVendas.filter(v => v.data === hoje); 
-  let despesasHoje = despesas.filter(d => d.data === hoje);
-  
-  let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
-  
-  vendasHoje.forEach(v => {
-    let t = Number(v.total) || 0;
-    totalGeral += t;
-    if(v.pagamento === 'Pix') totalPix += t;
-    else if(v.pagamento === 'Cartão de Crédito') totalCredito += t;
-    else if(v.pagamento === 'Cartão de Débito') totalDebito += t;
-    else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
-  });
-
-  let totalDespesas = despesasHoje.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
-  let saldoLiquido = totalGeral - totalDespesas;
-
-  document.getElementById("conteudo").innerHTML = `
-    <div class="section-title">
-      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia (${hoje})</span></div>
-      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
-      <div class="card" style="margin:0;padding:12px;text-align:center">
-        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Entradas</span>
-        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalGeral)}</div>
-      </div>
-      <div class="card" style="margin:0;padding:12px;text-align:center">
-        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
-        <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
-      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
-      <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
-    </div>
-
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Entradas por Forma de Pagamento</h3>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Pix:</span> <b>${br(totalPix)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
-    </div>
-
-    <div class="card" style="padding:14px">
-      <button class="secondary" onclick="limparRelatorios()" style="background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand)">🗑️ Zerar Relatórios do Dia</button>
-    </div>
-  `;
-}
-
-function renderMesas(){
-  let htmlFiltros = `
-    <div class="filter-tabs">
-      <button class="filter-tab ${filtroMesaAtual==='todas'?'active':''}" onclick="filtroMesaAtual='todas';renderMesas()">Todas</button>
-      <button class="filter-tab ${filtroMesaAtual==='livres'?'active':''}" onclick="filtroMesaAtual='livres';renderMesas()">Livres</button>
-      <button class="filter-tab ${filtroMesaAtual==='ocupadas'?'active':''}" onclick="filtroMesaAtual='ocupadas';renderMesas()">Ocupadas</button>
-    </div>
-  `;
-
-  let cards = "";
-  for(let i=1; i<=30; i++){
-    let c = comandas[i];
-    let ocupada = !!c && (c.total > 0 || (c.itens && c.itens.length > 0));
-    
-    if(filtroMesaAtual === 'livres' && ocupada) continue;
-    if(filtroMesaAtual === 'ocupadas' && !ocupada) continue;
-
-    let statusCozinha = c ? (c.statusCozinha || 'pendente') : '';
-    let classeStatusCozinha = '';
-    let textoStatusCozinha = '';
-
-    if (ocupada) {
-      if (statusCozinha === 'preparando') {
-        classeStatusCozinha = 'status-preparando';
-        textoStatusCozinha = '🔥 PREPARANDO';
-      } else if (statusCozinha === 'pronto') {
-        classeStatusCozinha = 'status-pronto';
-        textoStatusCozinha = '✅ PRONTO!';
+      if(ocupada) {
+        badgeTexto = 'Ocupada';
+        badgeClass = 'ocupada';
+        if(statusCozinha === 'preparando') classeStatus = 'status-preparando';
+        else if(statusCozinha === 'pronto') classeStatus = 'status-pronto';
+        else if(comanda.novoPedidoAlerta) classeStatus = 'novo-pedido-ativo';
+        else if(comanda.pediuContaAlerta) classeStatus = 'pediu-conta-ativo';
       }
-    }
 
-    let classeAlertaNovo = (c && c.novoPedidoAlerta) ? 'novo-pedido-ativo' : '';
-    let classeAlertaConta = (c && c.pediuContaAlerta) ? 'pediu-conta-ativo' : '';
-
-    let tempoStr = "";
-    if(ocupada && c.criadoEm){
-      let minutos = Math.floor((Date.now() - c.criadoEm)/60000);
-      let corTempo = minutos > 60 ? 'tempo-vermelho' : (minutos > 30 ? 'tempo-amarelo' : 'tempo-verde');
-      tempoStr = `<div class="timer ${corTempo}">⏱️ ${minutos} min</div>`;
-    }
-
-    let garcomTag = (ocupada && c.garcom) ? `<div class="garcom-tag">👤 ${c.garcom}</div>` : '';
-
-    cards += `
-      <div class="table ${ocupada ? 'busy' : 'livre'} ${classeAlertaNovo} ${classeAlertaConta} ${classeStatusCozinha}" onclick="abrirMesa(${i})">
-        <span class="num">Mesa ${pad(i)}</span>
-        ${ocupada ? `
-          <span class="badge-status ocupada">Ocupada</span>
-          <span class="total">${br(c.total)}</span>${tempoStr}
-          ${garcomTag}${textoStatusCozinha ? `<div style="font-size:8px;font-weight:900;background:var(--card);color:var(--brand);padding:1px 5px;border-radius:4px;margin-top:2px">${textoStatusCozinha}</div>` : ''}
-        ` : `
-          <span class="badge-status livre">Livre</span>
-        `}
-      </div>
-    `;
-  }
-
-  document.getElementById("conteudo").innerHTML = `
-    <div class="section-title"><h2>Mesas do Estabelecimento</h2><span class="muted">Toque em uma mesa</span></div>
-    ${htmlFiltros}
-    <div class="tables">${cards}</div>
-  `;
-}
-
-function renderComandas(){
-  let ocupadas = [];
-  for(let i=1; i<=30; i++){
-    if(comandas[i] && (comandas[i].total > 0 || (comandas[i].itens && comandas[i].itens.length > 0))) {
-      ocupadas.push({ num: i, ...comandas[i] });
-    }
-  }
-
-  let htmlComandas = ocupadas.length ? ocupadas.map(c => `
-    <div class="card command">
-      <div class="row" style="align-items:center;margin-bottom:8px">
-        <h3>Mesa ${pad(c.num)}</h3>
-        <span class="tag">👤 ${c.garcom || 'Hebster'}</span>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
-        ${(c.itens || []).map(i => `<div>• <b>[${i.cliente \vert{}\vert{} 'Cliente 1'}]</b>${i.qtd}x ${i.nome} (${br(i.preco * i.qtd)})</div>`).join('')}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
-        <b style="color:var(--brand);font-size:15px">${br(c.total)}</b>
-        <div style="display:flex;gap:6px">
-          <button class="secondary" style="margin:0;padding:6px 12px;font-size:11px;width:auto" onclick="abrirMesa(${c.num})">Editar</button>
-          <button class="primary" style="margin:0;padding:6px 12px;font-size:11px;width:auto;background:#10b981" onclick="dividirContaModal(${c.num})">Cobrar / Pagar</button>
+      htmlMesas += `
+        <div class="table ${ocupada ? 'busy' : 'livre'} ${classeStatus}" onclick="abrirMesa(${i})">
+          <span class="num">Mesa ${pad(i)}</span>
+          <span class="badge-status ${badgeClass}">${badgeTexto}</span>
+          ${ocupada ? `<span class="total">${br(total)}</span><span class="garcom-tag">👤 ${garcom}</span>` : '<span style="font-size:10px;color:var(--muted);margin-top:4px">Disponível</span>'}
+          ${statusCozinha === 'preparando' ? '<span style="font-size:8px;background:#38bdf8;color:#fff;padding:1px 4px;border-radius:4px;margin-top:2px">🍳 Preparando</span>' : ''}
+          ${statusCozinha === 'pronto' ? '<span style="font-size:8px;background:#10b981;color:#fff;padding:1px 4px;border-radius:4px;margin-top:2px">🔔 Pronto!</span>' : ''}
         </div>
-      </div>
-    </div>
-  `).join('') : '<div class="empty">Nenhuma comanda aberta no momento.</div>';
+      `;
+    }
 
-  document.getElementById("conteudo").innerHTML = `
-    <div class="section-title"><h2>Comandas Abertas</h2><span class="muted">Resumo geral</span></div>
-    ${htmlComandas}
-  `;
+    container.innerHTML = `
+      <div class="section-title">
+        <div><h2>Salão de Mesas</h2><span class="muted">Toque em uma mesa para atender</span></div>
+      </div>
+      <div class="tables">${htmlMesas}</div>
+    `;
+  } else if(telaAtual === 'atendimento') {
+    renderAtendimento();
+  } else if(telaAtual === 'comandas') {
+    let comandasAtivas = Object.keys(comandas);
+    let htmlComandas = comandasAtivas.length === ? '<div class="empty">Nenhuma comanda aberta no momento.</div>' : comandasAtivas.map(num => {
+      let c = comandas[num];
+      return `
+        <div class="card command">
+          <div class="row">
+            <h3>Mesa ${pad(num)}</h3>
+            <span class="tag">${br(c.total)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin:6px 0">Garçom: <b>${c.garcom || 'Hebster'}</b></div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="primary" style="padding:8px;font-size:11px" onclick="abrirMesa(${num})">Ver Pedido</button>
+            <button class="secondary" style="margin:0;padding:8px;font-size:11px;background:rgba(211,47,47,0.1);color:var(--brand)" onclick="fecharMesa(${num})">Fechar Conta</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="section-title">
+        <div><h2>Comandas Abertas</h2><span class="muted">Gerenciamento geral</span></div>
+      </div>
+      ${htmlComandas}
+    `;
+  } else if(telaAtual === 'relatorios') {
+    renderRelatorios();
+  }
 }
 
-function renderAtendimento(){
-  let c = comandas[mesaSelecionada] || {};
-  let garcomAtual = garcomTemp || c.garcom || "Hebster";
+function renderAtendimento() {
+  const container = document.getElementById('conteudo');
+  if(!container) return;
 
-  let listaClientes = ["Cliente 1"];
-  for(const cli in pedidoTemp) {
-    if(!listaClientes.includes(cli)) listaClientes.push(cli);
-  }
-  if(c.itens){
-    c.itens.forEach(it => {
-      let cli = it.cliente || "Cliente 1";
-      if(!listaClientes.includes(cli)) listaClientes.push(cli);
-    });
-  }
-
-  let pillsClientesHTML = listaClientes.map(cli => `
-    <button onclick="mudarClienteAtual('${cli}')" style="border:0;background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};padding:6px 12px;border-radius:99px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.02)">
-      👤 ${cli}
+  let catsHTML = Object.keys(cardapio).map(cat => `
+    <button class="side-cat ${cat === categoriaAtual ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+      <span class="cat-ico">${cat === 'CHURRASCOS' ? '🍢' : cat === 'CARANGUEJO' ? '🦀' : cat === 'BEBIDAS' ? '🍺' : cat === 'GUARNIÇÕES' ? '🍚' : cat === 'PETISCOS' ? '🍟' : cat === 'REFRIGERANTES' ? '🥤' : cat === 'SUCOS' ? '🧃' : '📦'}</span>
+      <span>${cat}</span>
     </button>
   `).join('');
 
-  let categoriasSideHTML = Object.keys(cardapio).map(cat => `
-    <div class="side-cat ${cat === categoriaAtual ? 'active' : ''}" onclick="setCategoria('${cat}')" data-cat="${cat}">
-      <span class="cat-ico">
-        ${cat === 'CHURRASCOS' ? '🍢' : (cat === 'CARANGUEJO' ? '🦀' : (cat === 'BEBIDAS' ? '🍺' : (cat === 'GUARNIÇÕES' ? '🍚' : (cat === 'PETISCOS' ? '🍟' : (cat === 'REFRIGERANTES' ? '🥤' : (cat === 'SUCOS' ? '🧃' : '📦'))))))}
-      </span>
-      <span>${cat}</span>
-    </div>
-  `).join('');
-
-  document.getElementById("conteudo").innerHTML = `
+  container.innerHTML = `
     <div class="topbar" style="margin-bottom:12px">
       <button class="back" onclick="mudarTela('mesas')">←</button>
       <div class="mesa-head">
         <h2>Mesa ${pad(mesaSelecionada)}</h2>
         <p>Atendimento individualizado por cliente</p>
       </div>
-      <button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:0;background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:12px;padding:8px 12px;font-size:11px;font-weight:900;cursor:pointer">🔄 Transferir</button>
+      <button onclick="abrirModalTransferencia(${mesaSelecionada})" style="background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-weight:900;font-size:11px;cursor:pointer" title="Transferir Mesa">🔄 Transferir</button>
+      <button onclick="dividirContaModal(${mesaSelecionada})" style="background:#10b981;color:#fff;border:0;border-radius:12px;padding:8px 12px;font-weight:900;font-size:11px;cursor:pointer">💳 Pagar</button>
     </div>
 
-    <div class="card" style="padding:12px;margin-bottom:12px">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <div style="flex:1">
-          <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Garçom Responsável</label>
-          <input type="text" id="inputGarcom" value="${garcomAtual}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
-        </div>
-        <div style="display:flex;gap:4px;align-items:flex-end">
-          <button onclick="anotarPedidoPorVoz()" style="background:var(--brand);color:#fff;border:0;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:900;cursor:pointer" title="Falar Pedido por Voz">🎙️ Voz</button>
-        </div>
+    <div class="card" style="padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px">
+        <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Garçom</label>
+        <input type="text" id="inputGarcom" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
       </div>
-
-      <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:4px">
-        <span style="font-size:10px;font-weight:900;color:var(--muted);white-space:nowrap">Pessoa:</span>
-        ${pillsClientesHTML}
-        <button onclick="adicionarNovoClientePrompt()" style="border:1px dashed var(--brand);background:none;color:var(--brand);padding:5px 10px;border-radius:99px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap">+ Adicionar Pessoa</button>
-        <button onclick="renomearClienteAtual()" style="border:1px solid var(--border);background:var(--input-bg);color:var(--ink);padding:5px 8px;border-radius:99px;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap">✏️ Renomear</button>
+      <div style="flex:1;min-width:140px">
+        <label style="font-size:9px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px">Cliente Atual</label>
+        <select id="selectClienteAtendimento" onchange="mudarClienteAtual(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700;outline:none">
+          ${Object.keys(pedidoTemp).length ? Object.keys(pedidoTemp).map(cli => `<option value="${cli}" ${cli === clienteAtual ? 'selected' : ''}>👤 ${cli}</option>`).join('') : '<option value="Cliente 1">👤 Cliente 1</option>'}
+        </select>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end">
+        <button onclick="adicionarNovoClientePrompt()" style="background:var(--brand);color:#fff;border:0;border-radius:10px;padding:9px 12px;font-weight:900;font-size:11px;cursor:pointer" title="Adicionar Nova Pessoa">+ Pessoa</button>
+        <button onclick="renomearClienteAtual()" style="background:var(--input-bg);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:9px 12px;font-weight:900;font-size:11px;cursor:pointer" title="Renomear Pessoa">✏️</button>
+        <button onclick="anotarPedidoPorVoz()" style="background:#38bdf8;color:#fff;border:0;border-radius:10px;padding:9px 12px;font-weight:900;font-size:11px;cursor:pointer" title="Falar pedido por voz">🎙️</button>
       </div>
     </div>
 
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" id="searchProd" placeholder="Buscar produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
+      <input type="text" placeholder="Pesquisar qualquer produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
     </div>
 
     <div class="atendimento-layout">
-      <div class="side-cats">${categoriasSideHTML}</div>
+      <div class="side-cats">${catsHTML}</div>
       <div class="products-list" id="produtos"></div>
     </div>
   `;
   renderProdutos();
-}
-
-function renderizar(){
-  if(telaAtual === "mesas") renderMesas();
-  else if(telaAtual === "comandas") renderComandas();
-  else if(telaAtual === "atendimento") renderAtendimento();
-  else if(telaAtual === "relatorios") renderRelatorios();
-  
-  document.querySelectorAll(".bottom button").forEach(b => b.classList.remove("active"));
-  if(telaAtual === "mesas") document.getElementById("navMesas").classList.add("active");
-  if(telaAtual === "comandas") document.getElementById("navComandas").classList.add("active");
-  if(telaAtual === "relatorios") {
-    const btnRel = document.getElementById("navRelatorios");
-    if(btnRel) btnRel.classList.add("active");
-  }
 }
 </script>
 </body>
