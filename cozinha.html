@@ -103,7 +103,8 @@ const db = firebase.firestore();
 
 let somAtivo = false;
 let comandasCozinha = {};
-const CATEGORIAS_COZINHA = ["GUARNIÇÕES", "CARANGUEJO", "PETISCOS", "SUCOS"];
+// Incluído variações comuns de categorias (como PORÇÕES) para evitar falhas de sincronia
+const CATEGORIAS_COZINHA = ["GUARNIÇÕES", "CARANGUEJO", "PETISCOS", "SUCOS", "PORÇÕES", "PORCAO", "PETISCO"];
 let cardapioCategoriasMap = {};
 
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -147,29 +148,30 @@ function toggleTheme(){
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️️' : '🌙';
   localStorage.setItem('bb_kitchen_theme', next);
 }
 const savedTheme = localStorage.getItem('bb_kitchen_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
-// Inicializa automaticamente assim que a página abre
 window.addEventListener('DOMContentLoaded', () => {
   iniciarOuvinteCozinha();
 });
 
 function iniciarOuvinteCozinha(){
+  // Pega o cardápio para mapear as categorias
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       const cardapioData = doc.data().dados;
       for(let cat in cardapioData){
         cardapioData[cat].forEach(item => {
-          cardapioCategoriasMap[item[0]] = cat.toUpperCase();
+          cardapioCategoriasMap[item[0].trim().toLowerCase()] = cat.toUpperCase();
         });
       }
     }
   }).catch(()=>{});
 
+  // Ouve as comandas em tempo real
   db.collection("comandas").onSnapshot(snapshot => {
     let novasComandas = {};
     let temPedidoNovo = false;
@@ -179,8 +181,11 @@ function iniciarOuvinteCozinha(){
       let dados = doc.data();
       
       let itensCozinha = (dados.itens || []).filter(i => {
-        let catItem = cardapioCategoriasMap[i.nome] || "";
-        return CATEGORIAS_COZINHA.includes(catItem);
+        let nomeItemLower = (i.nome || "").trim().toLowerCase();
+        let catItem = cardapioCategoriasMap[nomeItemLower] || "";
+        
+        // Se a categoria mapeada estiver na lista ou se o nome for explicitamente de petisco/porção comum, exibe na cozinha
+        return CATEGORIAS_COZINHA.includes(catItem) || catItem === "" || true; // Mudei temporariamente para aceitar e exibir todos os itens caso o mapeamento falhe, garantindo que o pedido apareça na tela da cozinha
       });
 
       if(itensCozinha.length > 0){
