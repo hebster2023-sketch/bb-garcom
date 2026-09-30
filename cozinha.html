@@ -166,7 +166,6 @@ const savedTheme = localStorage.getItem('bb_kitchen_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
 function entrarNaCozinha(){
-  // Oculta a tela de bloqueio instantaneamente e inicia o listener do Firestore
   document.getElementById('login-screen').style.display = 'none';
   iniciarOuvinteCozinha();
 }
