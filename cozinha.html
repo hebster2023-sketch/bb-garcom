@@ -79,7 +79,6 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
       <h2 style="font-size:20px;font-weight:900;margin:0;color:var(--ink)">B.B COZINHA</h2>
       <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Painel de Produção e Pedidos</p>
     </div>
-    <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;margin-bottom:12px;display:none"></div>
     <button type="button" onclick="entrarNaCozinha()" style="width:100%;background:var(--brand);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(211,47,47,0.3)">Entrar na Cozinha</button>
   </div>
 </div>
@@ -167,25 +166,9 @@ const savedTheme = localStorage.getItem('bb_kitchen_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
 function entrarNaCozinha(){
-  const errBox = document.getElementById('login-error');
-  errBox.style.display = 'none';
-
-  // Realiza o login automático com as credenciais já cadastradas no Firebase
-  firebase.auth().signInWithEmailAndPassword("cozinha@bbchurrasco.com", "Cozinha123456")
-    .then(()=>{
-      document.getElementById('login-screen').style.display = 'none';
-      iniciarOuvinteCozinha();
-    })
-    .catch(err => {
-      // Caso dê algum erro de rede ou configuração, tenta entrar de forma anônima ou direto se as regras do Firestore permitirem
-      firebase.auth().signInAnonymously().then(() => {
-        document.getElementById('login-screen').style.display = 'none';
-        iniciarOuvinteCozinha();
-      }).catch(() => {
-        errBox.textContent = "Erro ao conectar. Verifique sua conexão.";
-        errBox.style.display = 'block';
-      });
-    });
+  // Oculta a tela de bloqueio instantaneamente e inicia o listener do Firestore
+  document.getElementById('login-screen').style.display = 'none';
+  iniciarOuvinteCozinha();
 }
 
 function iniciarOuvinteCozinha(){
