@@ -86,26 +86,22 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .timer.tempo-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Estilo para novo item adicionado recentemente (agora com destaque mais chamativo) */
+/* Estilo para novo item adicionado recentemente (1 minuto e meio) */
 .item-novo-destaque {
   border: 2px solid #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.18) !important;
+  background: rgba(56, 189, 248, 0.12) !important;
   position: relative;
-  animation: pulseItemNovo 1.5s infinite;
 }
-@keyframes pulseItemNovo { 0%{transform:scale(1)} 50%{transform:scale(1.01)} 100%{transform:scale(1)} }
-
 .badge-novo-item {
-  font-size: 9px;
+  font-size: 8px;
   background: #38bdf8;
   color: #fff;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
   font-weight: 900;
   margin-left: 6px;
   display: inline-block;
   vertical-align: middle;
-  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.4);
 }
 
 /* Cards Genéricos */
@@ -589,8 +585,7 @@ function carregarCardapioDinamico(){
       cardapio = doc.data().dados;
       for(let cat in cardapio){
         cardapio[cat] = cardapio[cat].map(item => {
-          if(item.length < 5) item[4] = false; 
-          if(item.length < 6) item[5] = 0;
+          if(item.length < 5) item[5] = false; 
           return item;
         });
       }
@@ -733,12 +728,12 @@ function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
   const fileInput = document.getElementById('inputFotoNovoItem');
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat].unshift([nome, preco, base64, desc, false, Date.now()]);
+      cardapio[cat].push([nome, preco, base64, desc, false, Date.now()]);
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat].unshift([nome, preco, "🍖", desc, false, Date.now()]);
+    cardapio[cat].push([nome, preco, "🍖", desc, false, Date.now()]);
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -1034,23 +1029,13 @@ function renderProdutos(){
  const el = document.getElementById("produtos"); if(!el) return;
  let cliMap = pedidoTemp[clienteAtual] || {};
  
- let listaProd = [...(cardapio[categoriaAtual] || [])];
- 
- // ORDENAÇÃO: Garante que itens novos criados recentemente apareçam no topo
- listaProd.sort((a, b) => {
-   let timeA = a[5] || 0;
-   let timeB = b[5] || 0;
-   return timeB - timeA;
- });
-
+ let listaProd = cardapio[categoriaAtual] || [];
  if(termoBuscaProduto){
-   let listaFlat = produtosFlat();
-   listaFlat.sort((a, b) => b.criadoEmItem - a.criadoEmItem);
-   listaProd = listaFlat.filter(p => p.nome.toLowerCase().includes(termoBuscaProduto)).map(p => [p.nome, p.preco, p.icon, p.desc, p.indisponivel, p.criadoEmItem]);
+   listaProd = produtosFlat().filter(p => p.nome.toLowerCase().includes(termoBuscaProduto));
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 300000; // 5 minutos de destaque visível para novos itens
+ const umMinutoMeio = 90000; // 1 minuto e meio em milissegundos
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1060,7 +1045,7 @@ function renderProdutos(){
    const indisponivel = itemBruto[4] === true;
    const timestampCriacao = itemBruto[5] || 0;
    
-   const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < tempoDestaqueLimite));
+   const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < umMinutoMeio));
    const q = cliMap[nome] || 0;
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
@@ -1077,7 +1062,7 @@ function renderProdutos(){
      <div class="prod-info">
        <div class="prod-title">
          ${nome} 
-         ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO PEDIDO!</span>' : ''}
+         ${ehNovoDestaque ? '<span class="badge-novo-item">NOVO!</span>' : ''}
          ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
        </div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
@@ -1335,6 +1320,7 @@ function dividirContaModal(num){
  document.getElementById("modalTitle").textContent = `Pagamento — Mesa ${pad(num)}`;
  
  document.getElementById("modalBody").innerHTML = `
+  <!-- Botão grande vermelho discreto para abrir a janela de consumo do cliente -->
   <button class="primary" style="background:var(--brand);margin-bottom:14px;font-size:13px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="abrirJanelaConsumoCliente(${num})">
     <span>🧾</span> Consumo do Cliente
   </button>
@@ -1839,7 +1825,7 @@ function renderComandas(){
     <div class="section-title">
       <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
     </div>
-    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no moment.</div>'}
+    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
   `;
 }
 
