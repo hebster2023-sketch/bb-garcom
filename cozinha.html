@@ -82,11 +82,11 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
     <form onsubmit="handleLogin(event)" style="display:flex;flex-direction:column;gap:12px">
       <div>
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">E-mail</label>
-        <input type="email" id="login-email" value="cozinha@bbchurrasco.com" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
+        <input type="email" id="login-email" value="cozinha@bbchurrasco.com" autocomplete="username" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
       </div>
       <div>
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
-        <input type="password" id="login-password" value="Cozinha123456" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
+        <input type="password" id="login-password" value="Cozinha123456" autocomplete="current-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
       </div>
       <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none"></div>
       <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px">Entrar na Cozinha</button>
@@ -249,7 +249,7 @@ function renderizarCozinha(){
   const agora = Date.now();
 
   container.innerHTML = mesasIds.map(mesaId => {
-    const comanda = comandasComandas = comandasCozinha[mesaId];
+    const comanda = comandasCozinha[mesaId];
     const tempoDecorridoMin = Math.floor((agora - comanda.atualizadoEm) / 60000);
     
     let timerClass = "timer-verde";
