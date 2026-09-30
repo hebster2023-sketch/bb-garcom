@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f8faf9">
+<title>B.B CHURRASCO — Tela da Cozinha</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --brand: #d32f2f;
+  --brand-hover: #c42222;
+  --ink: #1f2937;
+  --bg: #f8faf9;
+  --card: #ffffff;
+  --border: rgba(0, 0, 0, 0.06);
+  --muted: #6b7280;
+  --input-bg: #f1f5f3;
+}
+[data-theme="dark"] {
+  --brand: #ef4444;
+  --brand-hover: #dc2626;
+  --ink: #f3f4f6;
+  --bg: #121212;
+  --card: rgba(30, 32, 38, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #9ca3af;
+  --input-bg: rgba(20, 22, 27, 0.8);
+}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;-webkit-tap-highlight-color:transparent;transition:background .3s,color .3s}
+body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
+
+/* Header */
+.header{background:linear-gradient(135deg,var(--brand),var(--brand-hover));color:#fff;border-radius:24px;padding:20px 18px;box-shadow:0 10px 25px rgba(211, 47, 47, 0.2);display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.header h1{font-size:22px;font-weight:900;margin:0}.header p{margin:4px 0 0;font-size:11px;opacity:.9}
+.header-actions{display:flex;gap:8px;align-items:center}
+.theme-btn, .sound-btn{background:rgba(255,255,255,0.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center}
+.sound-btn.active{background:rgba(16, 185, 129, 0.5);border:1px solid #10b981}
+
+/* Toast Flutuante */
+#toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
+.toast{background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(8px);color:#fff;padding:12px 16px;border-radius:14px;font-size:12px;font-weight:800;box-shadow:0 10px 25px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;pointer-events:auto;animation: fadeInOut .3s ease}
+@keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+/* Grid de Pedidos da Cozinha */
+.kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px}
+.kitchen-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,0.03);display:flex;flex-direction:column;position:relative;animation: pulseNew 2s infinite alternate}
+.kitchen-card.novo-pedido{border-color:#38bdf8;box-shadow:0 0 20px rgba(56, 189, 248, 0.25)}
+
+.card-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px}
+.card-header h3{margin:0;font-size:16px;font-weight:900;color:var(--brand)}
+.garcom-badge{font-size:10px;background:var(--input-bg);padding:2px 8px;border-radius:8px;font-weight:800;border:1px solid var(--border)}
+
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.item-row:last-child{border-bottom:0}
+.item-name{font-weight:800;color:var(--ink)}
+.item-qty{font-size:14px;font-weight:900;background:rgba(211, 47, 47, 0.1);color:var(--brand);padding:2px 8px;border-radius:8px}
+
+.timer-box{font-size:10px;font-weight:800;margin-top:10px;padding:4px 8px;border-radius:6px;text-align:center}
+.timer-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
+.timer-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
+.timer-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
+
+.empty-kitchen{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);font-weight:700;font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- TELA DE LOGIN DA COZINHA -->
+<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:32px;margin-bottom:6px">🍳</div>
+      <h2 style="font-size:20px;font-weight:900;margin:0;color:var(--ink)">B.B COZINHA</h2>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Painel de Produção e Pedidos</p>
+    </div>
+    <form onsubmit="handleLogin(event)" style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">E-mail</label>
+        <input type="email" id="login-email" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="ex: cozinha@bbchurrasco.com">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
+        <input type="password" id="login-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
+      </div>
+      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
+      <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px">Entrar na Cozinha</button>
+    </form>
+  </div>
+</div>
+
+<div class="app">
+  <header class="header">
+    <div>
+      <h1>🍳 B.B COZINHA</h1>
+      <p>Guarnições, Caranguejos, Petiscos e Sucos</p>
+    </div>
+    <div class="header-actions">
+      <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
+      <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
+    </div>
+  </header>
+
+  <div id="kitchen-container" class="kitchen-grid">
+    <div class="empty-kitchen">Aguardando novos pedidos da cozinha...</div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdoF1I7BcItfHEY",
+  authDomain: "bbchurrasco-app.firebaseapp.com",
+  projectId: "bbchurrasco-app",
+  storageBucket: "bbchurrasco-app.firebasestorage.app",
+  messagingSenderId: "470656170967",
+  appId: "1:470656170967:web:f9c96614d411561ddfe992",
+  measurementId: "G-C0KJ5GJKG2"
+};
+if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
+const db = firebase.firestore();
+
+let somAtivo = false;
+let comandasCozinha = {};
+
+// Categorias permitidas nesta tela específica
+const CATEGORIAS_COZINHA = ["GUARNIÇÕES", "CARANGUEJO", "PETISCOS", "SUCOS"];
+
+// Objeto de apoio para verificar categorias dinamicamente se necessário
+let cardapioCategoriasMap = {
+  "Baião caseiro grande": "GUARNIÇÕES",
+  "Baião caseiro pequeno": "GUARNIÇÕES",
+  "Baião cremoso grande": "GUARNIÇÕES",
+  "Baião cremoso pequeno": "GUARNIÇÕES",
+  "Feijão verde": "GUARNIÇÕES",
+  "Panelada": "GUARNIÇÕES",
+  "Caranguejo Unidade": "CARANGUEJO",
+  "Combo 4 Caranguejos": "CARANGUEJO",
+  "Caldo de Caranguejo": "CARANGUEJO",
+  "Batata frita": "PETISCOS",
+  "Calabresa acebolada": "PETISCOS",
+  "Camarão (porção)": "PETISCOS",
+  "Bolinha carne do sol": "PETISCOS",
+  "Bolinha de queijo": "PETISCOS",
+  "Suco Maracujá 400ml": "SUCOS",
+  "Suco Manga 400ml": "SUCOS",
+  "Suco Goiaba 400ml": "SUCOS"
+};
+
+function pad(n){ return String(n).padStart(2,"0"); }
+
+function toggleSound(){
+  somAtivo = !somAtivo;
+  const btn = document.getElementById('soundToggleBtn');
+  if(somAtivo){
+    btn.classList.add('active');
+    btn.textContent = '🔊';
+    showToast("Alerta sonoro ativado!");
+    falarTexto("Alerta da cozinha ativado.");
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '🔔';
+    showToast("Alerta sonoro desativado.");
+  }
+}
+
+function falarTexto(texto){
+  if(!somAtivo || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  let utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = 'pt-BR';
+  window.speechSynthesis.speak(utterance);
+}
+
+function showToast(msg, isError = false){
+  const container = document.getElementById('toast-container');
+  if(!container) return;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.borderLeft = isError ? '4px solid #d32f2f' : '4px solid #10b981';
+  t.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${msg}</span>`;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+function toggleTheme(){
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('bb_kitchen_theme', next);
+}
+const savedTheme = localStorage.getItem('bb_kitchen_theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+
+function handleLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-password').value;
+  document.getElementById('login-error').style.display = 'none';
+
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(()=>{
+      document.getElementById('login-screen').style.display = 'none';
+      iniciarOuvinteCozinha();
+    })
+    .catch(()=>{
+      document.getElementById('login-error').style.display = 'block';
+    });
+}
+
+function iniciarOuvinteCozinha(){
+  // Baixar cardápio atualizado do Firebase para mapear categorias com exatidão
+  db.collection("configuracoes").doc("cardapio").get().then(doc => {
+    if(doc.exists && doc.data().dados){
+      const cardapioData = doc.data().dados;
+      for(let cat in cardapioData){
+        cardapioData[cat].forEach(item => {
+          cardapioCategoriasMap[item[0]] = cat.toUpperCase();
+        });
+      }
+    }
+  }).catch(()=>{});
+
+  // Ouvir comandas em tempo real
+  db.collection("comandas").onSnapshot(snapshot => {
+    let novasComandas = {};
+    let temPedidoNovo = false;
+
+    snapshot.forEach(doc => {
+      let mesaId = doc.id;
+      let dados = doc.data();
+      
+      // Filtrar apenas itens que pertencem às categorias da cozinha
+      let itensCozinha = (dados.itens || []).filter(i => {
+        let catItem = cardapioCategoriasMap[i.nome] || "";
+        return CATEGORIAS_COZINHA.includes(catItem);
+      });
+
+      if(itensCozinha.length > 0){
+        novasComandas[mesaId] = {
+          garcom: dados.garcom || "Garçom",
+          atualizadoEm: dados.atualizadoEm || dados.criadoEm || Date.now(),
+          itens: itensCozinha
+        };
+        temPedidoNovo = true;
+      }
+    });
+
+    comandasCozinha = novasComandas;
+    if(temPedidoNovo && somAtivo){
+      falarTexto("Novo pedido na cozinha!");
+    }
+    renderizarCozinha();
+  });
+}
+
+function renderizarCozinha(){
+  const container = document.getElementById("kitchen-container");
+  const mesasIds = Object.keys(comandasCozinha);
+
+  if(mesasIds.length === 0){
+    container.innerHTML = `<div class="empty-kitchen">Nenhum pedido pendente nas guarnições, caranguejos, petiscos ou sucos.</div>`;
+    return;
+  }
+
+  const agora = Date.now();
+
+  container.innerHTML = mesasIds.map(mesaId => {
+    const comanda = comandasCozinha[mesaId];
+    const tempoDecorridoMin = Math.floor((agora - comanda.atualizadoEm) / 60000);
+    
+    let timerClass = "timer-verde";
+    if(tempoDecorridoMin >= 10 && tempoDecorridoMin < 20) timerClass = "timer-amarelo";
+    else if(tempoDecorridoMin >= 20) timerClass = "timer-vermelho";
+
+    return `
+      <div class="kitchen-card novo-pedido">
+        <div class="card-header">
+          <h3>Mesa ${pad(mesaId)}</h3>
+          <span class="garcom-badge">👤 ${comanda.garcom}</span>
+        </div>
+        <div style="flex:1">
+          ${comanda.itens.map(i => `
+            <div class="item-row">
+              <span class="item-name"><b>[${i.cliente \vert{}\vert{} 'Cliente 1'}]</b>${i.nome}</span>
+              <span class="item-qty">${i.qtd}x</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="timer-box ${timerClass}">
+          ⏱️ Aberto há ${tempoDecorridoMin} min
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+</script>
+</body>
+</html>
