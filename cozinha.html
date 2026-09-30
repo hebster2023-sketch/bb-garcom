@@ -90,7 +90,6 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
       </div>
       <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none"></div>
       <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px">Entrar na Cozinha</button>
-      <button type="button" onclick="handleRegister()" style="background:transparent;color:var(--brand);border:1px solid var(--brand);border-radius:12px;padding:10px;font-weight:900;font-size:12px;cursor:pointer">Cadastrar esta Conta</button>
     </form>
   </div>
 </div>
@@ -190,38 +189,7 @@ function handleLogin(e){
       iniciarOuvinteCozinha();
     })
     .catch(err => {
-      // Se a conta não existir, tenta criar automaticamente para facilitar
-      if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential'){
-        firebase.auth().createUserWithEmailAndPassword(email, pass)
-          .then(()=>{
-            showToast("Conta criada e logada com sucesso!");
-            document.getElementById('login-screen').style.display = 'none';
-            iniciarOuvinteCozinha();
-          })
-          .catch(crer => {
-            errBox.textContent = "Erro ao entrar/cadastrar: " + crer.message;
-            errBox.style.display = 'block';
-          });
-      } else {
-        errBox.textContent = "E-mail ou senha incorretos.";
-        errBox.style.display = 'block';
-      }
-    });
-}
-
-function handleRegister(){
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-password').value;
-  const errBox = document.getElementById('login-error');
-  
-  firebase.auth().createUserWithEmailAndPassword(email, pass)
-    .then(()=>{
-      showToast("Conta cadastrada com sucesso!");
-      document.getElementById('login-screen').style.display = 'none';
-      iniciarOuvinteCozinha();
-    })
-    .catch(err => {
-      errBox.textContent = "Erro no cadastro: " + err.message;
+      errBox.textContent = "E-mail ou senha incorretos.";
       errBox.style.display = 'block';
     });
 }
@@ -281,7 +249,7 @@ function renderizarCozinha(){
   const agora = Date.now();
 
   container.innerHTML = mesasIds.map(mesaId => {
-    const comanda = comandasCozinha[mesaId];
+    const comanda = comandasComandas = comandasCozinha[mesaId];
     const tempoDecorridoMin = Math.floor((agora - comanda.atualizadoEm) / 60000);
     
     let timerClass = "timer-verde";
