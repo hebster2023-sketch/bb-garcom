@@ -81,7 +81,7 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
   <header class="header">
     <div>
       <h1>🍳 B.B COZINHA</h1>
-      <p>Caranguejo, Petiscos, Guarnições e Sucos</p>
+      <p>Caranguejo, Petiscos, Guarnições, Churrascos e Sucos</p>
     </div>
     <div class="header-actions">
       <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
@@ -109,8 +109,8 @@ const db = firebase.firestore();
 
 let somAtivo = false;
 let comandasCozinha = {};
-// Apenas as categorias permitidas
-const CATEGORIAS_COZINHA = ["CARANGUEJO", "PETISCOS", "PETISCO", "GUARNIÇÕES", "GUARNICAO", "SUCOS", "SUCO"];
+// Categorias direcionadas para a cozinha (incluindo CHURRASCOS)
+const CATEGORIAS_COZINHA = ["CARANGUEJO", "PETISCOS", "PETISCO", "GUARNIÇÕES", "GUARNICAO", "CHURRASCOS", "CHURRASCO", "SUCOS", "SUCO"];
 let cardapioCategoriasMap = {};
 
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -193,10 +193,12 @@ function iniciarOuvinteCozinha(){
       let mesaId = doc.id;
       let dados = doc.data();
       
-      // Filtra estritamente apenas os itens que pertencem às categorias permitidas
+      // Filtra os itens pertencentes às categorias permitidas da cozinha
       let itensCozinha = (dados.itens || []).filter(i => {
         let nomeItemLower = (i.nome || "").trim().toLowerCase();
         let catItem = cardapioCategoriasMap[nomeItemLower] || "";
+        // Se não achar no mapa dinâmico, permite por segurança caso seja churrasco ou item comum
+        if(!catItem) return true; 
         return CATEGORIAS_COZINHA.includes(catItem);
       });
 
@@ -205,7 +207,7 @@ function iniciarOuvinteCozinha(){
           id: mesaId,
           garcom: dados.garcom || "Garçom",
           criadoEm: dados.criadoEm || dados.atualizadoEm || Date.now(),
-          statusCozinha: dados.statusCozinha || "pendente", // pendente, preparando, pronto
+          statusCozinha: dados.statusCozinha || "pendente",
           itens: itensCozinha
         };
         temPedidoNovo = true;
@@ -226,7 +228,7 @@ function atualizarStatusPedido(mesaId, novoStatus){
     atualizadoEm: Date.now()
   }).then(() => {
     showToast(`Pedido da Mesa ${pad(mesaId)} atualizado para: ${novoStatus.toUpperCase()}`);
-  }).catch(err => {
+  }).catch(() => {
     showToast("Erro ao atualizar status", true);
   });
 }
@@ -235,11 +237,10 @@ function renderizarCozinha(){
   const container = document.getElementById("kitchen-container");
   let comandasArr = Object.values(comandasCozinha);
 
-  // Ordena por ordem cronológica (o pedido mais antigo / que chegou primeiro fica no topo)
   comandasArr.sort((a, b) => a.criadoEm - b.criadoEm);
 
   if(comandasArr.length === 0){
-    container.innerHTML = `<div class="empty-kitchen">Nenhum pedido pendente nas categorias permitidas.</div>`;
+    container.innerHTML = `<div class="empty-kitchen">Nenhum pedido pendente nas categorias da cozinha.</div>`;
     return;
   }
 
