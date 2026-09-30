@@ -48,8 +48,7 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
 
 /* Grid de Pedidos da Cozinha */
 .kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px}
-.kitchen-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,0.03);display:flex;flex-direction:column;position:relative;animation: pulseNew 2s infinite alternate}
-.kitchen-card.novo-pedido{border-color:#38bdf8;box-shadow:0 0 20px rgba(56, 189, 248, 0.25)}
+.kitchen-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,0.03);display:flex;flex-direction:column;position:relative}
 
 .card-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px}
 .card-header h3{margin:0;font-size:16px;font-weight:900;color:var(--brand)}
@@ -83,14 +82,15 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
     <form onsubmit="handleLogin(event)" style="display:flex;flex-direction:column;gap:12px">
       <div>
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">E-mail</label>
-        <input type="email" id="login-email" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="ex: cozinha@bbchurrasco.com">
+        <input type="email" id="login-email" value="cozinha@bbchurrasco.com" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
       </div>
       <div>
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
-        <input type="password" id="login-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
+        <input type="password" id="login-password" value="Cozinha123456" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
       </div>
-      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
+      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none"></div>
       <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px">Entrar na Cozinha</button>
+      <button type="button" onclick="handleRegister()" style="background:transparent;color:var(--brand);border:1px solid var(--brand);border-radius:12px;padding:10px;font-weight:900;font-size:12px;cursor:pointer">Cadastrar esta Conta</button>
     </form>
   </div>
 </div>
@@ -127,30 +127,8 @@ const db = firebase.firestore();
 
 let somAtivo = false;
 let comandasCozinha = {};
-
-// Categorias permitidas nesta tela específica
 const CATEGORIAS_COZINHA = ["GUARNIÇÕES", "CARANGUEJO", "PETISCOS", "SUCOS"];
-
-// Objeto de apoio para verificar categorias dinamicamente se necessário
-let cardapioCategoriasMap = {
-  "Baião caseiro grande": "GUARNIÇÕES",
-  "Baião caseiro pequeno": "GUARNIÇÕES",
-  "Baião cremoso grande": "GUARNIÇÕES",
-  "Baião cremoso pequeno": "GUARNIÇÕES",
-  "Feijão verde": "GUARNIÇÕES",
-  "Panelada": "GUARNIÇÕES",
-  "Caranguejo Unidade": "CARANGUEJO",
-  "Combo 4 Caranguejos": "CARANGUEJO",
-  "Caldo de Caranguejo": "CARANGUEJO",
-  "Batata frita": "PETISCOS",
-  "Calabresa acebolada": "PETISCOS",
-  "Camarão (porção)": "PETISCOS",
-  "Bolinha carne do sol": "PETISCOS",
-  "Bolinha de queijo": "PETISCOS",
-  "Suco Maracujá 400ml": "SUCOS",
-  "Suco Manga 400ml": "SUCOS",
-  "Suco Goiaba 400ml": "SUCOS"
-};
+let cardapioCategoriasMap = {};
 
 function pad(n){ return String(n).padStart(2,"0"); }
 
@@ -203,20 +181,52 @@ function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  document.getElementById('login-error').style.display = 'none';
+  const errBox = document.getElementById('login-error');
+  errBox.style.display = 'none';
 
   firebase.auth().signInWithEmailAndPassword(email, pass)
     .then(()=>{
       document.getElementById('login-screen').style.display = 'none';
       iniciarOuvinteCozinha();
     })
-    .catch(()=>{
-      document.getElementById('login-error').style.display = 'block';
+    .catch(err => {
+      // Se a conta não existir, tenta criar automaticamente para facilitar
+      if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential'){
+        firebase.auth().createUserWithEmailAndPassword(email, pass)
+          .then(()=>{
+            showToast("Conta criada e logada com sucesso!");
+            document.getElementById('login-screen').style.display = 'none';
+            iniciarOuvinteCozinha();
+          })
+          .catch(crer => {
+            errBox.textContent = "Erro ao entrar/cadastrar: " + crer.message;
+            errBox.style.display = 'block';
+          });
+      } else {
+        errBox.textContent = "E-mail ou senha incorretos.";
+        errBox.style.display = 'block';
+      }
+    });
+}
+
+function handleRegister(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const errBox = document.getElementById('login-error');
+  
+  firebase.auth().createUserWithEmailAndPassword(email, pass)
+    .then(()=>{
+      showToast("Conta cadastrada com sucesso!");
+      document.getElementById('login-screen').style.display = 'none';
+      iniciarOuvinteCozinha();
+    })
+    .catch(err => {
+      errBox.textContent = "Erro no cadastro: " + err.message;
+      errBox.style.display = 'block';
     });
 }
 
 function iniciarOuvinteCozinha(){
-  // Baixar cardápio atualizado do Firebase para mapear categorias com exatidão
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
     if(doc.exists && doc.data().dados){
       const cardapioData = doc.data().dados;
@@ -228,7 +238,6 @@ function iniciarOuvinteCozinha(){
     }
   }).catch(()=>{});
 
-  // Ouvir comandas em tempo real
   db.collection("comandas").onSnapshot(snapshot => {
     let novasComandas = {};
     let temPedidoNovo = false;
@@ -237,7 +246,6 @@ function iniciarOuvinteCozinha(){
       let mesaId = doc.id;
       let dados = doc.data();
       
-      // Filtrar apenas itens que pertencem às categorias da cozinha
       let itensCozinha = (dados.itens || []).filter(i => {
         let catItem = cardapioCategoriasMap[i.nome] || "";
         return CATEGORIAS_COZINHA.includes(catItem);
@@ -281,7 +289,7 @@ function renderizarCozinha(){
     else if(tempoDecorridoMin >= 20) timerClass = "timer-vermelho";
 
     return `
-      <div class="kitchen-card novo-pedido">
+      <div class="kitchen-card">
         <div class="card-header">
           <h3>Mesa ${pad(mesaId)}</h3>
           <span class="garcom-badge">👤 ${comanda.garcom}</span>
