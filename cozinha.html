@@ -71,18 +71,6 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
 
 <div id="toast-container"></div>
 
-<!-- TELA DE ENTRADA DIRETA DA COZINHA -->
-<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08);text-align:center">
-    <div style="margin-bottom:20px">
-      <div style="font-size:32px;margin-bottom:6px">🍳</div>
-      <h2 style="font-size:20px;font-weight:900;margin:0;color:var(--ink)">B.B COZINHA</h2>
-      <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Painel de Produção e Pedidos</p>
-    </div>
-    <button type="button" onclick="entrarNaCozinha()" style="width:100%;background:var(--brand);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(211,47,47,0.3)">Entrar na Cozinha</button>
-  </div>
-</div>
-
 <div class="app">
   <header class="header">
     <div>
@@ -165,10 +153,10 @@ function toggleTheme(){
 const savedTheme = localStorage.getItem('bb_kitchen_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
-function entrarNaCozinha(){
-  document.getElementById('login-screen').style.display = 'none';
+// Inicializa automaticamente assim que a página abre
+window.addEventListener('DOMContentLoaded', () => {
   iniciarOuvinteCozinha();
-}
+});
 
 function iniciarOuvinteCozinha(){
   db.collection("configuracoes").doc("cardapio").get().then(doc => {
@@ -239,12 +227,15 @@ function renderizarCozinha(){
           <span class="garcom-badge">👤 ${comanda.garcom}</span>
         </div>
         <div style="flex:1">
-          ${comanda.itens.map(i => `
-            <div class="item-row">
-              <span class="item-name"><b>[${i.cliente \vert{}\vert{} 'Cliente 1'}]</b>${i.nome}</span>
-              <span class="item-qty">${i.qtd}x</span>
-            </div>
-          `).join('')}
+          ${comanda.itens.map(i => {
+            let nomeCliente = i.cliente ? i.cliente : 'Cliente 1';
+            return `
+              <div class="item-row">
+                <span class="item-name"><b>[${nomeCliente}]</b>${i.nome}</span>
+                <span class="item-qty">${i.qtd}x</span>
+              </div>
+            `;
+          }).join('')}
         </div>
         <div class="timer-box ${timerClass}">
           ⏱️ Aberto há ${tempoDecorridoMin} min
