@@ -47,17 +47,34 @@ body{padding-bottom:40px}.app{max-width:1200px;margin:auto;padding:16px}
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
 /* Grid de Pedidos da Cozinha */
-.kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px}
+.kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px}
 .kitchen-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,0.03);display:flex;flex-direction:column;position:relative}
 
 .card-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px}
 .card-header h3{margin:0;font-size:16px;font-weight:900;color:var(--brand)}
 .garcom-badge{font-size:10px;background:var(--input-bg);padding:2px 8px;border-radius:8px;font-weight:800;border:1px solid var(--border)}
 
-.item-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+/* Separador de Cliente na Cozinha */
+.cliente-group {
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+.cliente-group-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--brand);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-bottom:1px dashed var(--border)}
 .item-row:last-child{border-bottom:0}
-.item-name{font-weight:800;color:var(--ink)}
-.item-qty{font-size:14px;font-weight:900;background:rgba(211, 47, 47, 0.1);color:var(--brand);padding:2px 8px;border-radius:8px}
+.item-name{font-weight:700;color:var(--ink)}
+.item-qty{font-size:12px;font-weight:900;background:rgba(211, 47, 47, 0.1);color:var(--brand);padding:2px 6px;border-radius:6px}
 
 .timer-box{font-size:10px;font-weight:800;margin-top:10px;padding:4px 8px;border-radius:6px;text-align:center}
 .timer-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
@@ -109,7 +126,6 @@ const db = firebase.firestore();
 
 let somAtivo = false;
 let comandasCozinha = {};
-// Categorias direcionadas para a cozinha (incluindo CHURRASCOS)
 const CATEGORIAS_COZINHA = ["CARANGUEJO", "PETISCOS", "PETISCO", "GUARNIÇÕES", "GUARNICAO", "CHURRASCOS", "CHURRASCO", "SUCOS", "SUCO"];
 let cardapioCategoriasMap = {};
 
@@ -193,11 +209,9 @@ function iniciarOuvinteCozinha(){
       let mesaId = doc.id;
       let dados = doc.data();
       
-      // Filtra os itens pertencentes às categorias permitidas da cozinha
       let itensCozinha = (dados.itens || []).filter(i => {
         let nomeItemLower = (i.nome || "").trim().toLowerCase();
         let catItem = cardapioCategoriasMap[nomeItemLower] || "";
-        // Se não achar no mapa dinâmico, permite por segurança caso seja churrasco ou item comum
         if(!catItem) return true; 
         return CATEGORIAS_COZINHA.includes(catItem);
       });
@@ -257,6 +271,29 @@ function renderizarCozinha(){
     if(comanda.statusCozinha === 'preparando') statusBadge = '<span style="color:#f59e0b; font-size:10px; font-weight:800;">👨‍🍳 Preparando...</span>';
     else if(comanda.statusCozinha === 'pronto') statusBadge = '<span style="color:#10b981; font-size:10px; font-weight:800;">✅ Pronto!</span>';
 
+    // Agrupando os itens da comanda separadamente por cliente para visualização clara na cozinha
+    let itensPorCliente = {};
+    comanda.itens.forEach(i => {
+      let clienteNome = i.cliente || "Cliente 1";
+      if(!itensPorCliente[clienteNome]) itensPorCliente[clienteNome] = [];
+      itensPorCliente[clienteNome].push(i);
+    });
+
+    let htmlClientes = "";
+    for(let cli in itensPorCliente){
+      htmlClientes += `
+        <div class="cliente-group">
+          <div class="cliente-group-title"><span>👤 ${cli}</span></div>
+          ${itensPorCliente[cli].map(i => `
+            <div class="item-row">
+              <span class="item-name">${i.nome}</span>
+              <span class="item-qty">${i.qtd}x</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
     return `
       <div class="kitchen-card">
         <div class="card-header">
@@ -267,15 +304,7 @@ function renderizarCozinha(){
           <span class="garcom-badge">👤 ${comanda.garcom}</span>
         </div>
         <div style="flex:1">
-          ${comanda.itens.map(i => {
-            let nomeCliente = i.cliente ? i.cliente : 'Cliente 1';
-            return `
-              <div class="item-row">
-                <span class="item-name"><b>[${nomeCliente}]</b>${i.nome}</span>
-                <span class="item-qty">${i.qtd}x</span>
-              </div>
-            `;
-          }).join('')}
+          ${htmlClientes}
         </div>
         <div class="timer-box ${timerClass}">
           ⏱️ Chegou há ${tempoDecorridoMin} min
