@@ -348,7 +348,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   <div class="header-actions">
     <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
     <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
-    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙️</button>
+    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙️️</button>
   </div>
 </header>
 <div id="conteudo"></div>
@@ -1171,34 +1171,53 @@ function renderCozinha(){
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
-    if(c && c.itens && c.itens.length > 0){
-      c.itens.forEach(it => {
-        let catDoItem = "";
-        for(let cat in cardapio){
-          if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
-            catDoItem = cat;
-            break;
+    if(c){
+      // Somar itens ativos na mesa
+      if(c.itens && c.itens.length > 0){
+        c.itens.forEach(it => {
+          let catDoItem = "";
+          for(let cat in cardapio){
+            if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+              catDoItem = cat;
+              break;
+            }
           }
-        }
-        if(categoriasCozinha.includes(catDoItem)){
-          totalQtdCozinha += it.qtd;
-          totalValorCozinha += (it.qtd * Number(it.preco || 0));
+          if(categoriasCozinha.includes(catDoItem)){
+            totalQtdCozinha += it.qtd;
+            totalValorCozinha += (it.qtd * Number(it.preco || 0));
+            contagemProdutosCozinha[it.nome] = (contagemProdutosCozinha[it.nome] || 0) + it.qtd;
 
-          contagemProdutosCozinha[it.nome] = (contagemProdutosCozinha[it.nome] || 0) + it.qtd;
-
-          listaItensTimeline.push({
-            mesa: i,
-            garcom: c.garcom || 'Hebster',
-            cliente: it.cliente || 'Cliente 1',
-            nome: it.nome,
-            qtd: it.qtd,
-            preco: it.preco,
-            status: it.statusCozinha || 'pendente',
-            horario: it.horario || '--:--',
-            timestamp: it.timestampItem || c.criadoEm || 0
-          });
-        }
-      });
+            listaItensTimeline.push({
+              mesa: i,
+              garcom: c.garcom || 'Hebster',
+              cliente: it.cliente || 'Cliente 1',
+              nome: it.nome,
+              qtd: it.qtd,
+              preco: it.preco,
+              status: it.statusCozinha || 'pendente',
+              horario: it.horario || '--:--',
+              timestamp: it.timestampItem || c.criadoEm || 0
+            });
+          }
+        });
+      }
+      // Somar também os itens já pagos/baixados na mesa para fixar no resumo acumulado
+      if(c.itensPagos && c.itensPagos.length > 0){
+        c.itensPagos.forEach(it => {
+          let catDoItem = "";
+          for(let cat in cardapio){
+            if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+              catDoItem = cat;
+              break;
+            }
+          }
+          if(categoriasCozinha.includes(catDoItem)){
+            totalQtdCozinha += it.qtd;
+            totalValorCozinha += (it.qtd * Number(it.preco || 0));
+            contagemProdutosCozinha[it.nome] = (contagemProdutosCozinha[it.nome] || 0) + it.qtd;
+          }
+        });
+      }
     }
   }
 
@@ -1206,7 +1225,7 @@ function renderCozinha(){
 
   let listaResumoProdutosHTML = Object.keys(contagemProdutosCozinha).sort((a,b) => contagemProdutosCozinha[b] - contagemProdutosCozinha[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span><b>${contagemProdutosCozinha[nome]}</b> ${nome}</span>
+      <span><b>${contagemProdutosCozinha[nome]}x</b> ${nome}</span>
     </div>
   `).join('');
 
@@ -1252,13 +1271,13 @@ function renderCozinha(){
       </div>
       ${listaResumoProdutosHTML ? `
         <div style="border-top:1px dashed var(--border);padding-top:8px">
-          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Produtos que saíram:</div>
+          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Produtos que saíram (Incluindo baixados):</div>
           ${listaResumoProdutosHTML}
         </div>
       ` : ''}
     </div>
 
-    ${cardsTimelineHTML || '<div class="empty">Nenhum pedido na cozinha no momento.</div>'}
+    ${cardsTimelineHTML || '<div class="empty">Nenhum pedido pendente na cozinha no momento.</div>'}
   `;
 }
 
@@ -1271,28 +1290,41 @@ function renderChurrasco(){
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
-    if(c && c.itens && c.itens.length > 0){
-      c.itens.forEach(it => {
-        let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
-        if(ehChurrasco){
-          totalQtdChurrasco += it.qtd;
-          totalValorChurrasco += (it.qtd * Number(it.preco || 0));
+    if(c){
+      // Somar itens ativos na mesa
+      if(c.itens && c.itens.length > 0){
+        c.itens.forEach(it => {
+          let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+          if(ehChurrasco){
+            totalQtdChurrasco += it.qtd;
+            totalValorChurrasco += (it.qtd * Number(it.preco || 0));
+            contagemProdutosChurrasco[it.nome] = (contagemProdutosChurrasco[it.nome] || 0) + it.qtd;
 
-          contagemProdutosChurrasco[it.nome] = (contagemProdutosChurrasco[it.nome] || 0) + it.qtd;
-
-          listaItensTimelineChurrasco.push({
-            mesa: i,
-            garcom: c.garcom || 'Hebster',
-            cliente: it.cliente || 'Cliente 1',
-            nome: it.nome,
-            qtd: it.qtd,
-            preco: it.preco,
-            status: it.statusCozinha || 'pendente',
-            horario: it.horario || '--:--',
-            timestamp: it.timestampItem || c.criadoEm || 0
-          });
-        }
-      });
+            listaItensTimelineChurrasco.push({
+              mesa: i,
+              garcom: c.garcom || 'Hebster',
+              cliente: it.cliente || 'Cliente 1',
+              nome: it.nome,
+              qtd: it.qtd,
+              preco: it.preco,
+              status: it.statusCozinha || 'pendente',
+              horario: it.horario || '--:--',
+              timestamp: it.timestampItem || c.criadoEm || 0
+            });
+          }
+        });
+      }
+      // Somar também os itens já pagos/baixados na mesa para fixar no resumo acumulado
+      if(c.itensPagos && c.itensPagos.length > 0){
+        c.itensPagos.forEach(it => {
+          let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+          if(ehChurrasco){
+            totalQtdChurrasco += it.qtd;
+            totalValorChurrasco += (it.qtd * Number(it.preco || 0));
+            contagemProdutosChurrasco[it.nome] = (contagemProdutosChurrasco[it.nome] || 0) + it.qtd;
+          }
+        });
+      }
     }
   }
 
@@ -1300,7 +1332,7 @@ function renderChurrasco(){
 
   let listaResumoChurrascoHTML = Object.keys(contagemProdutosChurrasco).sort((a,b) => contagemProdutosChurrasco[b] - contagemProdutosChurrasco[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span><b>${contagemProdutosChurrasco[nome]}</b> ${nome}</span>
+      <span><b>${contagemProdutosChurrasco[nome]}x</b> ${nome}</span>
     </div>
   `).join('');
 
@@ -1346,13 +1378,13 @@ function renderChurrasco(){
       </div>
       ${listaResumoChurrascoHTML ? `
         <div style="border-top:1px dashed var(--border);padding-top:8px">
-          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Produtos que saíram:</div>
+          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Produtos que saíram (Incluindo baixados):</div>
           ${listaResumoChurrascoHTML}
         </div>
       ` : ''}
     </div>
 
-    ${cardsChurrascoHTML || '<div class="empty">Nenhum pedido de churrasco no momento.</div>'}
+    ${cardsChurrascoHTML || '<div class="empty">Nenhum pedido de churrasco pendente no momento.</div>'}
   `;
 }
 
@@ -1940,7 +1972,7 @@ function renderRelatorios(){
          });
          let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
             <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span>${prodVendidos[nome].qtd}x${nome}</span>
+              <span><b>${prodVendidos[nome].qtd}x</b>${nome}</span>
               <b>${br(prodVendidos[nome].total)}</b>
             </div>
          `).join('');
