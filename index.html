@@ -449,10 +449,10 @@ function tocarBeepDiferenciado(tipo){
     gain.connect(audioCtx.destination);
 
     if(tipo === 'churrasco'){
-      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Nota D5 (Grave/Forte para Churrasco)
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
       falarTexto("Novo espeto para o churrasco!");
     } else {
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota A5 (Agudo para Cozinha)
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
       falarTexto("Novo pedido na cozinha!");
     }
 
@@ -509,7 +509,7 @@ function toggleTheme(){
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️️' : '🌙';
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀' : '🌙';
   document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#d32f2f');
   localStorage.setItem('bb_theme', next);
 }
@@ -1141,7 +1141,7 @@ function renderProdutos(){
  atualizarBar();
 }
 
-// ----------------- MÓDULO DA COZINHA (Com Timeline Real de Chegada) -----------------
+// ----------------- MÓDULO DA COZINHA -----------------
 function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
   const comanda = comandas[mesaNum];
   if(!comanda || !comanda.itens) return;
@@ -1199,7 +1199,6 @@ function renderCozinha(){
     }
   }
 
-  // Ordenar por ordem de chegada (Timeline Real: mais antigos primeiro)
   listaItensTimeline.sort((a, b) => a.timestamp - b.timestamp);
 
   let cardsTimelineHTML = listaItensTimeline.map(item => {
@@ -1248,7 +1247,7 @@ function renderCozinha(){
   `;
 }
 
-// ----------------- MÓDULO DO CHURRASCO (Com Timeline Real de Chegada) -----------------
+// ----------------- MÓDULO DO CHURRASCO -----------------
 function renderChurrasco(){
   let listaItensTimelineChurrasco = [];
   let totalQtdChurrasco = 0;
@@ -1279,7 +1278,6 @@ function renderChurrasco(){
     }
   }
 
-  // Ordenar por ordem de chegada (Timeline Real: mais antigos primeiro)
   listaItensTimelineChurrasco.sort((a, b) => a.timestamp - b.timestamp);
 
   let cardsChurrascoHTML = listaItensTimelineChurrasco.map(item => {
@@ -1815,13 +1813,9 @@ function limparRelatorios(){
 }
 
 function renderRelatorios(){
-  let hoje = new Date().toLocaleDateString('pt-BR');
-  let vendasHoje = historicoVendas.filter(v => v.data === hoje); 
-  let despesasHoje = despesas.filter(d => d.data === hoje);
-  
   let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
   
-  vendasHoje.forEach(v => {
+  historicoVendas.forEach(v => {
     let t = Number(v.total) || 0;
     totalGeral += t;
     if(v.pagamento === 'Pix') totalPix += t;
@@ -1830,12 +1824,12 @@ function renderRelatorios(){
     else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
   });
 
-  let totalDespesas = despesasHoje.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
+  let totalDespesas = despesas.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
   let saldoLiquido = totalGeral - totalDespesas;
 
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <div><h2>Relatórios Financeiros</h2><span class="muted">Fechamento do dia (${hoje})</span></div>
+      <div><h2>Relatórios Financeiros</h2><span class="muted">Histórico Acumulado (Até apagar)</span></div>
       <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
     </div>
 
@@ -1864,17 +1858,17 @@ function renderRelatorios(){
     </div>
 
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (Hoje)</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (Acumulado)</h3>
       <div style="display:flex;flex-direction:column;gap:8px">
       ${(function(){
          let htmlGarcons = "";
-         if(!vendasHoje.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons hoje.</div>';
+         if(!historicoVendas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons.</div>';
 
-         vendasHoje.forEach(v => {
+         historicoVendas.forEach(v => {
            let garcomNome = v.garcom || "Hebster";
            let mesaNum = pad(v.mesa || 0);
            let horarioExato = v.horario || "--:--";
-           let dataExata = v.data || hoje;
+           let dataExata = v.data || "";
            let valorGerado = Number(v.total || 0);
            let formaPag = v.pagamento || "Pix";
 
@@ -1896,18 +1890,18 @@ function renderRelatorios(){
       </div>
     </div>
     
-    ${despesasHoje.length ? `
+    ${despesas.length ? `
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Hoje</h3>
-      ${despesasHoje.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc}</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Registradas</h3>
+      ${despesas.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc} (${d.data})</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
     </div>` : ''}
 
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Produtos Vendidos Hoje</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Total de Produtos Vendidos (Acumulado)</h3>
       <div style="max-height:250px;overflow-y:auto;padding-right:5px">
       ${(function(){
          let prodVendidos = {};
-         vendasHoje.forEach(v => {
+         historicoVendas.forEach(v => {
             (v.itens || []).forEach(it => {
                if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
                prodVendidos[it.nome].qtd += it.qtd;
@@ -1920,17 +1914,17 @@ function renderRelatorios(){
               <b>${br(prodVendidos[nome].total)}</b>
             </div>
          `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido hoje.</div>';
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido registrado.</div>';
       })()}
       </div>
     </div>
 
-    ${cancelamentos.filter(c => c.data === hoje).length ? `
+    ${cancelamentos.length ? `
     <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Hoje</h3>
-      ${cancelamentos.filter(c => c.data === hoje).map(c => `
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Registradas</h3>
+      ${cancelamentos.map(c => `
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
-          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)}</b> <b>${br(c.totalCancelado)}</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)} (${c.data})</b> <b>${br(c.totalCancelado)}</b></div>
           <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
         </div>
       `).join('')}
