@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f8faf9">
+<meta name="theme-color" content="#d32f2f">
 <title>B.B CHURRASCO — Sistema de Gestão</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<!-- PWA Manifest dinâmico inline -->
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22B.B%20Churrasco%22%2C%22short_name%22%3A%22BBChurrasco%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8faf9%22%2C%22theme_color%22%3A%22%23d32f2f%22%2C%22icons%22%3A%5B%5D%7D">
 <style>
 :root {
   --brand: #d32f2f;
@@ -385,7 +387,25 @@ const firebaseConfig = {
 };
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
-db.enablePersistence().catch(() => {});
+
+// Ativando modo offline nativo robusto (Firestore Cache)
+db.enablePersistence({synchronizeTabs: true}).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn("Múltiplas abas abertas, persistência offline ativada apenas em uma.");
+  } else if (err.code == 'unimplemented') {
+    console.warn("O navegador não suporta persistência offline completa.");
+  }
+});
+
+// Registro de Service Worker para PWA (Progressive Web App)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    let swCode = `self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v1').then(c => c.addAll(['./'])))); self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));`;
+    let blob = new Blob([swCode], {type: 'text/javascript'});
+    let swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(err => console.log('SW registration failed: ', err));
+  });
+}
 
 let somAtivo = false;
 let primeiraCargaFirebase = true;
@@ -409,12 +429,38 @@ function toggleSound(){
   if(somAtivo){
     btn.classList.add('active');
     btn.textContent = '🔊';
-    showToast("Alerta sonoro ativado com sucesso!");
-    falarTexto("Sistema de alerta de pedidos ativado.");
+    showToast("Alerta sonoro diferenciado ativado!");
+    falarTexto("Alerta sonoro ativado.");
   } else {
     btn.classList.remove('active');
     btn.textContent = '🔔';
     showToast("Alerta sonoro desativado.");
+  }
+}
+
+// Alerta Sonoro Diferenciado (Web Audio API para bips curtos + Síntese de Voz)
+function tocarBeepDiferenciado(tipo){
+  if(!somAtivo) return;
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if(tipo === 'churrasco'){
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Nota D5 (Grave/Forte para Churrasco)
+      falarTexto("Novo espeto para o churrasco!");
+    } else {
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota A5 (Agudo para Cozinha)
+      falarTexto("Novo pedido na cozinha!");
+    }
+
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.35);
+  } catch(e) {
+    console.error(e);
   }
 }
 
@@ -423,8 +469,7 @@ function falarTexto(texto){
   window.speechSynthesis.cancel();
   let utterance = new SpeechSynthesisUtterance(texto);
   utterance.lang = 'pt-BR';
-  utterance.rate = 1.05;
-  utterance.pitch = 1.0;
+  utterance.rate = 1.1;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -432,24 +477,15 @@ function processarAlertaPedido(mesaId, atual) {
   if (!somAtivo) return;
 
   if (atual && atual.pediuContaAlerta) {
-    let textoFalar = `Atenção! A Mesa ${mesaId} solicitou a conta.`;
-    showToast(`⚠️️ Mesa ${pad(mesaId)} pediu a conta!`);
-    falarTexto(textoFalar);
+    showToast(`⚠️ Mesa ${pad(mesaId)} pediu a conta!`);
+    falarTexto(`Atenção, a mesa ${mesaId} solicitou a conta.`);
     return;
   }
 
   if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente') {
-    let textoFalar = `Novo pedido na Mesa ${mesaId} feito pelo cliente`;
     showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
-    falarTexto(textoFalar);
+    tocarBeepDiferenciado('cozinha');
 
-    db.collection('comandas').doc(String(mesaId)).update({ 
-      novoPedidoAlerta: false,
-      origemPedido: null 
-    }).catch(error => {
-      console.error("Erro ao limpar flag de novo pedido:", error);
-    });
-  } else if (atual && atual.novoPedidoAlerta) {
     db.collection('comandas').doc(String(mesaId)).update({ 
       novoPedidoAlerta: false,
       origemPedido: null 
@@ -462,7 +498,6 @@ function verificarNovosPedidos(novasComandas){
     primeiraCargaFirebase = false;
     return;
   }
-
   for(const mesaId in novasComandas){
     const atual = novasComandas[mesaId];
     processarAlertaPedido(mesaId, atual);
@@ -474,8 +509,8 @@ function toggleTheme(){
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
-  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#f8faf9');
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️️' : '🌙';
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#d32f2f');
   localStorage.setItem('bb_theme', next);
 }
 const savedTheme = localStorage.getItem('bb_theme') || 'light';
@@ -804,25 +839,25 @@ function iniciarOuvintesFirebase() {
     comandas = novasComandas;
 
     if(["mesas", "comandas", "cozinha", "churrasco"].includes(telaAtual)) renderizar();
-  }, err => console.error(err));
+  }, err => console.error("Erro offline/snapshot:", err));
 
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
     if(telaAtual === "relatorios") renderizar();
-  }, err => console.error(err));
+  }, err => {});
 
   db.collection("despesas").onSnapshot(snapshot => {
     despesas = [];
     snapshot.forEach(doc => { despesas.push(doc.data()); });
     if(telaAtual === "relatorios") renderizar();
-  }, err => console.error(err));
+  }, err => {});
 
   db.collection("cancelamentos").onSnapshot(snapshot => {
     cancelamentos = [];
     snapshot.forEach(doc => { cancelamentos.push(doc.data()); });
     if(telaAtual === "relatorios") renderizar();
-  }, err => console.error(err));
+  }, err => {});
 }
 
 function handleLogin(e){
@@ -993,6 +1028,7 @@ function itensTempComClientes(){
         
         let horarioItem = horarioAtualStr;
         let statusExistente = 'pendente';
+        let timestampItem = Date.now();
 
         if(comandaAntiga && comandaAntiga.itens){
           let itAnt = comandaAntiga.itens.find(x => x.cliente === cli && x.nome === prod);
@@ -1000,10 +1036,11 @@ function itensTempComClientes(){
             if(itAnt.statusCozinha) statusExistente = itAnt.statusCozinha;
             if(itAnt.horario) horarioItem = itAnt.horario;
             if(itAnt.preco) preco = Number(itAnt.preco);
+            if(itAnt.timestampItem) timestampItem = itAnt.timestampItem;
           }
         }
 
-        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, statusCozinha: statusExistente, horario: horarioItem });
+        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, statusCozinha: statusExistente, horario: horarioItem, timestampItem: timestampItem });
       }
     }
   }
@@ -1104,12 +1141,15 @@ function renderProdutos(){
  atualizarBar();
 }
 
-// ----------------- MÓDULO DA COZINHA (Apenas Caranguejo, Petiscos, Guarnições, Sucos) -----------------
-function atualizarStatusItemCozinha(mesaNum, idxItem, novoStatus){
+// ----------------- MÓDULO DA COZINHA (Com Timeline Real de Chegada) -----------------
+function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
   const comanda = comandas[mesaNum];
   if(!comanda || !comanda.itens) return;
 
-  comanda.itens[idxItem].statusCozinha = novoStatus;
+  const idx = comanda.itens.findIndex(it => it.cliente === clienteName && it.nome === nomeItem);
+  if(idx === -1) return;
+
+  comanda.itens[idx].statusCozinha = novoStatus;
 
   db.collection("comandas").doc(String(mesaNum)).update({
     itens: comanda.itens,
@@ -1118,21 +1158,20 @@ function atualizarStatusItemCozinha(mesaNum, idxItem, novoStatus){
     showToast(`Item atualizado para: ${novoStatus.toUpperCase()}`);
     renderizar();
   }).catch(err => {
-    showToast("Erro ao atualizar status na cozinha: " + err.message, true);
+    showToast("Erro ao atualizar status: " + err.message, true);
   });
 }
 
 function renderCozinha(){
-  let cardsCozinhaHTML = [];
   const categoriasCozinha = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS"];
-  
+  let listaItensTimeline = [];
   let totalQtdCozinha = 0;
   let totalValorCozinha = 0;
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c && c.itens && c.itens.length > 0){
-      let itensDaCozinha = c.itens.filter(it => {
+      c.itens.forEach(it => {
         let catDoItem = "";
         for(let cat in cardapio){
           if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
@@ -1140,66 +1179,61 @@ function renderCozinha(){
             break;
           }
         }
-        return categoriasCozinha.includes(catDoItem);
+        if(categoriasCozinha.includes(catDoItem)){
+          totalQtdCozinha += it.qtd;
+          totalValorCozinha += (it.qtd * Number(it.preco || 0));
+
+          listaItensTimeline.push({
+            mesa: i,
+            garcom: c.garcom || 'Hebster',
+            cliente: it.cliente || 'Cliente 1',
+            nome: it.nome,
+            qtd: it.qtd,
+            preco: it.preco,
+            status: it.statusCozinha || 'pendente',
+            horario: it.horario || '--:--',
+            timestamp: it.timestampItem || c.criadoEm || 0
+          });
+        }
       });
-
-      if(itensDaCozinha.length > 0){
-        cardsCozinhaHTML.push(`
-          <div class="card command" style="border-left: 4px solid var(--brand)">
-            <div class="row" style="align-items:center;margin-bottom:10px">
-              <div>
-                <h3>Mesa ${pad(i)}</h3>
-                <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b></small>
-              </div>
-              <div>
-                <span class="tag">Mesa ${pad(i)}</span>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              ${c.itens.map((it, idx) => {
-                let catDoItem = "";
-                for(let cat in cardapio){
-                  if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
-                    catDoItem = cat;
-                    break;
-                  }
-                }
-                if(!categoriasCozinha.includes(catDoItem)) return '';
-
-                totalQtdCozinha += it.qtd;
-                totalValorCozinha += (it.qtd * Number(it.preco || 0));
-
-                let status = it.statusCozinha || 'pendente';
-                let corStatus = status === 'preparando' ? '#f59e0b' : (status === 'pronto' ? '#10b981' : 'var(--brand)');
-                let labelStatus = status === 'preparando' ? '🔥 Preparando' : (status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
-                let horaItem = it.horario ? ` às ${it.horario}` : '';
-
-                return `
-                  <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
-                    <div style="flex:1">
-                      <div style="font-size:13px;font-weight:900">
-                        <span style="color:var(--brand)">[${it.cliente || 'Cliente 1'}]</span> ${it.qtd}x${it.nome}
-                      </div>
-                      <small style="color:var(--muted);font-weight:700">🕒 Pedido${horaItem}</small><br>
-                      <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
-                    </div>
-                    <div style="display:flex;gap:4px">
-                      ${status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
-                      ${status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `);
-      }
     }
   }
 
+  // Ordenar por ordem de chegada (Timeline Real: mais antigos primeiro)
+  listaItensTimeline.sort((a, b) => a.timestamp - b.timestamp);
+
+  let cardsTimelineHTML = listaItensTimeline.map(item => {
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
+    let labelStatus = item.status === 'preparando' ? '🔥 Preparando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
+    
+    return `
+      <div class="card command" style="border-left: 4px solid var(--brand); margin-bottom:8px; padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <span class="tag">Mesa ${pad(item.mesa)}</span>
+            <small class="muted" style="margin-left:6px">Garçom: <b>${item.garcom}</b></small>
+          </div>
+          <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+        </div>
+        <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:900">
+              <span style="color:var(--brand)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
+            </div>
+            <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
+          </div>
+          <div style="display:flex;gap:4px">
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <div><h2>Módulo Cozinha</h2><span class="muted">Caranguejo, Petiscos, Guarnições e Sucos</span></div>
+      <div><h2>Módulo Cozinha</h2><span class="muted">Linha do tempo (Ordem de chegada)</span></div>
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
@@ -1210,75 +1244,76 @@ function renderCozinha(){
       </div>
     </div>
 
-    ${cardsCozinhaHTML.length ? cardsCozinhaHTML.join('') : '<div class="empty">Nenhum pedido na cozinha no momento.</div>'}
+    ${cardsTimelineHTML || '<div class="empty">Nenhum pedido na cozinha no momento.</div>'}
   `;
 }
 
-// ----------------- MÓDULO DO CHURRASCO (Apenas Categoria Churrascos) -----------------
+// ----------------- MÓDULO DO CHURRASCO (Com Timeline Real de Chegada) -----------------
 function renderChurrasco(){
-  let cardsChurrascoHTML = [];
-  
+  let listaItensTimelineChurrasco = [];
   let totalQtdChurrasco = 0;
   let totalValorChurrasco = 0;
 
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c && c.itens && c.itens.length > 0){
-      let itensDoChurrasco = c.itens.filter(it => {
-        return (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+      c.itens.forEach(it => {
+        let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+        if(ehChurrasco){
+          totalQtdChurrasco += it.qtd;
+          totalValorChurrasco += (it.qtd * Number(it.preco || 0));
+
+          listaItensTimelineChurrasco.push({
+            mesa: i,
+            garcom: c.garcom || 'Hebster',
+            cliente: it.cliente || 'Cliente 1',
+            nome: it.nome,
+            qtd: it.qtd,
+            preco: it.preco,
+            status: it.statusCozinha || 'pendente',
+            horario: it.horario || '--:--',
+            timestamp: it.timestampItem || c.criadoEm || 0
+          });
+        }
       });
-
-      if(itensDoChurrasco.length > 0){
-        cardsChurrascoHTML.push(`
-          <div class="card command" style="border-left: 4px solid #d32f2f">
-            <div class="row" style="align-items:center;margin-bottom:10px">
-              <div>
-                <h3>Mesa ${pad(i)}</h3>
-                <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b></small>
-              </div>
-              <div>
-                <span class="tag">Mesa ${pad(i)}</span>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              ${c.itens.map((it, idx) => {
-                let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
-                if(!ehChurrasco) return '';
-
-                totalQtdChurrasco += it.qtd;
-                totalValorChurrasco += (it.qtd * Number(it.preco || 0));
-
-                let status = it.statusCozinha || 'pendente';
-                let corStatus = status === 'preparando' ? '#f59e0b' : (status === 'pronto' ? '#10b981' : 'var(--brand)');
-                let labelStatus = status === 'preparando' ? '🔥 Assando' : (status === 'pronto' ? '✅ Pronto' : '⏳ Na Fila');
-                let horaItem = it.horario ? ` às ${it.horario}` : '';
-
-                return `
-                  <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
-                    <div style="flex:1">
-                      <div style="font-size:13px;font-weight:900">
-                        <span style="color:var(--brand)">[${it.cliente || 'Cliente 1'}]</span> ${it.qtd}x${it.nome}
-                      </div>
-                      <small style="color:var(--muted);font-weight:700">🕒 Pedido${horaItem}</small><br>
-                      <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
-                    </div>
-                    <div style="display:flex;gap:4px">
-                      ${status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
-                      ${status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${i}, ${idx}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `);
-      }
     }
   }
 
+  // Ordenar por ordem de chegada (Timeline Real: mais antigos primeiro)
+  listaItensTimelineChurrasco.sort((a, b) => a.timestamp - b.timestamp);
+
+  let cardsChurrascoHTML = listaItensTimelineChurrasco.map(item => {
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
+    let labelStatus = item.status === 'preparando' ? '🔥 Assando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Na Fila');
+
+    return `
+      <div class="card command" style="border-left: 4px solid #d32f2f; margin-bottom:8px; padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <span class="tag">Mesa ${pad(item.mesa)}</span>
+            <small class="muted" style="margin-left:6px">Garçom: <b>${item.garcom}</b></small>
+          </div>
+          <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+        </div>
+        <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:900">
+              <span style="color:var(--brand)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
+            </div>
+            <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
+          </div>
+          <div style="display:flex;gap:4px">
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <div><h2>Módulo Churrasco</h2><span class="muted">Controle exclusivo de Espetos e Churrascos</span></div>
+      <div><h2>Módulo Churrasco</h2><span class="muted">Linha do tempo de espetos (Ordem de chegada)</span></div>
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
@@ -1289,7 +1324,7 @@ function renderChurrasco(){
       </div>
     </div>
 
-    ${cardsChurrascoHTML.length ? cardsChurrascoHTML.join('') : '<div class="empty">Nenhum pedido de churrasco no momento.</div>'}
+    ${cardsChurrascoHTML || '<div class="empty">Nenhum pedido de churrasco no momento.</div>'}
   `;
 }
 
@@ -1654,13 +1689,13 @@ function pagarItensSelecionados(num){
       let qtdBaixada = baixas[chave] || 0;
       if(qtdBaixada > 0){
         baixas[chave] -= qtdBaixada;
-        itensPagosParaHistorico.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario });
+        itensPagosParaHistorico.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem });
         let jaExiste = itensPagosAcumulados.find(ip => ip.cliente === cli && ip.nome === it.nome);
         if(jaExiste){ jaExiste.qtd += qtdBaixada; }
-        else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario }); }
+        else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || 'pendente', horario: it.horario });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || 'pendente', horario: it.horario, timestampItem: it.timestampItem });
     });
 
     const vendaParcial = { 
@@ -1718,7 +1753,7 @@ function fecharMesaDireto(num){
  const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
  if(confirm(`Deseja fechar e liberar completamente a Mesa ${pad(num)} (${br(c.total)}) via ${formaPagamento}?`)){
    let todos = [...(c.itens || [])];
-   if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco, horario: ip.horario }));
+   if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco, horario: ip.horario, timestampItem: ip.timestampItem }));
 
    let novaVenda = { 
        mesa: num, 
