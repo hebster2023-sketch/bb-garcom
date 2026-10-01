@@ -1132,7 +1132,7 @@ function renderProdutos(){
          </div>
        `)}
      </div>
-   `;
+   </div>`;
  }).join("");
  
  if(!termoBuscaProduto) {
@@ -1206,7 +1206,7 @@ function renderCozinha(){
 
   let listaResumoProdutosHTML = Object.keys(contagemProdutosCozinha).sort((a,b) => contagemProdutosCozinha[b] - contagemProdutosCozinha[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span><b>${contagemProdutosCozinha[nome]}x</b> ${nome}</span>
+      <span><b>${contagemProdutosCozinha[nome]}</b> ${nome}</span>
     </div>
   `).join('');
 
@@ -1300,7 +1300,7 @@ function renderChurrasco(){
 
   let listaResumoChurrascoHTML = Object.keys(contagemProdutosChurrasco).sort((a,b) => contagemProdutosChurrasco[b] - contagemProdutosChurrasco[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span><b>${contagemProdutosChurrasco[nome]}x</b> ${nome}</span>
+      <span><b>${contagemProdutosChurrasco[nome]}</b> ${nome}</span>
     </div>
   `).join('');
 
@@ -1346,7 +1346,7 @@ function renderChurrasco(){
       </div>
       ${listaResumoChurrascoHTML ? `
         <div style="border-top:1px dashed var(--border);padding-top:8px">
-          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Espetos que saíram:</div>
+          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Produtos que saíram:</div>
           ${listaResumoChurrascoHTML}
         </div>
       ` : ''}
