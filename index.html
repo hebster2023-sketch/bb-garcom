@@ -348,7 +348,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   <div class="header-actions">
     <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
     <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
-    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙</button>
+    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙️️</button>
   </div>
 </header>
 <div id="conteudo"></div>
@@ -388,6 +388,7 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
+// Ativando modo offline nativo robusto (Firestore Cache)
 db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   if (err.code == 'failed-precondition') {
     console.warn("Múltiplas abas abertas, persistência offline ativada apenas em uma.");
@@ -396,6 +397,7 @@ db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   }
 });
 
+// Registro de Service Worker para PWA (Progressive Web App)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     let swCode = `self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v1').then(c => c.addAll(['./'])))); self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));`;
@@ -436,6 +438,7 @@ function toggleSound(){
   }
 }
 
+// Alerta Sonoro Diferenciado (Web Audio API para bips curtos + Síntese de Voz)
 function tocarBeepDiferenciado(tipo){
   if(!somAtivo) return;
   try {
@@ -506,7 +509,7 @@ function toggleTheme(){
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀' : '🌙';
   document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#d32f2f');
   localStorage.setItem('bb_theme', next);
 }
@@ -523,7 +526,7 @@ function showToast(msg, isError = false){
   const t = document.createElement('div');
   t.className = 'toast';
   t.style.borderLeft = isError ? '4px solid #d32f2f' : '4px solid #10b981';
-  t.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${msg}</span>`;
+  t.innerHTML = `<span>${isError ? '⚠' : '✅'}</span> <span>${msg}</span>`;
   container.appendChild(t);
   setTimeout(() => {
     t.style.opacity = '0';
@@ -1026,7 +1029,6 @@ function itensTempComClientes(){
         let horarioItem = horarioAtualStr;
         let statusExistente = 'pendente';
         let timestampItem = Date.now();
-        let qtdAnterior = 0;
 
         if(comandaAntiga && comandaAntiga.itens){
           let itAnt = comandaAntiga.itens.find(x => x.cliente === cli && x.nome === prod);
@@ -1035,22 +1037,13 @@ function itensTempComClientes(){
             if(itAnt.horario) horarioItem = itAnt.horario;
             if(itAnt.preco) preco = Number(itAnt.preco);
             if(itAnt.timestampItem) timestampItem = itAnt.timestampItem;
-            if(itAnt.qtd) qtdAnterior = Number(itAnt.qtd);
           }
-        }
-
-        // Se a quantidade aumentou, atualiza o timestamp e horário para marcar como NOVO
-        if(qtd > qtdAnterior && qtdAnterior > 0){
-          timestampItem = Date.now();
-          horarioItem = horarioAtualStr;
         }
 
         arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, statusCozinha: statusExistente, horario: horarioItem, timestampItem: timestampItem });
       }
     }
   }
-  // Ordena os itens para que os recém-adicionados (com timestamp mais recente) fiquem no topo
-  arr.sort((a, b) => b.timestampItem - a.timestampItem);
   return arr;
 }
 
@@ -1095,7 +1088,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 180000; // Exatamente 3 minutos (180s)
+ const tempoDestaqueLimite = 300000;
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1122,7 +1115,7 @@ function renderProdutos(){
      <div class="prod-info">
        <div class="prod-title">
          ${nome} 
-         ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO</span>' : ''}
+         ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO PEDIDO!</span>' : ''}
          ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
        </div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
@@ -1170,7 +1163,7 @@ function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
 }
 
 function renderCozinha(){
-  const categoriasCozinha = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "REFRIGERANTES"];
+  const categoriasCozinha = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS"];
   let listaItensTimeline = [];
   let totalQtdCozinha = 0;
   let totalValorCozinha = 0;
@@ -1179,6 +1172,7 @@ function renderCozinha(){
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
+      // Somar itens ativos na mesa
       if(c.itens && c.itens.length > 0){
         c.itens.forEach(it => {
           let catDoItem = "";
@@ -1207,6 +1201,7 @@ function renderCozinha(){
           }
         });
       }
+      // Somar também os itens já pagos/baixados na mesa para fixar no resumo acumulado
       if(c.itensPagos && c.itensPagos.length > 0){
         c.itensPagos.forEach(it => {
           let catDoItem = "";
@@ -1296,6 +1291,7 @@ function renderChurrasco(){
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
+      // Somar itens ativos na mesa
       if(c.itens && c.itens.length > 0){
         c.itens.forEach(it => {
           let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
@@ -1318,6 +1314,7 @@ function renderChurrasco(){
           }
         });
       }
+      // Somar também os itens já pagos/baixados na mesa para fixar no resumo acumulado
       if(c.itensPagos && c.itensPagos.length > 0){
         c.itensPagos.forEach(it => {
           let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
@@ -2067,26 +2064,17 @@ function renderComandas(){
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
-        let itensOrdenados = [...c.itens];
-        itensOrdenados.sort((a, b) => (b.timestampItem || 0) - (a.timestampItem || 0));
-
-        const agora = Date.now();
-        const tresMinutos = 180000;
-
         produtosListaHTML = `
           <div class="comanda-produtos-box">
-            ${itensOrdenados.map(it => {
+            ${c.itens.map(it => {
               let statusCoz = it.statusCozinha || 'pendente';
               let badgeCor = statusCoz === 'pronto' ? '#10b981' : (statusCoz === 'preparando' ? '#f59e0b' : 'var(--brand)');
               let badgeTxt = statusCoz === 'pronto' ? '✅ Pronto' : (statusCoz === 'preparando' ? '🔥 Preparando' : '⏳ Pendente');
               let horaItem = it.horario ? ` às ${it.horario}` : '';
-              
-              let ehRecemAdicionado = (it.timestampItem && (agora - it.timestampItem < tresMinutos));
-
               return `
-                <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-bottom:4px;border-radius:10px;background:${ehRecemAdicionado ? 'rgba(56, 189, 248, 0.12)' : 'var(--input-bg)'};border:${ehRecemAdicionado ? '2px solid #38bdf8' : '1px solid var(--border)'}">
+                <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
                   <div>
-                    <span><b>[${it.cliente \vert{}\vert{} 'Cliente 1'}]</b>${it.qtd}x${it.nome}${ehRecemAdicionado ? '<span style="font-size:8px;background:#38bdf8;color:#fff;padding:2px 5px;border-radius:4px;font-weight:900">✨ NOVO</span>' : ''}</span><br>
+                    <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span><br>
                     <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>
                     <div style="font-size:9px;font-weight:900;color:${badgeCor}">${badgeTxt}</div>
                   </div>
