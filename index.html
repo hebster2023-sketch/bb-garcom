@@ -1044,14 +1044,14 @@ function itensTempComClientes(){
         let catDoItem = pObj ? pObj.cat : "";
         
         let horarioItem = horarioAtualStr;
-        // Se for bebida ou refrigerante ou outra categoria sem preparo, o status é 'pronto' direto. Caso contrário, 'pendente'.
-        let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : 'pronto';
+        // Se for BEBIDAS, REFRIGERANTES ou DIVERSOS, o status é "" (sem exibir nome de status). Caso contrário, segue a regra de preparo.
+        let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
         let timestampItem = Date.now();
 
         if(comandaAntiga && comandaAntiga.itens){
           let itAnt = comandaAntiga.itens.find(x => x.cliente === cli && x.nome === prod);
           if(itAnt){
-            if(itAnt.statusCozinha) statusExistente = itAnt.statusCozinha;
+            if(itAnt.statusCozinha !== undefined) statusExistente = itAnt.statusCozinha;
             if(itAnt.horario) horarioItem = itAnt.horario;
             if(itAnt.preco) preco = Number(itAnt.preco);
             if(itAnt.timestampItem) timestampItem = itAnt.timestampItem;
@@ -1844,7 +1844,7 @@ function pagarItensSelecionados(num){
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || 'pendente', horario: it.horario, timestampItem: it.timestampItem });
+      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || '', horario: it.horario, timestampItem: it.timestampItem });
     });
 
     const vendaParcial = { 
@@ -2156,16 +2156,21 @@ function renderComandas(){
         produtosListaHTML = `
           <div class="comanda-produtos-box">
             ${c.itens.map(it => {
-              let statusCoz = it.statusCozinha || 'pendente';
-              let badgeCor = statusCoz === 'pronto' ? '#10b981' : (statusCoz === 'preparando' ? '#f59e0b' : 'var(--brand)');
-              let badgeTxt = statusCoz === 'pronto' ? '✅ Pronto' : (statusCoz === 'preparando' ? '🔥 Preparando' : '⏳ Pendente');
+              let statusCoz = it.statusCozinha || '';
+              let badgeHtml = '';
+              if (statusCoz === 'pronto') {
+                badgeHtml = '<div style="font-size:9px;font-weight:900;color:#10b981">✅ Pronto</div>';
+              } else if (statusCoz === 'preparando') {
+                badgeHtml = '<div style="font-size:9px;font-weight:900;color:#f59e0b">🔥 Preparando</div>';
+              } else if (statusCoz === 'pendente') {
+                badgeHtml = '<div style="font-size:9px;font-weight:900;color:var(--brand)">⏳ Pendente</div>';
+              }
               let horaItem = it.horario ? ` às ${it.horario}` : '';
               return `
                 <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
                   <div>
                     <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span><br>
-                    <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>
-                    <div style="font-size:9px;font-weight:900;color:${badgeCor}">${badgeTxt}</div>
+                    <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>${badgeHtml}
                   </div>
                   <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
                 </div>
