@@ -363,8 +363,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 <nav class="bottom">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
- <button id="navCozinha" onclick="mudarTela('cozinha')"><span class="ico">🍳</span>Cozinha</button>
- <button id="navChurrasco" onclick="mudarTela('churrasco')"><span class="ico">🥩</span>Churrasco</button>
+ <button id="navCozinha" onclick="tentarAcessarSetor('cozinha')"><span class="ico">🍳</span>Cozinha</button>
+ <button id="navChurrasco" onclick="tentarAcessarSetor('churrasco')"><span class="ico">🥩</span>Churrasco</button>
  <button id="navRelatorios" onclick="mudarTela('relatorios')"><span class="ico">📊</span>Relatórios</button>
 </nav>
 
@@ -420,8 +420,41 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
+// Senhas de acesso aos setores (Cozinha e Churrasco)
+const SENHAS_SETORES = {
+  cozinha: "1234",
+  churrasco: "5678"
+};
+
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
+
+function tentarAcessarSetor(setor){
+  // Se for admin, libera direto
+  if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
+    mudarTela(setor);
+    return;
+  }
+
+  // Verifica se já foi autenticado nesta sessão do navegador
+  const acessoLiberado = sessionStorage.getItem(`acesso_${setor}`);
+  if(acessoLiberado === "true"){
+    mudarTela(setor);
+    return;
+  }
+
+  // Pede a senha via prompt
+  let senhaDigitada = prompt(`🔒 Digite a senha de acesso para a tela de ${setor.toUpperCase()}:`);
+  if(senhaDigitada === null) return;
+
+  if(senhaDigitada === SENHAS_SETORES[setor]){
+    sessionStorage.setItem(`acesso_${setor}`, "true");
+    showToast(`Acesso liberado para a ${setor}!`);
+    mudarTela(setor);
+  } else {
+    showToast("Senha incorreta! Acesso negado.", true);
+  }
+}
 
 function toggleSound(){
   somAtivo = !somAtivo;
@@ -1044,7 +1077,6 @@ function itensTempComClientes(){
         let catDoItem = pObj ? pObj.cat : "";
         
         let horarioItem = horarioAtualStr;
-        // Se for BEBIDAS, REFRIGERANTES ou DIVERSOS, o status é "" (sem exibir nome de status). Caso contrário, segue a regra de preparo.
         let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
         let timestampItem = Date.now();
 
@@ -1106,7 +1138,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 180000; // Exatamente 3 minutos (180.000 ms)
+ const tempoDestaqueLimite = 180000;
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1194,7 +1226,6 @@ function renderCozinha(){
   let totalValorCozinha = 0;
   let contagemProdutosCozinha = {};
 
-  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1225,7 +1256,6 @@ function renderCozinha(){
     }
   }
 
-  // 2. Acumular itens vendidos (incluindo mesas fechadas e baixas parciais através do histórico do Firebase)
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
       v.itens.forEach(it => {
@@ -1245,7 +1275,6 @@ function renderCozinha(){
     }
   });
 
-  // Somar também itens ativos atuais no acumulado
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1324,6 +1353,7 @@ function renderCozinha(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Módulo Cozinha</h2><span class="muted">Linha do tempo (Ordem de chegada)</span></div>
+      <button onclick="sessionStorage.removeItem('acesso_cozinha'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear Cozinha</button>
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
@@ -1351,7 +1381,6 @@ function renderChurrasco(){
   let totalValorChurrasco = 0;
   let contagemProdutosChurrasco = {};
 
-  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1376,7 +1405,6 @@ function renderChurrasco(){
     }
   }
 
-  // 2. Acumular itens de churrasco vendidos do histórico e baixas
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
       v.itens.forEach(it => {
@@ -1390,7 +1418,6 @@ function renderChurrasco(){
     }
   });
 
-  // Somar também itens ativos atuais no acumulado
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1457,6 +1484,7 @@ function renderChurrasco(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Módulo Churrasco</h2><span class="muted">Linha do tempo de espetos (Ordem de chegada)</span></div>
+      <button onclick="sessionStorage.removeItem('acesso_churrasco'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear Churrasco</button>
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
