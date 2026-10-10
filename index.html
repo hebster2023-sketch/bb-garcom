@@ -1033,15 +1033,19 @@ function itensTempComClientes(){
   const horarioAtualStr = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   const comandaAntiga = comandas[mesaSelecionada] || {};
 
+  const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS"];
+
   for(const cli in pedidoTemp){
     for(const prod in pedidoTemp[cli]){
       let qtd = pedidoTemp[cli][prod];
       if(qtd > 0){
         let pObj = produtosFlat().find(p => p.nome === prod);
         let preco = pObj ? pObj.preco : 0;
+        let catDoItem = pObj ? pObj.cat : "";
         
         let horarioItem = horarioAtualStr;
-        let statusExistente = 'pendente';
+        // Se for bebida ou refrigerante ou outra categoria sem preparo, o status é 'pronto' direto. Caso contrário, 'pendente'.
+        let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : 'pronto';
         let timestampItem = Date.now();
 
         if(comandaAntiga && comandaAntiga.itens){
