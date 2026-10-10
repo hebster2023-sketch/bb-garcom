@@ -348,7 +348,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   <div class="header-actions">
     <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
     <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
-    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙️️</button>
+    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙</button>
   </div>
 </header>
 <div id="conteudo"></div>
@@ -844,7 +844,7 @@ function iniciarOuvintesFirebase() {
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
-    if(telaAtual === "relatorios") renderizar();
+    if(["relatorios", "cozinha", "churrasco"].includes(telaAtual)) renderizar();
   }, err => {});
 
   db.collection("despesas").onSnapshot(snapshot => {
@@ -989,8 +989,22 @@ function alterarQtd(nome, delta){
     return;
   }
   if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
-  pedidoTemp[clienteAtual][nome] = (pedidoTemp[clienteAtual][nome] || 0) + delta; 
-  if(pedidoTemp[clienteAtual][nome] < 0) pedidoTemp[clienteAtual][nome] = 0; 
+  
+  let qtdAntiga = pedidoTemp[clienteAtual][nome] || 0;
+  let novaQtd = qtdAntiga + delta;
+  if(novaQtd < 0) novaQtd = 0;
+  pedidoTemp[clienteAtual][nome] = novaQtd;
+
+  if(delta > 0) {
+    if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
+      let itFound = comandas[mesaSelecionada].itens.find(x => x.cliente === clienteAtual && x.nome === nome);
+      if(itFound) {
+        itFound.timestampItem = Date.now();
+        itFound.horario = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      }
+    }
+  }
+
   renderProdutos(); 
   atualizarBar(); 
   salvarRascunhoAutomatico(); 
@@ -1088,7 +1102,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 300000;
+ const tempoDestaqueLimite = 180000; // Exatamente 3 minutos (180.000 ms)
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1096,7 +1110,14 @@ function renderProdutos(){
    const icon = itemBruto[2];
    const desc = itemBruto[3] || "";
    const indisponivel = itemBruto[4] === true;
-   const timestampCriacao = itemBruto[5] || 0;
+   
+   let timestampCriacao = itemBruto[5] || 0;
+   if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
+     let itMesa = comandas[mesaSelecionada].itens.find(x => x.nome === nome);
+     if(itMesa && itMesa.timestampItem) {
+       timestampCriacao = Math.max(timestampCriacao, itMesa.timestampItem);
+     }
+   }
    
    const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < tempoDestaqueLimite));
    const q = cliMap[nome] || 0;
@@ -1115,7 +1136,7 @@ function renderProdutos(){
      <div class="prod-info">
        <div class="prod-title">
          ${nome} 
-         ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO PEDIDO!</span>' : ''}
+         ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO</span>' : ''}
          ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
        </div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
@@ -1169,10 +1190,10 @@ function renderCozinha(){
   let totalValorCozinha = 0;
   let contagemProdutosCozinha = {};
 
+  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
-      // Somar itens ativos na mesa
       if(c.itens && c.itens.length > 0){
         c.itens.forEach(it => {
           let catDoItem = "";
@@ -1183,10 +1204,6 @@ function renderCozinha(){
             }
           }
           if(categoriasCozinha.includes(catDoItem)){
-            totalQtdCozinha += it.qtd;
-            totalValorCozinha += (it.qtd * Number(it.preco || 0));
-            contagemProdutosCozinha[it.nome] = (contagemProdutosCozinha[it.nome] || 0) + it.qtd;
-
             listaItensTimeline.push({
               mesa: i,
               garcom: c.garcom || 'Hebster',
@@ -1201,7 +1218,49 @@ function renderCozinha(){
           }
         });
       }
-      // Somar também os itens já pagos/baixados na mesa para fixar no resumo acumulado
+    }
+  }
+
+  // 2. Acumular itens vendidos (incluindo mesas fechadas e baixas parciais através do histórico do Firebase)
+  historicoVendas.forEach(v => {
+    if(v.itens && Array.isArray(v.itens)){
+      v.itens.forEach(it => {
+        let catDoItem = "";
+        for(let cat in cardapio){
+          if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+            catDoItem = cat;
+            break;
+          }
+        }
+        if(categoriasCozinha.includes(catDoItem)){
+          totalQtdCozinha += it.qtd;
+          totalValorCozinha += (it.qtd * Number(it.preco || 0));
+          contagemProdutosCozinha[it.nome] = (contagemProdutosCozinha[it.nome] || 0) + it.qtd;
+        }
+      });
+    }
+  });
+
+  // Somar também itens ativos atuais no acumulado
+  for(let i=1; i<=30; i++){
+    let c = comandas[i];
+    if(c){
+      if(c.itens && c.itens.length > 0){
+        c.itens.forEach(it => {
+          let catDoItem = "";
+          for(let cat in cardapio){
+            if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+              catDoItem = cat;
+              break;
+            }
+          }
+          if(categoriasCozinha.includes(catDoItem)){
+            totalQtdCozinha += it.qtd;
+            totalValorCozinha += (it.qtd * Number(it.preco || 0));
+            contagemProdutosCozinha[it.nome] = (contagemProdutosCozinha[it.nome] || 0) + it.qtd;
+          }
+        });
+      }
       if(c.itensPagos && c.itensPagos.length > 0){
         c.itensPagos.forEach(it => {
           let catDoItem = "";
@@ -1264,7 +1323,7 @@ function renderCozinha(){
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
-      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas na Cozinha (Ativo)</h3>
+      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas na Cozinha (Acumulado)</h3>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
         <span>Total de itens: <b>${totalQtdCozinha} un</b></span>
         <span>Valor estimado: <b style="color:#10b981">${br(totalValorCozinha)}</b></span>
@@ -1288,18 +1347,14 @@ function renderChurrasco(){
   let totalValorChurrasco = 0;
   let contagemProdutosChurrasco = {};
 
+  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
-      // Somar itens ativos na mesa
       if(c.itens && c.itens.length > 0){
         c.itens.forEach(it => {
           let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
           if(ehChurrasco){
-            totalQtdChurrasco += it.qtd;
-            totalValorChurrasco += (it.qtd * Number(it.preco || 0));
-            contagemProdutosChurrasco[it.nome] = (contagemProdutosChurrasco[it.nome] || 0) + it.qtd;
-
             listaItensTimelineChurrasco.push({
               mesa: i,
               garcom: c.garcom || 'Hebster',
@@ -1314,7 +1369,37 @@ function renderChurrasco(){
           }
         });
       }
-      // Somar também os itens já pagos/baixados na mesa para fixar no resumo acumulado
+    }
+  }
+
+  // 2. Acumular itens de churrasco vendidos do histórico e baixas
+  historicoVendas.forEach(v => {
+    if(v.itens && Array.isArray(v.itens)){
+      v.itens.forEach(it => {
+        let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+        if(ehChurrasco){
+          totalQtdChurrasco += it.qtd;
+          totalValorChurrasco += (it.qtd * Number(it.preco || 0));
+          contagemProdutosChurrasco[it.nome] = (contagemProdutosChurrasco[it.nome] || 0) + it.qtd;
+        }
+      });
+    }
+  });
+
+  // Somar também itens ativos atuais no acumulado
+  for(let i=1; i<=30; i++){
+    let c = comandas[i];
+    if(c){
+      if(c.itens && c.itens.length > 0){
+        c.itens.forEach(it => {
+          let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+          if(ehChurrasco){
+            totalQtdChurrasco += it.qtd;
+            totalValorChurrasco += (it.qtd * Number(it.preco || 0));
+            contagemProdutosChurrasco[it.nome] = (contagemProdutosChurrasco[it.nome] || 0) + it.qtd;
+          }
+        });
+      }
       if(c.itensPagos && c.itensPagos.length > 0){
         c.itensPagos.forEach(it => {
           let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
@@ -1371,7 +1456,7 @@ function renderChurrasco(){
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
-      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas no Churrasco (Ativo)</h3>
+      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas no Churrasco (Acumulado)</h3>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
         <span>Total de espetos: <b>${totalQtdChurrasco} un</b></span>
         <span>Valor estimado: <b style="color:#10b981">${br(totalValorChurrasco)}</b></span>
