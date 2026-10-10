@@ -1044,6 +1044,7 @@ function itensTempComClientes(){
         let catDoItem = pObj ? pObj.cat : "";
         
         let horarioItem = horarioAtualStr;
+        // Se for BEBIDAS, REFRIGERANTES ou DIVERSOS, o status é "" (sem exibir nome de status). Caso contrário, segue a regra de preparo.
         let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
         let timestampItem = Date.now();
 
@@ -1105,7 +1106,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 180000;
+ const tempoDestaqueLimite = 180000; // Exatamente 3 minutos (180.000 ms)
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1193,6 +1194,7 @@ function renderCozinha(){
   let totalValorCozinha = 0;
   let contagemProdutosCozinha = {};
 
+  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1223,6 +1225,7 @@ function renderCozinha(){
     }
   }
 
+  // 2. Acumular itens vendidos (incluindo mesas fechadas e baixas parciais através do histórico do Firebase)
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
       v.itens.forEach(it => {
@@ -1242,6 +1245,7 @@ function renderCozinha(){
     }
   });
 
+  // Somar também itens ativos atuais no acumulado
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1347,6 +1351,7 @@ function renderChurrasco(){
   let totalValorChurrasco = 0;
   let contagemProdutosChurrasco = {};
 
+  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1371,6 +1376,7 @@ function renderChurrasco(){
     }
   }
 
+  // 2. Acumular itens de churrasco vendidos do histórico e baixas
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
       v.itens.forEach(it => {
@@ -1384,6 +1390,7 @@ function renderChurrasco(){
     }
   });
 
+  // Somar também itens ativos atuais no acumulado
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
