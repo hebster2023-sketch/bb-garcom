@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#800000">
+<meta name="theme-color" content="#d32f2f">
 <title>B.B CHURRASCO — Sistema de Gestão</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Firebase SDKs -->
@@ -11,52 +11,48 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <!-- PWA Manifest dinâmico inline -->
-<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22B.B%20Churrasco%22%2C%22short_name%22%3A%22BBChurrasco%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23120d0b%22%2C%22theme_color%22%3A%22%23800000%22%2C%22icons%22%3A%5B%5D%7D">
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22B.B%20Churrasco%22%2C%22short_name%22%3A%22BBChurrasco%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8faf9%22%2C%22theme_color%22%3A%22%23d32f2f%22%2C%22icons%22%3A%5B%5D%7D">
 <style>
 :root {
-  --brand: #800000;
-  --brand-hover: #5a1818;
-  --gold: #d4af37;
-  --gold-glow: rgba(212, 175, 55, 0.25);
-  --ink: #f3f4f6;
-  --bg: #120d0b;
-  --card: rgba(30, 20, 18, 0.9);
-  --border: rgba(212, 175, 55, 0.15);
-  --muted: #b4a29a;
-  --input-bg: rgba(20, 14, 12, 0.85);
-}
-[data-theme="light"] {
-  --brand: #800000;
-  --brand-hover: #5a1818;
-  --gold: #b8860b;
-  --gold-glow: rgba(184, 134, 11, 0.2);
+  --brand: #d32f2f;
+  --brand-hover: #c42222;
   --ink: #1f2937;
-  --bg: #f5f0eb;
+  --bg: #f8faf9;
   --card: #ffffff;
-  --border: rgba(128, 0, 0, 0.12);
+  --border: rgba(0, 0, 0, 0.06);
   --muted: #6b7280;
-  --input-bg: #f9f6f0;
+  --input-bg: #f1f5f3;
+}
+[data-theme="dark"] {
+  --brand: #ef4444;
+  --brand-hover: #dc2626;
+  --ink: #f3f4f6;
+  --bg: #121212;
+  --card: rgba(30, 32, 38, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #9ca3af;
+  --input-bg: rgba(20, 22, 27, 0.8);
 }
 *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;-webkit-tap-highlight-color:transparent;transition:background .3s,color .3s}
 body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140px}
 
-/* Header Gourmet Gold & Wood */
-.header{background:linear-gradient(135deg,#5a1818,#800000,#3b0a0a);color:#fff;border-radius:24px;padding:20px 18px;box-shadow:0 10px 30px rgba(128,0,0,0.3);position:relative;overflow:hidden;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--gold)}
-.header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0;color:var(--gold);text-shadow:0 2px 4px rgba(0,0,0,0.5)}.header p{margin:4px 0 0;font-size:11px;opacity:.9}
+/* Header */
+.header{background:linear-gradient(135deg,var(--brand),var(--brand-hover));color:#fff;border-radius:24px;padding:20px 18px;box-shadow:0 10px 25px rgba(211, 47, 47, 0.2);position:relative;overflow:hidden;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0}.header p{margin:4px 0 0;font-size:11px;opacity:.9}
 .header-actions{display:flex;gap:8px;align-items:center}
-.theme-btn, .sound-btn, .admin-btn{background:rgba(212,175,55,0.2);border:1px solid var(--gold);color:var(--gold);width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.theme-btn, .sound-btn, .admin-btn{background:rgba(255,255,255,0.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
 .theme-btn:active, .sound-btn:active, .admin-btn:active{transform:scale(.85)}
-.sound-btn.active{background:rgba(16, 185, 129, 0.5);border:1px solid #10b981;color:#fff}
+.sound-btn.active{background:rgba(16, 185, 129, 0.5);border:1px solid #10b981}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
-.toast{background:rgba(30, 20, 18, 0.95);backdrop-filter:blur(8px);color:var(--ink);border:1px solid var(--gold);padding:12px 16px;border-radius:14px;font-size:12px;font-weight:800;box-shadow:0 10px 25px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;pointer-events:auto;animation: fadeInOut .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.toast{background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(8px);color:#fff;padding:12px 16px;border-radius:14px;font-size:12px;font-weight:800;box-shadow:0 10px 25px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;pointer-events:auto;animation: fadeInOut .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
 /* Navegação Inferior (5 Abas) */
-.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gold);display:grid;grid-template-columns:repeat(5,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.bottom{position:fixed;z-index:100;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 24px));background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
 .bottom button{border:0;background:none;color:var(--muted);font-weight:800;font-size:10px;padding:8px 2px;border-radius:16px;display:flex;flex-direction:column;align-items:center;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);cursor:pointer}
-.bottom button.active{color:var(--gold);background:rgba(212, 175, 55, 0.15);transform:translateY(-2px)}
+.bottom button.active{color:var(--brand);background:rgba(211, 47, 47, 0.1);transform:translateY(-2px)}
 .bottom button:active{transform:scale(0.92)}
 .bottom .ico{font-size:17px;margin-bottom:2px}
 
@@ -64,33 +60,33 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .filter-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
 .filter-tabs::-webkit-scrollbar{display:none}
 .filter-tab{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.02);transition:all .2s}
-.filter-tab.active{background:var(--brand);color:var(--gold);border-color:var(--gold);box-shadow:0 4px 12px var(--gold-glow)}
+.filter-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px rgba(211,47,47,0.25)}
 
 /* Grid de Mesas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.card-mesa, .table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
-.card-mesa:hover, .table:hover{border-color:var(--gold);transform:translateY(-2px)}
+.card-mesa, .table{min-height:130px;border-radius:20px;padding:10px 6px;border:1px solid var(--border);background:var(--card);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(0.34, 1.56, 0.64, 1);position:relative;overflow:hidden}
+.card-mesa:hover, .table:hover{border-color:rgba(211,47,47,0.3);transform:translateY(-2px)}
 .card-mesa:active, .table:active{transform:scale(0.95)}
-.card-mesa.ocupada, .table.busy{border-color:rgba(128, 0, 0, 0.4);background:linear-gradient(135deg, rgba(128, 0, 0, 0.1), var(--card))}
-.card-mesa.livre {border-color:rgba(16, 185, 129, 0.3);background:linear-gradient(135deg, rgba(16, 185, 129, 0.05), var(--card))}
+.card-mesa.ocupada, .table.busy{border-color:rgba(211, 47, 47, 0.3);background:linear-gradient(135deg, rgba(211, 47, 47, 0.04), var(--card))}
+.card-mesa.livre {border-color:rgba(16, 185, 129, 0.3);background:linear-gradient(135deg, rgba(16, 185, 129, 0.04), var(--card))}
 
 .table.novo-pedido-ativo{border-color:#38bdf8 !important;background:linear-gradient(135deg, rgba(56, 189, 248, 0.15), var(--card)) !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.3) !important;animation: pulseNovo 1.5s infinite}
 @keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
 
-.table.pediu-conta-ativo{border-color:var(--gold) !important;background:linear-gradient(135deg, rgba(212, 175, 55, 0.2), var(--card)) !important;box-shadow:0 0 25px var(--gold-glow) !important;animation: pulseConta 1.2s infinite}
+.table.pediu-conta-ativo{border-color:#f59e0b !important;background:linear-gradient(135deg, rgba(245, 158, 11, 0.2), var(--card)) !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.4) !important;animation: pulseConta 1.2s infinite}
 @keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
 
-.table .num, .card-mesa h3{font-size:15px;font-weight:900;margin:0;color:var(--gold)}
+.table .num, .card-mesa h3{font-size:15px;font-weight:900;margin:0}
 .badge-status, .status-mesa{font-size:9px;font-weight:900;margin-top:2px;padding:2px 8px;border-radius:99px;letter-spacing:.3px}
-.badge-status.livre{background:rgba(16, 185, 129, 0.15);color:#10b981;border:1px solid rgba(16, 185, 129, 0.3)}
-.badge-status.ocupada{background:rgba(128, 0, 0, 0.2);color:var(--gold);border:1px solid var(--gold)}
+.badge-status.livre{background:rgba(16, 185, 129, 0.1);color:#10b981;border:1px solid rgba(16, 185, 129, 0.2)}
+.badge-status.ocupada{background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211, 47, 47, 0.2)}
 
-.table .total, .total-mesa{font-size:12px;font-weight:900;margin-top:3px;color:var(--gold)}
+.table .total, .total-mesa{font-size:12px;font-weight:900;margin-top:3px;color:#ff5252}
 .table .timer{font-size:9px;margin-top:2px;font-weight:800;padding:1px 6px;border-radius:6px}
-.timer.tempo-verde{background:rgba(16, 185, 129, 0.15);color:#10b981}
-.timer.tempo-amarelo{background:rgba(212, 175, 55, 0.15);color:var(--gold)}
-.timer.tempo-vermelho{background:rgba(128, 0, 0, 0.2);color:#ff6b6b}
-.table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.timer.tempo-verde{background:rgba(16, 185, 129, 0.1);color:#10b981}
+.timer.tempo-amarelo{background:rgba(245, 158, 11, 0.1);color:#f59e0b}
+.timer.tempo-vermelho{background:rgba(211, 47, 47, 0.1);color:#d32f2f}
+.table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:1px 6px;border-radius:6px;margin-top:3px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .item-novo-destaque {
   border: 2px solid #38bdf8 !important;
@@ -109,17 +105,17 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   vertical-align: middle;
 }
 
-.card{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,0.15);padding:16px;margin-bottom:12px}
-.section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 10px;font-size:1.1rem;color:var(--gold);border-bottom:2px solid var(--gold);padding-bottom:5px}.section-title h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,0.03);padding:16px;margin-bottom:12px}
+.section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 10px;font-size:1.1rem;color:#ff5252;border-bottom:2px solid var(--brand);padding-bottom:5px}.section-title h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
 
 .topbar{display:flex;gap:12px;align-items:center}
-.back{border:1px solid var(--gold);background:var(--card);color:var(--gold);border-radius:12px;width:38px;height:38px;font-weight:900;font-size:15px;display:grid;place-items:center;cursor:pointer;transition:transform .2s}
+.back{border:0;background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:12px;width:38px;height:38px;font-weight:900;font-size:15px;display:grid;place-items:center;cursor:pointer;transition:transform .2s}
 .back:active{transform:scale(0.85)}
 .mesa-head{flex:1}.mesa-head h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:11px;color:var(--muted)}
 
 .search-box{position:relative;margin-bottom:12px}
 .search-box input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:700;outline:none;transition:all .2s}
-.search-box input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
+.search-box input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(211,47,47,0.1)}
 .search-box span{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
 
 .atendimento-layout {
@@ -151,7 +147,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   font-weight: 800;
   font-size: 9px;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
 }
 .side-cat .cat-ico {
   font-size: 20px;
@@ -159,9 +155,9 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 }
 .side-cat.active {
   background: var(--brand);
-  color: var(--gold);
-  border-color: var(--gold);
-  box-shadow: 0 4px 14px var(--gold-glow);
+  color: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 4px 14px rgba(211,47,47,0.3);
   transform: translateY(-1px);
 }
 .side-cat:active { transform: scale(0.92); }
@@ -179,13 +175,13 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   border-radius: 18px;
   padding: 10px;
   gap: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   transition: all 0.2s;
   position: relative;
 }
 .product-card.selected {
-  border-color: var(--gold);
-  box-shadow: 0 6px 16px var(--gold-glow);
+  border-color: var(--brand);
+  box-shadow: 0 6px 16px rgba(211,47,47,0.1);
 }
 .product-card.indisponivel {
   opacity: 0.55;
@@ -202,7 +198,6 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   flex-shrink: 0;
   overflow: hidden;
   font-size: 26px;
-  border: 1px solid var(--border);
 }
 .prod-thumb img {
   width: 100%;
@@ -233,7 +228,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .prod-price {
   font-size: 0.95rem;
   font-weight: bold;
-  color: var(--gold);
+  color: #ff5252;
   margin-top: 4px;
 }
 .prod-action-qty {
@@ -247,14 +242,14 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   height: 38px;
   border-radius: 50%;
   background: var(--brand);
-  color: var(--gold);
-  border: 1px solid var(--gold);
+  color: #fff;
+  border: 0;
   font-size: 20px;
   font-weight: 900;
   display: grid;
   place-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px var(--gold-glow);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
   transition: transform .15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .btn-circle-plus:active { transform: scale(0.85); }
@@ -289,32 +284,32 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
   text-align: center;
 }
 
-.cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(30, 20, 18, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--ink);border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.4);border:1px solid var(--gold);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
+.cartbar{position:fixed;z-index:90;left:50%;transform:translateX(-50%) translateY(100px);bottom:76px;width:min(700px,calc(100% - 24px));background:rgba(31, 41, 55, 0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;border-radius:20px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);transition:transform .4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s ease;opacity:0}
 .cartbar.show-cart{transform:translateX(-50%) translateY(0);opacity:1}
-.cartbar button{border:1px solid var(--gold);background:var(--brand);color:var(--gold);border-radius:12px;padding:8px 14px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
+.cartbar button{border:0;background:#fff;color:#1f2937;border-radius:12px;padding:8px 14px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
 .cartbar button:active{transform:scale(0.92)}
 
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center}
 .modal.show{display:flex}
-.sheet{background:var(--card);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);color:var(--ink);width:90%;max-width:400px;margin:auto;border-radius:28px;padding:20px;max-height:90vh;overflow:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.4);border:1px solid var(--gold);animation: slideUpModal .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.sheet{background:var(--card);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);color:var(--ink);width:90%;max-width:400px;margin:auto;border-radius:28px;padding:20px;max-height:90vh;overflow:auto;box-shadow:0 -15px 50px rgba(0,0,0,0.2);border-top:1px solid var(--border);animation: slideUpModal .3s cubic-bezier(0.34, 1.56, 0.64, 1)}
 @keyframes slideUpModal { from{transform:translateY(100%)} to{transform:translateY(0)} }
 
 .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.sheet h2{font-size:18px;font-weight:900;color:var(--gold);margin:0}
-.close{border:1px solid var(--gold);background:var(--input-bg);color:var(--gold);border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;transition:transform .2s}
+.sheet h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}
+.close{border:0;background:var(--input-bg);color:var(--ink);border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;transition:transform .2s}
 .close:active{transform:scale(0.85)}
 .line{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
 .line small{color:var(--muted)}
-.totalrow{display:flex;justify-content:space-between;font-size:17px;font-weight:900;padding:14px 0;border-top:2px dashed var(--gold);margin-top:4px;color:var(--gold)}
-.primary{width:100%;border:1px solid var(--gold);background:var(--brand);color:var(--gold);border-radius:14px;padding:14px;font-weight:900;font-size:14px;box-shadow:0 6px 18px var(--gold-glow);cursor:pointer;transition:transform .2s}
+.totalrow{display:flex;justify-content:space-between;font-size:17px;font-weight:900;padding:14px 0;border-top:2px dashed var(--border);margin-top:4px}
+.primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:14px;padding:14px;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(211, 47, 47, 0.25);cursor:pointer;transition:transform .2s}
 .primary:active{transform:scale(0.97)}
 .secondary{width:100%;background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:14px;padding:12px;font-weight:900;margin-top:6px;cursor:pointer;font-size:13px;transition:transform .2s}
 .secondary:active{transform:scale(0.97)}
 .empty{padding:30px 15px;text-align:center;color:var(--muted);font-weight:700;font-size:13px}
 .command{padding:16px;margin-bottom:10px}
 .command .row{display:flex;justify-content:space-between;gap:10px}
-.command h3{margin:0;font-size:16px;font-weight:900;color:var(--gold)}
-.tag{font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:rgba(128, 0, 0, 0.2);color:var(--gold);border:1px solid var(--gold)}
+.command h3{margin:0;font-size:16px;font-weight:900;color:var(--ink)}
+.tag{font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211,47,47,0.2)}
 </style>
 </head>
 <body>
@@ -322,11 +317,11 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 <div id="toast-container"></div>
 
 <!-- TELA DE LOGIN -->
-<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #251613 0%, #120d0b 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--card);border:1px solid var(--gold);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.5)">
+<div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:26px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:32px;margin-bottom:6px">🔥</div>
-      <h2 style="font-size:20px;font-weight:900;margin:0;color:var(--gold)">B.B CHURRASCO</h2>
+      <h2 style="font-size:20px;font-weight:900;margin:0;color:var(--ink)">B.B CHURRASCO</h2>
       <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Faça login para acessar o sistema</p>
     </div>
     <form onsubmit="handleLogin(event)" style="display:flex;flex-direction:column;gap:12px">
@@ -338,8 +333,8 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
         <input type="password" id="login-password" required style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
       </div>
-      <div id="login-error" style="color:#ff6b6b;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
-      <button type="submit" style="background:var(--brand);color:var(--gold);border:1px solid var(--gold);border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px var(--gold-glow)">Entrar no Sistema</button>
+      <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
+      <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900;font-size:13px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(211,47,47,0.25)">Entrar no Sistema</button>
     </form>
   </div>
 </div>
@@ -515,10 +510,10 @@ function toggleTheme(){
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀' : '🌙';
-  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#120d0b' : '#800000');
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#121212' : '#d32f2f');
   localStorage.setItem('bb_theme', next);
 }
-const savedTheme = localStorage.getItem('bb_theme') || 'dark';
+const savedTheme = localStorage.getItem('bb_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('themeToggleBtn');
@@ -530,7 +525,7 @@ function showToast(msg, isError = false){
   if(!container) return;
   const t = document.createElement('div');
   t.className = 'toast';
-  t.style.borderLeft = isError ? '4px solid #ff6b6b' : '4px solid #10b981';
+  t.style.borderLeft = isError ? '4px solid #d32f2f' : '4px solid #10b981';
   t.innerHTML = `<span>${isError ? '⚠' : '✅'}</span> <span>${msg}</span>`;
   container.appendChild(t);
   setTimeout(() => {
@@ -682,7 +677,7 @@ function renderizarPainelAdmin(){
   let categoriasHTML = Object.keys(cardapio).map(cat => `
     <div class="card" style="margin-bottom:14px;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h3 style="margin:0;font-size:15px;font-weight:900;color:var(--gold)">📁 ${cat}</h3>
+        <h3 style="margin:0;font-size:15px;font-weight:900;color:var(--brand)">📁 ${cat}</h3>
         <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${cat}')">+ Novo Item</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
@@ -695,14 +690,14 @@ function renderizarPainelAdmin(){
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
-                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${indisponivel ? '<span style="color:#ff6b6b">(Esgotado)</span>' : ''}</b>
-                <small style="color:var(--gold);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
+                <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="alternarIndisponivelAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(128,0,0,0.2)'};color:${indisponivel ? '#10b981' : 'var(--gold)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Disponível' : 'Esgotar'}</button>
+              <button onclick="alternarIndisponivelAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.1)'};color:${indisponivel ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Disponível' : 'Esgotar'}</button>
               <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
-              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:rgba(128,0,0,0.3);color:var(--gold);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:6px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
         `}).join('')}
@@ -716,7 +711,7 @@ function renderizarPainelAdmin(){
       <button class="primary" onclick="adicionarCategoriaAdmin()" style="font-size:12px;padding:10px">+ Criar Nova Categoria</button>
     </div>
     ${categoriasHTML}
-    <button class="primary" onclick="salvarCardapioDinamicoNoFirebase()" style="background:#10b981;color:#fff;margin-top:10px">💾 Salvar Alterações no Banco</button>
+    <button class="primary" onclick="salvarCardapioDinamicoNoFirebase()" style="background:#10b981;margin-top:10px">💾 Salvar Alterações no Banco</button>
     <button class="secondary" onclick="fecharModal()">Fechar Painel</button>
   `;
   document.getElementById("modal").classList.add("show");
@@ -1049,6 +1044,7 @@ function itensTempComClientes(){
         let catDoItem = pObj ? pObj.cat : "";
         
         let horarioItem = horarioAtualStr;
+        // Se for BEBIDAS, REFRIGERANTES ou DIVERSOS, o status é "" (sem exibir nome de status). Caso contrário, segue a regra de preparo.
         let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
         let timestampItem = Date.now();
 
@@ -1110,7 +1106,7 @@ function renderProdutos(){
  }
 
  const agora = Date.now();
- const tempoDestaqueLimite = 180000;
+ const tempoDestaqueLimite = 180000; // Exatamente 3 minutos (180.000 ms)
 
  el.innerHTML = listaProd.map(itemBruto => {
    const nome = itemBruto[0];
@@ -1145,19 +1141,19 @@ function renderProdutos(){
        <div class="prod-title">
          ${nome} 
          ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO</span>' : ''}
-         ${indisponivel ? '<span style="font-size:10px;background:#800000;color:var(--gold);padding:2px 6px;border-radius:4px;margin-left:4px;border:1px solid var(--gold)">ESGOTADO</span>' : ''}
+         ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
        </div>
        ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
        <div class="prod-price">R$ ${preco.toFixed(2)}</div>
      </div>
      <div class="prod-action-qty">
-       ${indisponivel ? `<span style="font-size:11px;color:#ff6b6b;font-weight:900">Indisponível</span>` : (q === 0 ? `
+       ${indisponivel ? `<span style="font-size:11px;color:#d32f2f;font-weight:900">Indisponível</span>` : (q === 0 ? `
          <button class="btn-circle-plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
        ` : `
          <div class="qty-control-inline">
            <button onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',-1)">−</button>
            <span>${q}</span>
-           <button style="background:var(--brand);color:var(--gold);border:1px solid var(--gold)" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
+           <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
          </div>
        `)}
      </div>
@@ -1198,6 +1194,7 @@ function renderCozinha(){
   let totalValorCozinha = 0;
   let contagemProdutosCozinha = {};
 
+  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1228,6 +1225,7 @@ function renderCozinha(){
     }
   }
 
+  // 2. Acumular itens vendidos (incluindo mesas fechadas e baixas parciais através do histórico do Firebase)
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
       v.itens.forEach(it => {
@@ -1247,6 +1245,7 @@ function renderCozinha(){
     }
   });
 
+  // Somar também itens ativos atuais no acumulado
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1294,11 +1293,11 @@ function renderCozinha(){
   `).join('');
 
   let cardsTimelineHTML = listaItensTimeline.map(item => {
-    let corStatus = item.status === 'preparando' ? '#d4af37' : (item.status === 'pronto' ? '#10b981' : 'var(--gold)');
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
     let labelStatus = item.status === 'preparando' ? '🔥 Preparando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
     
     return `
-      <div class="card command" style="border-left: 4px solid var(--gold); margin-bottom:8px; padding:12px">
+      <div class="card command" style="border-left: 4px solid var(--brand); margin-bottom:8px; padding:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
@@ -1309,12 +1308,12 @@ function renderCozinha(){
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:900">
-              <span style="color:var(--gold)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
+              <span style="color:var(--brand)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
             </div>
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#d4af37;color:#120d0b;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
             ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
@@ -1327,8 +1326,8 @@ function renderCozinha(){
       <div><h2>Módulo Cozinha</h2><span class="muted">Linha do tempo (Ordem de chegada)</span></div>
     </div>
     
-    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(128,0,0,0.15), var(--card));border-color:var(--gold)">
-      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--gold)">📊 Resumo de Vendas na Cozinha (Acumulado)</h3>
+    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
+      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas na Cozinha (Acumulado)</h3>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
         <span>Total de itens: <b>${totalQtdCozinha} un</b></span>
         <span>Valor estimado: <b style="color:#10b981">${br(totalValorCozinha)}</b></span>
@@ -1352,6 +1351,7 @@ function renderChurrasco(){
   let totalValorChurrasco = 0;
   let contagemProdutosChurrasco = {};
 
+  // 1. Somar itens ativos em mesas abertas
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1376,6 +1376,7 @@ function renderChurrasco(){
     }
   }
 
+  // 2. Acumular itens de churrasco vendidos do histórico e baixas
   historicoVendas.forEach(v => {
     if(v.itens && Array.isArray(v.itens)){
       v.itens.forEach(it => {
@@ -1389,6 +1390,7 @@ function renderChurrasco(){
     }
   });
 
+  // Somar também itens ativos atuais no acumulado
   for(let i=1; i<=30; i++){
     let c = comandas[i];
     if(c){
@@ -1424,11 +1426,11 @@ function renderChurrasco(){
   `).join('');
 
   let cardsChurrascoHTML = listaItensTimelineChurrasco.map(item => {
-    let corStatus = item.status === 'preparando' ? '#d4af37' : (item.status === 'pronto' ? '#10b981' : 'var(--gold)');
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
     let labelStatus = item.status === 'preparando' ? '🔥 Assando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Na Fila');
 
     return `
-      <div class="card command" style="border-left: 4px solid var(--gold); margin-bottom:8px; padding:12px">
+      <div class="card command" style="border-left: 4px solid #d32f2f; margin-bottom:8px; padding:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
@@ -1439,12 +1441,12 @@ function renderChurrasco(){
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:900">
-              <span style="color:var(--gold)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
+              <span style="color:var(--brand)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
             </div>
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#d4af37;color:#120d0b;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
             ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
@@ -1457,8 +1459,8 @@ function renderChurrasco(){
       <div><h2>Módulo Churrasco</h2><span class="muted">Linha do tempo de espetos (Ordem de chegada)</span></div>
     </div>
     
-    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(128,0,0,0.15), var(--card));border-color:var(--gold)">
-      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--gold)">📊 Resumo de Vendas no Churrasco (Acumulado)</h3>
+    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
+      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas no Churrasco (Acumulado)</h3>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
         <span>Total de espetos: <b>${totalQtdChurrasco} un</b></span>
         <span>Valor estimado: <b style="color:#10b981">${br(totalValorChurrasco)}</b></span>
@@ -1599,7 +1601,7 @@ function abrirCarrinho(){
 
  let htmlCarrinho = "";
  for(const cli in itensPorPessoa){
-   htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--gold);margin-top:10px;margin-bottom:4px">👤 ${cli}</div>`;
+   htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--brand);margin-top:10px;margin-bottom:4px">👤 ${cli}</div>`;
    htmlCarrinho += itensPorPessoa[cli].map(i => `
      <div class="line" style="align-items:center">
        <div><b>${i.nome}</b><br><small>${br(i.preco)} cada</small></div>
@@ -1607,7 +1609,7 @@ function abrirCarrinho(){
          <div class="qty-control-inline">
            <button onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', -1)">−</button>
            <span>${i.qtd}</span>
-           <button style="background:var(--brand);color:var(--gold)" onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', 1)">+</button>
+           <button style="background:var(--brand);color:#fff" onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', 1)">+</button>
          </div>
          <strong style="min-width:65px;text-align:right">${br(i.qtd*i.preco)}</strong>
        </div>
@@ -1707,7 +1709,7 @@ function dividirContaModal(num){
  document.getElementById("modalTitle").textContent = `Pagamento — Mesa ${pad(num)}`;
  
  document.getElementById("modalBody").innerHTML = `
-  <button class="primary" style="background:var(--brand);color:var(--gold);margin-bottom:14px;font-size:13px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="abrirJanelaConsumoCliente(${num})">
+  <button class="primary" style="background:var(--brand);margin-bottom:14px;font-size:13px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="abrirJanelaConsumoCliente(${num})">
     <span>🧾</span> Consumo do Cliente
   </button>
 
@@ -1727,26 +1729,26 @@ function dividirContaModal(num){
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:12px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
-            <div style="font-weight:900;font-size:12px"><span style="color:var(--gold)">[${i.cliente ?? 'Cliente 1'}]</span>${i.nome}</div>
+            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente ?? 'Cliente 1'}]</span>${i.nome}</div>
             <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
             <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente ?? 'Cliente 1'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
-            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:var(--gold);font-weight:900;font-size:16px;cursor:pointer">+</button>
+            <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
           </div>
         </div>
       `).join("")}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:13px">
       <span style="font-weight:700">Total Selecionado:</span>
-      <b id="lblTotalSelecionado" style="color:var(--gold);font-size:16px">R$ 0,00</b>
+      <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
     </div>
-    <button class="primary" style="margin-top:10px;background:#10b981;color:#fff;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="pagarItensSelecionados(${num})">✅ Pagar na Hora (Manter Mesa Aberta)</button>
+    <button class="primary" style="margin-top:10px;background:#10b981;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="pagarItensSelecionados(${num})">✅ Pagar na Hora (Manter Mesa Aberta)</button>
   </div>
 
-  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);color:var(--gold);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
-  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(128,0,0,0.15);color:var(--gold);border:1px solid var(--gold);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
+  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar/Estornar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1775,7 +1777,7 @@ function abrirJanelaConsumoCliente(num){
       ${itensPagosAnterioresHTML ? `<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px">${itensPagosAnterioresHTML}</div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:13px">
         <span style="font-weight:700">Total Consumido:</span>
-        <b style="color:var(--gold);font-size:16px">${br(c.total)}</b>
+        <b style="color:var(--brand);font-size:16px">${br(c.total)}</b>
       </div>
     </div>
     <button class="secondary" onclick="dividirContaModal(${num})">← Voltar para Pagamento</button>
@@ -1979,7 +1981,7 @@ function renderRelatorios(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Relatórios Financeiros</h2><span class="muted">Histórico Acumulado (Até apagar)</span></div>
-      <button onclick="adicionarDespesa()" style="border:1px solid var(--gold);background:var(--brand);color:var(--gold);border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
+      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
@@ -1989,17 +1991,17 @@ function renderRelatorios(){
       </div>
       <div class="card" style="margin:0;padding:12px;text-align:center">
         <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
-        <div style="font-size:18px;font-weight:900;color:#ff6b6b;margin-top:4px">${br(totalDespesas)}</div>
+        <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
       </div>
     </div>
 
-    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.08), var(--card)); border-color:rgba(16,185,129,0.4)">
+    <div class="card" style="padding:14px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
       <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
-      <div style="font-size:24px;font-weight:900;color:var(--gold);margin-top:4px">${br(saldoLiquido)}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
     </div>
 
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--gold)">💳 Entradas por Forma de Pagamento</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Entradas por Forma de Pagamento</h3>
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Pix:</span> <b>${br(totalPix)}</b></div>
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
@@ -2007,7 +2009,7 @@ function renderRelatorios(){
     </div>
 
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--gold)">👤 Relatório Detalhado dos Garçons (Acumulado)</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (Acumulado)</h3>
       <div style="display:flex;flex-direction:column;gap:8px">
       ${(function(){
          let htmlGarcons = "";
@@ -2024,7 +2026,7 @@ function renderRelatorios(){
            htmlGarcons += `
              <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);font-size:12px">
                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                 <b style="color:var(--gold)">👤 Garçom: ${garcomNome}</b>
+                 <b style="color:var(--brand)">👤 Garçom: ${garcomNome}</b>
                  <span style="font-size:11px;color:var(--muted);font-weight:700">📅 ${dataExata} às ${horarioExato}</span>
                </div>
                <div style="display:flex;justify-content:space-between;align-items:center">
@@ -2041,12 +2043,12 @@ function renderRelatorios(){
     
     ${despesas.length ? `
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#ff6b6b">🔻 Gastos e Despesas Registradas</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Registradas</h3>
       ${despesas.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc} (${d.data})</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
     </div>` : ''}
 
     <div class="card" style="padding:14px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--gold)">🛒 Total de Produtos Vendidos (Acumulado)</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Total de Produtos Vendidos (Acumulado)</h3>
       <div style="max-height:250px;overflow-y:auto;padding-right:5px">
       ${(function(){
          let prodVendidos = {};
@@ -2069,17 +2071,17 @@ function renderRelatorios(){
     </div>
 
     ${cancelamentos.length ? `
-    <div class="card" style="padding:14px;margin-bottom:14px;border-color:var(--gold);background:rgba(212,175,55,0.05)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--gold)">⚠️ Comandas Canceladas Registradas</h3>
+    <div class="card" style="padding:14px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Registradas</h3>
       ${cancelamentos.map(c => `
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(212,175,55,0.2)">
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
           <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)} (${c.data})</b> <b>${br(c.totalCancelado)}</b></div>
           <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
         </div>
       `).join('')}
     </div>` : ''}
 
-    <button class="secondary" style="border-color:var(--gold);color:var(--gold);background:rgba(128,0,0,0.2);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
+    <button class="secondary" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
   `;
 }
 
@@ -2159,9 +2161,9 @@ function renderComandas(){
               if (statusCoz === 'pronto') {
                 badgeHtml = '<div style="font-size:9px;font-weight:900;color:#10b981">✅ Pronto</div>';
               } else if (statusCoz === 'preparando') {
-                badgeHtml = '<div style="font-size:9px;font-weight:900;color:var(--gold)">🔥 Preparando</div>';
+                badgeHtml = '<div style="font-size:9px;font-weight:900;color:#f59e0b">🔥 Preparando</div>';
               } else if (statusCoz === 'pendente') {
-                badgeHtml = '<div style="font-size:9px;font-weight:900;color:var(--muted)">⏳ Pendente</div>';
+                badgeHtml = '<div style="font-size:9px;font-weight:900;color:var(--brand)">⏳ Pendente</div>';
               }
               let horaItem = it.horario ? ` às ${it.horario}` : '';
               return `
@@ -2170,7 +2172,7 @@ function renderComandas(){
                     <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x${it.nome}</span><br>
                     <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>${badgeHtml}
                   </div>
-                  <b style="color:var(--gold)">${br(it.qtd * it.preco)}</b>
+                  <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
                 </div>
               `;
             }).join('')}
@@ -2209,8 +2211,8 @@ function renderComandas(){
           ${produtosListaHTML}
           ${itensPagosHTML}
           <div style="display:flex;gap:6px;margin-top:12px">
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg);color:var(--gold);border:1px solid var(--gold)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.15);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
             <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
           </div>
         </div>
@@ -2242,7 +2244,7 @@ function renderAtendimento(){
   if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
 
   let pillsPessoasHTML = listaPessoasClientes.map(cli => `
-    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--gold)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? 'var(--gold)' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${cli}</button>
+    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 12px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${cli}</button>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
@@ -2264,7 +2266,7 @@ function renderAtendimento(){
         ${pillsPessoasHTML}
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
-        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--gold);background:rgba(128,0,0,0.15);color:var(--gold);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
+        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 10px;border-radius:10px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
         <button onclick="renomearClienteAtual()" style="padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
       </div>
     </div>
