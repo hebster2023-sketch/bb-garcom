@@ -423,34 +423,42 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// NOTIFICAÇÕES PUSH NATIVAS
+// NOTIFICAÇÕES PUSH NATIVAS (Tratamento para suporte em iOS/Safari)
 function pedirPermissaoPush() {
-  if (!('Notification' in window)) {
-    showToast("Notificações não são suportadas neste navegador.", true);
+  if (!('Notification' in window) || !Notification.requestPermission) {
+    showToast("Notificações em segundo plano não suportadas neste navegador.", true);
     return;
   }
-  Notification.requestPermission().then(permission => {
-    if (permission === 'granted') {
-      document.getElementById('pushToggleBtn')?.classList.add('active');
-      showToast("📲 Notificações Push Ativadas!");
-      dispararNotificacaoPush("B.B CHURRASCO", "Notificações push ativadas com sucesso no seu dispositivo!");
-    } else {
-      showToast("Permissão de notificação negada.", true);
-    }
-  });
+  try {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        document.getElementById('pushToggleBtn')?.classList.add('active');
+        showToast("📲 Notificações Push Ativadas!");
+        dispararNotificacaoPush("B.B CHURRASCO", "Notificações push ativadas com sucesso!");
+      } else {
+        showToast("Permissão de notificação negada.", true);
+      }
+    }).catch(() => {
+      showToast("Não foi possível solicitar a permissão de notificação.", true);
+    });
+  } catch(e) {
+    showToast("Suporte a notificações indisponível.", true);
+  }
 }
 
 function dispararNotificacaoPush(titulo, mensagem) {
   if ('Notification' in window && Notification.permission === 'granted') {
-    if (swRegistration) {
-      swRegistration.showNotification(titulo, {
-        body: mensagem,
-        icon: '🔥',
-        vibrate: [200, 100, 200]
-      });
-    } else {
-      new Notification(titulo, { body: mensagem, icon: '🔥' });
-    }
+    try {
+      if (swRegistration && swRegistration.showNotification) {
+        swRegistration.showNotification(titulo, {
+          body: mensagem,
+          icon: '🔥',
+          vibrate: [200, 100, 200]
+        });
+      } else {
+        new Notification(titulo, { body: mensagem, icon: '🔥' });
+      }
+    } catch(e) {}
   }
 }
 
@@ -506,7 +514,7 @@ function toggleSound(){
   if(somAtivo){
     btn.classList.add('active');
     btn.textContent = '🔊';
-    showToast("Alerta sonoro diferenciado ativado!");
+    showToast("Alerta sonoro ativado!");
     falarTexto("Alerta sonoro ativado.");
   } else {
     btn.classList.remove('active');
@@ -515,7 +523,47 @@ function toggleSound(){
   }
 }
 
-// Alerta Sonoro Diferenciado (Web Audio API para bips curtos + Síntese de Voz)
+// Alerta Sonoro de Persistência (Loop por 1 minuto)
+let intervalSinalPersistente = null;
+
+function iniciarAlertaPersistente(mensagem) {
+  if (!somAtivo) return;
+  pararAlertaPersistente();
+  
+  let contador = 0;
+  falarTexto(mensagem);
+  
+  intervalSinalPersistente = setInterval(() => {
+    contador += 3;
+    if (contador >= 60 || !somAtivo) {
+      pararAlertaPersistente();
+      return;
+    }
+    tocarBeepCurto();
+  }, 3000);
+}
+
+function pararAlertaPersistente() {
+  if (intervalSinalPersistente) {
+    clearInterval(intervalSinalPersistente);
+    intervalSinalPersistente = null;
+  }
+}
+
+function tocarBeepCurto() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+  } catch(e){}
+}
+
 function tocarBeepDiferenciado(tipo){
   if(!somAtivo) return;
   try {
@@ -527,7 +575,7 @@ function tocarBeepDiferenciado(tipo){
 
     if(tipo === 'churrasco'){
       osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
-      falarTexto("Novo espeto para o churrasco!");
+      falarTexto("Novo espeto no churrasco!");
     } else {
       osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
       falarTexto("Novo pedido na cozinha!");
@@ -553,14 +601,14 @@ function falarTexto(texto){
 function processarAlertaPedido(mesaId, atual) {
   if (atual && atual.pediuContaAlerta) {
     showToast(`⚠️ Mesa ${pad(mesaId)} pediu a conta!`);
-    falarTexto(`Atenção, a mesa ${mesaId} solicitou a conta.`);
+    iniciarAlertaPersistente(`Atenção garçom, a mesa ${mesaId} solicitou a conta.`);
     dispararNotificacaoPush(`⚠️ Mesa ${pad(mesaId)} Solicitou a Conta!`, `Verifique a mesa ${mesaId} no caixa.`);
     return;
   }
 
   if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente') {
     showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
-    tocarBeepDiferenciado('cozinha');
+    iniciarAlertaPersistente(`Atenção, novo pedido digital na mesa ${mesaId}!`);
     dispararNotificacaoPush(`🔔 Novo Pedido Digital!`, `Pedido realizado pelo cliente na Mesa ${pad(mesaId)}.`);
 
     db.collection('comandas').doc(String(mesaId)).update({ 
@@ -1257,6 +1305,14 @@ function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
     atualizadoEm: Date.now()
   }).then(() => {
     showToast(`Item atualizado para: ${novoStatus.toUpperCase()}`);
+    
+    // Alerta Sonoro de Persistência por 1 Minuto para Garçons
+    if (novoStatus === 'preparando') {
+      iniciarAlertaPersistente(`Atenção garçom! Mesa ${pad(mesaNum)} está preparando o item ${nomeItem}.`);
+    } else if (novoStatus === 'pronto') {
+      iniciarAlertaPersistente(`Atenção garçom! Item ${nomeItem} da Mesa ${pad(mesaNum)} está pronto para servir!`);
+    }
+    
     renderizar();
   }).catch(err => {
     showToast("Erro ao atualizar status: " + err.message, true);
@@ -2089,6 +2145,18 @@ function exportarRelatoriosCSV() {
   showToast("📥 Relatório baixado em formato CSV/Excel!");
 }
 
+function copiarLinkParaClipboard(idInput) {
+  const inputEl = document.getElementById(idInput);
+  if (!inputEl) return;
+  inputEl.select();
+  inputEl.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(inputEl.value).then(() => {
+    showToast("📋 Link copiado com sucesso!");
+  }).catch(() => {
+    showToast("Link selecionado. Copie manualmente.", false);
+  });
+}
+
 function limparRelatorios(){
   if(confirm("Deseja zerar TODAS as movimentações do banco? (Use com cuidado)")){
     const batch = db.batch();
@@ -2123,12 +2191,38 @@ function renderRelatorios(){
   let totalDespesas = despesas.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
   let saldoLiquido = totalGeral - totalDespesas;
 
+  // Geração de Links de Cardápio para Clientes (Mesa e Delivery)
+  const urlBase = window.location.origin + window.location.pathname;
+  const linkMesaPadrao = `${urlBase}?mesa=1`;
+  const linkDeliveryPadrao = `${urlBase}?modo=delivery`;
+
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Relatórios Financeiros</h2><span class="muted">Histórico Acumulado</span></div>
       <div style="display:flex;gap:4px">
         <button onclick="exportarRelatoriosCSV()" style="border:0;background:#10b981;color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">📥 Exportar CSV/Excel</button>
         <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Gasto</button>
+      </div>
+    </div>
+
+    <!-- CAIXA DE LINKS PARA COMPARTILHAR CARDÁPIO DIGITAL -->
+    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(56, 189, 248, 0.08), var(--card));border-color:rgba(56, 189, 248, 0.3)">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#0284c7">📱 Links do Cardápio Digital (Clientes)</h3>
+      
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;font-weight:900;color:var(--ink);display:block;margin-bottom:3px">Link para Mesa (QR Code):</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="inputLinkMesa" readonly value="${linkMesaPadrao}" style="flex:1;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:700">
+          <button onclick="copiarLinkParaClipboard('inputLinkMesa')" style="background:#0284c7;color:#fff;border:0;padding:8px 12px;border-radius:10px;font-weight:900;font-size:11px;cursor:pointer">Copiar</button>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:11px;font-weight:900;color:var(--ink);display:block;margin-bottom:3px">Link para Delivery (Em casa):</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="inputLinkDelivery" readonly value="${linkDeliveryPadrao}" style="flex:1;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:700">
+          <button onclick="copiarLinkParaClipboard('inputLinkDelivery')" style="background:#0284c7;color:#fff;border:0;padding:8px 12px;border-radius:10px;font-weight:900;font-size:11px;cursor:pointer">Copiar</button>
+        </div>
       </div>
     </div>
 
