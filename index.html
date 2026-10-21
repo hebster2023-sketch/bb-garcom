@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#d32f2f">
-<title>B.B CHURRASCO — Sistema de Gestão</title>
+<title>B.B CHURRASCO — Sistema de Gestão & Cardápio Digital</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -40,9 +40,9 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 .header{background:linear-gradient(135deg,var(--brand),var(--brand-hover));color:#fff;border-radius:24px;padding:20px 18px;box-shadow:0 10px 25px rgba(211, 47, 47, 0.2);position:relative;overflow:hidden;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
 .header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0}.header p{margin:4px 0 0;font-size:11px;opacity:.9}
 .header-actions{display:flex;gap:8px;align-items:center}
-.theme-btn, .sound-btn, .admin-btn{background:rgba(255,255,255,0.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
-.theme-btn:active, .sound-btn:active, .admin-btn:active{transform:scale(.85)}
-.sound-btn.active{background:rgba(16, 185, 129, 0.5);border:1px solid #10b981}
+.theme-btn, .sound-btn, .admin-btn, .push-btn{background:rgba(255,255,255,0.2);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:16px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .2s cubic-bezier(0.34, 1.56, 0.64, 1)}
+.theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active{transform:scale(.85)}
+.sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.5);border:1px solid #10b981}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
@@ -346,9 +346,10 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
     <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
   </div>
   <div class="header-actions">
+    <button class="push-btn" id="pushToggleBtn" onclick="pedirPermissaoPush()" title="Notificações Push no Celular/Desktop">📲</button>
     <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
     <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
-    <button class="admin-btn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙</button>
+    <button class="admin-btn" id="adminHeaderBtn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙</button>
   </div>
 </header>
 <div id="conteudo"></div>
@@ -360,7 +361,7 @@ body{padding-bottom:140px}.app{max-width:960px;margin:auto;padding:16px 16px 140
 </div>
 
 <!-- BARRA DE NAVEGAÇÃO INFERIOR COM 5 ABAS -->
-<nav class="bottom">
+<nav class="bottom" id="navInferior">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
  <button id="navCozinha" onclick="tentarAcessarSetor('cozinha')"><span class="ico">🍳</span>Cozinha</button>
@@ -388,6 +389,11 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
+// Detecção do modo Cardápio Digital (Delivery / QR Code de Mesa)
+const urlParams = new URLSearchParams(window.location.search);
+const modoCliente = urlParams.get('modo') === 'delivery' || urlParams.has('mesa');
+const mesaUrlCliente = parseInt(urlParams.get('mesa')) || null;
+
 // Ativando modo offline nativo robusto (Firestore Cache)
 db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   if (err.code == 'failed-precondition') {
@@ -397,14 +403,55 @@ db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   }
 });
 
-// Registro de Service Worker para PWA (Progressive Web App)
+// Service Worker Registration
+let swRegistration = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    let swCode = `self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v1').then(c => c.addAll(['./'])))); self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));`;
+    let swCode = `
+      self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v2').then(c => c.addAll(['./']))));
+      self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));
+      self.addEventListener('push', e => {
+        let data = e.data ? e.data.json() : { title: '🔥 B.B CHURRASCO', body: 'Novo Pedido!' };
+        e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: '🔥' }));
+      });
+    `;
     let blob = new Blob([swCode], {type: 'text/javascript'});
     let swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).catch(err => console.log('SW registration failed: ', err));
+    navigator.serviceWorker.register(swUrl).then(reg => {
+      swRegistration = reg;
+    }).catch(err => console.log('SW registration failed: ', err));
   });
+}
+
+// NOTIFICAÇÕES PUSH NATIVAS
+function pedirPermissaoPush() {
+  if (!('Notification' in window)) {
+    showToast("Notificações não são suportadas neste navegador.", true);
+    return;
+  }
+  Notification.requestPermission().then(permission => {
+    if (permission === 'granted') {
+      document.getElementById('pushToggleBtn')?.classList.add('active');
+      showToast("📲 Notificações Push Ativadas!");
+      dispararNotificacaoPush("B.B CHURRASCO", "Notificações push ativadas com sucesso no seu dispositivo!");
+    } else {
+      showToast("Permissão de notificação negada.", true);
+    }
+  });
+}
+
+function dispararNotificacaoPush(titulo, mensagem) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    if (swRegistration) {
+      swRegistration.showNotification(titulo, {
+        body: mensagem,
+        icon: '🔥',
+        vibrate: [200, 100, 200]
+      });
+    } else {
+      new Notification(titulo, { body: mensagem, icon: '🔥' });
+    }
+  }
 }
 
 let somAtivo = false;
@@ -430,20 +477,17 @@ const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",curren
 const pad = n => String(n).padStart(2,"0");
 
 function tentarAcessarSetor(setor){
-  // Se for admin, libera direto
   if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
     mudarTela(setor);
     return;
   }
 
-  // Verifica se já foi autenticado nesta sessão do navegador
   const acessoLiberado = sessionStorage.getItem(`acesso_${setor}`);
   if(acessoLiberado === "true"){
     mudarTela(setor);
     return;
   }
 
-  // Pede a senha via prompt
   let senhaDigitada = prompt(`🔒 Digite a senha de acesso para a tela de ${setor.toUpperCase()}:`);
   if(senhaDigitada === null) return;
 
@@ -507,17 +551,17 @@ function falarTexto(texto){
 }
 
 function processarAlertaPedido(mesaId, atual) {
-  if (!somAtivo) return;
-
   if (atual && atual.pediuContaAlerta) {
     showToast(`⚠️ Mesa ${pad(mesaId)} pediu a conta!`);
     falarTexto(`Atenção, a mesa ${mesaId} solicitou a conta.`);
+    dispararNotificacaoPush(`⚠️ Mesa ${pad(mesaId)} Solicitou a Conta!`, `Verifique a mesa ${mesaId} no caixa.`);
     return;
   }
 
   if (atual && atual.novoPedidoAlerta && atual.origemPedido === 'cliente') {
     showToast(`🔔 Novo pedido digital na Mesa ${pad(mesaId)}!`);
     tocarBeepDiferenciado('cozinha');
+    dispararNotificacaoPush(`🔔 Novo Pedido Digital!`, `Pedido realizado pelo cliente na Mesa ${pad(mesaId)}.`);
 
     db.collection('comandas').doc(String(mesaId)).update({ 
       novoPedidoAlerta: false,
@@ -1004,12 +1048,12 @@ function salvarRascunhoAutomatico(){
   const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp || "Hebster", 
+    garcom: garcomTemp || (modoCliente ? "Cliente Online" : "Hebster"), 
     itens: itens, 
     total: total, 
     criadoEm: comandaAtual.criadoEm || Date.now(),
     atualizadoEm: Date.now(),
-    origemPedido: 'garcom'
+    origemPedido: modoCliente ? 'cliente' : 'garcom'
   };
 
   db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(err => console.error(err));
@@ -1583,14 +1627,14 @@ function salvarComanda(numeroMesa) {
     let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
-      garcom: garcomTemp || "Hebster", 
+      garcom: garcomTemp || (modoCliente ? "Cliente Online" : "Hebster"), 
       itens: itens, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
       criadoEm: comandaAtual.criadoEm || Date.now(), 
       atualizadoEm: Date.now(), 
-      novoPedidoAlerta: false,
-      origemPedido: 'garcom'
+      novoPedidoAlerta: modoCliente ? true : false,
+      origemPedido: modoCliente ? 'cliente' : 'garcom'
     };
 
     db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true })
@@ -1598,8 +1642,21 @@ function salvarComanda(numeroMesa) {
         salvandoPedidoEmAndamento = false;
         pedidoTemp = {}; 
         fecharModal();
-        showToast(`✅ Pedido salvo com sucesso na Mesa ${pad(numMesaStr)}!`);
-        mudarTela("mesas");
+        showToast(`✅ Pedido enviado com sucesso na Mesa ${pad(numMesaStr)}!`);
+        if(modoCliente) {
+          document.getElementById("modalTitle").textContent = "✅ Pedido Enviado!";
+          document.getElementById("modalBody").innerHTML = `
+            <div style="text-align:center;padding:20px 10px">
+              <div style="font-size:48px;margin-bottom:10px">🎉</div>
+              <h3 style="font-size:18px;font-weight:900;color:var(--brand)">Seu pedido foi recebido!</h3>
+              <p style="font-size:13px;color:var(--muted);margin-top:6px">Os garçons e a cozinha já estão preparando seus itens para a <b>Mesa ${pad(numMesaStr)}</b>.</p>
+            </div>
+            <button class="primary" onclick="fecharModal()">OK, obrigado!</button>
+          `;
+          document.getElementById("modal").classList.add("show");
+        } else {
+          mudarTela("mesas");
+        }
       })
       .catch(err => { 
         salvandoPedidoEmAndamento = false;
@@ -1648,7 +1705,7 @@ function abrirCarrinho(){
  document.getElementById("modalBody").innerHTML = `
    ${htmlCarrinho}
    <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick='salvarComanda("${mesaSelecionada}")'>Salvar comanda</button>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}")'>${modoCliente ? '🚀 Confirmar e Enviar Pedido' : 'Salvar comanda'}</button>
    <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
  document.getElementById("modal").classList.add("show");
 }
@@ -1732,6 +1789,28 @@ function executarTransferencia(numOrigem){
   });
 }
 
+function alternarCamposCalculadoraTroco() {
+  const formaSelect = document.getElementById('formaPagamentoSelect');
+  const boxTroco = document.getElementById('boxTrocoDinheiro');
+  if(!formaSelect || !boxTroco) return;
+  
+  if (formaSelect.value === 'Dinheiro') {
+    boxTroco.style.display = 'block';
+  } else {
+    boxTroco.style.display = 'none';
+  }
+}
+
+function calcularTrocoPagamento(totalAPagar) {
+  const inputValorEntregue = document.getElementById('inputValorEntregueDinheiro');
+  const lblTroco = document.getElementById('lblTrocoCalculado');
+  if (!inputValorEntregue || !lblTroco) return;
+
+  const entregue = parseFloat(inputValorEntregue.value.replace(',', '.')) || 0;
+  const troco = Math.max(0, entregue - totalAPagar);
+  lblTroco.textContent = br(troco);
+}
+
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  document.getElementById("modalTitle").textContent = `Pagamento — Mesa ${pad(num)}`;
@@ -1743,12 +1822,21 @@ function dividirContaModal(num){
 
   <div style="margin-bottom:12px">
     <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💳 Forma de Pagamento</label>
-    <select id="formaPagamentoSelect" style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
+    <select id="formaPagamentoSelect" onchange="alternarCamposCalculadoraTroco()" style="width:100%;padding:11px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
       <option value="Pix">Pix</option>
       <option value="Cartão de Crédito">Cartão de Crédito</option>
       <option value="Cartão de Débito">Cartão de Débito</option>
       <option value="Dinheiro">Dinheiro</option>
     </select>
+  </div>
+
+  <div id="boxTrocoDinheiro" style="display:none;background:var(--input-bg);padding:12px;border-radius:14px;border:1px solid var(--border);margin-bottom:12px">
+    <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💵 Valor Entregue pelo Cliente (R$)</label>
+    <input type="number" id="inputValorEntregueDinheiro" step="0.01" placeholder="ex: 50.00" oninput="calcularTrocoPagamento(${c.total})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-weight:800;font-size:14px;outline:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;font-weight:900">
+      <span>💰 Troco a Devolver:</span>
+      <span id="lblTrocoCalculado" style="color:#10b981;font-size:16px">R$ 0,00</span>
+    </div>
   </div>
 
   <div class="card" style="padding:14px;margin-bottom:12px">
@@ -1972,6 +2060,35 @@ function adicionarDespesa(){
   });
 }
 
+// EXPORTAÇÃO EM EXCEL / CSV
+function exportarRelatoriosCSV() {
+  if (!historicoVendas.length) {
+    showToast("Não há vendas registradas para exportar.", true);
+    return;
+  }
+
+  let csvContent = "\uFEFFData;Horario;Mesa;Garcom;Forma_Pagamento;Valor_Total\n";
+  historicoVendas.forEach(v => {
+    let data = v.data || "";
+    let horario = v.horario || "";
+    let mesa = pad(v.mesa || 0);
+    let garcom = v.garcom || "Hebster";
+    let pag = v.pagamento || "Pix";
+    let valor = (Number(v.total) || 0).toFixed(2).replace('.', ',');
+    csvContent += `"${data}";"${horario}";"Mesa ${mesa}";"${garcom}";"${pag}";"${valor}"\n`;
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `Relatorio_Vendas_BBChurrasco_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast("📥 Relatório baixado em formato CSV/Excel!");
+}
+
 function limparRelatorios(){
   if(confirm("Deseja zerar TODAS as movimentações do banco? (Use com cuidado)")){
     const batch = db.batch();
@@ -2008,8 +2125,11 @@ function renderRelatorios(){
 
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <div><h2>Relatórios Financeiros</h2><span class="muted">Histórico Acumulado (Até apagar)</span></div>
-      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Registrar Gasto</button>
+      <div><h2>Relatórios Financeiros</h2><span class="muted">Histórico Acumulado</span></div>
+      <div style="display:flex;gap:4px">
+        <button onclick="exportarRelatoriosCSV()" style="border:0;background:#10b981;color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">📥 Exportar CSV/Excel</button>
+        <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Gasto</button>
+      </div>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">
@@ -2277,14 +2397,14 @@ function renderAtendimento(){
 
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:14px">
-      <button class="back" onclick="mudarTela('mesas')">←</button>
+      ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
       <div class="mesa-head">
-        <h2>Mesa ${pad(mesaSelecionada)} — Atendimento</h2>
+        <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'} — Pedido</h2>
         <p>Adicionando para: <b>${clienteAtual}</b></p>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
-        <button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>
-        <input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:105px">
+        ${modoCliente ? '' : `<button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:12px;width:38px;height:38px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>`}
+        ${modoCliente ? '' : `<input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none;width:105px">`}
       </div>
     </div>
 
@@ -2313,6 +2433,19 @@ function renderAtendimento(){
 }
 
 function renderizar(){
+  if(modoCliente) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('navInferior').style.display = 'none';
+    document.getElementById('adminHeaderBtn').style.display = 'none';
+    document.getElementById('user-role-label').textContent = 'CARDÁPIO DIGITAL — B.B CHURRASCO';
+    if(mesaUrlCliente) mesaSelecionada = mesaUrlCliente;
+    else mesaSelecionada = 1;
+    telaAtual = 'atendimento';
+    carregarCardapioDinamico();
+    renderAtendimento();
+    return;
+  }
+
   if(telaAtual === 'mesas') renderMesas();
   else if(telaAtual === 'comandas') renderComandas();
   else if(telaAtual === 'cozinha') renderCozinha();
@@ -2321,7 +2454,9 @@ function renderizar(){
   else if(telaAtual === 'atendimento') renderAtendimento();
 }
 
-if(usuarioLogadoEmail){
+if(modoCliente) {
+  renderizar();
+} else if(usuarioLogadoEmail){
   iniciarOuvintesFirebase();
   renderizar();
 }
