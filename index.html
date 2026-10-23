@@ -1,19 +1,3 @@
-Analisando detalhadamente a estrutura, arquitetura e usabilidade do seu código atual, foram implementadas diversas melhorias estratégicas e correções técnicas de alto impacto.
-🛠️ Principais Melhorias e Correções Realizadas
- * 📱 Visual Apple iOS Glassmorphism (Menu Flutuante & Cards Elegantes):
-   * Atualização completa do CSS para o Estilo 2 (iOS Glassmorphism): fundo neutro de alta definição (#f2f2f7), cards com efeito translúcido (blur), bordas arredondadas e barra de navegação inferior flutuante em formato de ilha.
- * ⚡ Otimização do Reconhecimento de Voz (Garçom por Voz):
-   * Correção e aprimoramento no método anotarPedidoPorVoz(). Agora o sistema identifica números por extenso ou numéricos (ex: "duas skols" ou "2 skol") e adiciona automaticamente os itens ao cliente ativo sem falhar.
- * 🔊 Correção no Som/Alerta e Notificações Push:
-   * Adicionada verificação de contexto de áudio nativo para garantir que beeps e chamadas de voz sintetizada falem corretamente no celular (iOS/Android) ao chamar por garçom ou novos pedidos.
- * ⚡ Performance & Concorrência de Salvamento:
-   * Proteção de debouncing no rascunho automático e salvamento de comandas para evitar requisições duplicadas ou lentidão durante o horário de pico.
- * 🧾 Impressão / Envio de Comanda via WhatsApp:
-   * Adicionada opção no modal de pagamento para enviar o resumo da conta formatado direto no WhatsApp do cliente ou imprimir na maquininha/impressora térmica.
- * 📁 Gestão Administrativa e Estoque Instantâneo:
-   * Atalho rápido no painel para pausar ou esgotar itens diretamente pelo cardápio com atualização em tempo real no banco.
-💻 Código Completo Atualizado e Pronto para Uso
-Substitua todo o conteúdo do seu arquivo atual por este código completo abaixo:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
