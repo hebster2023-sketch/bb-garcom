@@ -47,7 +47,7 @@ body{padding-bottom:140px}
   border: 1px solid var(--border);
   color: var(--ink);
   border-radius: 28px;
-  padding: 16px 20px;
+  padding: 20px 22px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.04);
   position: relative;
   overflow: hidden;
@@ -60,20 +60,8 @@ body{padding-bottom:140px}
   background: linear-gradient(135deg, #1f2937, #111827);
   color: #fff;
 }
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.header-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  object-fit: cover;
-  box-shadow: 0 4px 12px rgba(211,47,47,0.3);
-}
-.header h1{font-size:20px;font-weight:900;letter-spacing:-.5px;margin:0;color:var(--brand)}
-.header p{margin:2px 0 0;font-size:11px;opacity:.8;font-weight:700}
+.header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0;color:var(--brand)}
+.header p{margin:4px 0 0;font-size:11px;opacity:.8;font-weight:700}
 .header-actions{display:flex;gap:8px;align-items:center}
 .theme-btn, .sound-btn, .admin-btn, .push-btn{
   background: var(--input-bg);
@@ -94,46 +82,6 @@ body{padding-bottom:140px}
 }
 .theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active{transform:scale(.85)}
 .sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.2);border:1px solid #10b981;color:#10b981}
-
-/* Banner da Churrascaria no Topo do Atendimento */
-.banner-atendimento {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  border-radius: 26px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  border: 1px solid var(--border);
-}
-.banner-atendimento img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.banner-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 16px;
-  color: #fff;
-}
-.banner-overlay h2 {
-  font-size: 20px;
-  font-weight: 900;
-  margin: 0;
-  color: #fff;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-.banner-overlay p {
-  font-size: 12px;
-  margin: 2px 0 0;
-  opacity: 0.9;
-  font-weight: 700;
-}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
@@ -476,7 +424,7 @@ body{padding-bottom:140px}
   opacity: 0;
 }
 .cartbar.show-cart{transform:translateX(-50%) translateY(0);opacity:1}
-.cartbar button{border:0;background:#fff;color:#1f2937;border-radius:14px;padding:99px 16px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
+.cartbar button{border:0;background:#fff;color:#1f2937;border-radius:14px;padding:9px 16px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
 .cartbar button:active{transform:scale(0.92)}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center}
@@ -525,7 +473,7 @@ body{padding-bottom:140px}
 <div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);backdrop-filter:blur(25px);border:1px solid var(--border);border-radius:28px;padding:28px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
     <div style="text-align:center;margin-bottom:20px">
-      <img src="image.png" alt="B.B Churrasco Logo" style="width:90px;height:90px;border-radius:20px;margin:0 auto 10px;object-fit:cover;box-shadow:0 8px 20px rgba(211,47,47,0.3)">
+      <div style="font-size:36px;margin-bottom:6px">🔥</div>
       <h2 style="font-size:22px;font-weight:900;margin:0;color:var(--ink)">B.B CHURRASCO</h2>
       <p style="font-size:11px;color:var(--muted);margin:4px 0 0;font-weight:700">Acesse o painel do garçom ou administração</p>
     </div>
@@ -546,12 +494,9 @@ body{padding-bottom:140px}
 
 <div class="app">
 <header class="header">
-  <div class="header-brand">
-    <img src="image.png" alt="B.B Churrasco" class="header-logo">
-    <div>
-      <h1>B.B CHURRASCO</h1>
-      <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
-    </div>
+  <div>
+    <h1>🔥 B.B CHURRASCO</h1>
+    <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
   </div>
   <div class="header-actions">
     <button class="push-btn" id="pushToggleBtn" onclick="pedirPermissaoPush()" title="Notificações Push no Celular">📲</button>
@@ -2005,12 +1950,13 @@ function alternarCamposCalculadoraTroco() {
   }
 }
 
-// CÁLCULO DE TROCO DINÂMICO CORRIGIDO
+// CÁLCULO DE TROCO DINÂMICO CORRIGIDO (Leva em conta se há itens selecionados para baixa parcial)
 function calcularTrocoPagamento(totalComandaMesa) {
   const inputValorEntregue = document.getElementById('inputValorEntregueDinheiro');
   const lblTroco = document.getElementById('lblTrocoCalculado');
   if (!inputValorEntregue || !lblTroco) return;
 
+  // Descobre quanto foi selecionado nos itens específicos para pagar
   let valTotalSel = 0;
   document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
     let qtd = parseInt(span.textContent) || 0;
@@ -2018,6 +1964,8 @@ function calcularTrocoPagamento(totalComandaMesa) {
     valTotalSel += qtd * preco;
   });
 
+  // Se houver seleção parcial de itens, o alvo do pagamento é o selecionado.
+  // Se nada foi selecionado, o alvo é o valor total da comanda da mesa.
   const alvoPagamento = valTotalSel > 0 ? valTotalSel : (totalComandaMesa || 0);
 
   const entregue = parseFloat(inputValorEntregue.value.replace(',', '.')) || 0;
@@ -2161,6 +2109,7 @@ function calcularValorSelecionadoComControle(){
   });
   document.getElementById('lblTotalSelecionado').textContent = br(totalSel);
   
+  // Atualiza também o troco em tempo real caso a forma selecionada seja Dinheiro
   if (mesaSelecionada && comandas[mesaSelecionada]) {
     calcularTrocoPagamento(comandas[mesaSelecionada].total);
   }
@@ -2676,18 +2625,10 @@ function renderAtendimento(){
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="banner-atendimento">
-      <img src="image.png" alt="Banner B.B Churrasco">
-      <div class="banner-overlay">
-        <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'}</h2>
-        <p>O melhor churrasco e petiscos na sua mesa 🔥</p>
-      </div>
-    </div>
-
     <div class="topbar" style="margin-bottom:14px">
       ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
       <div class="mesa-head">
-        <h2>Atendimento</h2>
+        <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'} — Pedido</h2>
         <p>Adicionando para: <b>${escapeHTML(clienteAtual)}</b></p>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
