@@ -633,7 +633,7 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "Hebster", categoriaAtual = "CHURRASCOS";
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "", categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
@@ -1169,7 +1169,7 @@ function mudarTela(t, num=null){
 }
 
 function abrirMesa(num){
-  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; garcomTemp = "Hebster"; termoBuscaProduto = "";
+  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; garcomTemp = ""; termoBuscaProduto = "";
   
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
@@ -1180,7 +1180,7 @@ function abrirMesa(num){
   }
 
   if(comandas[num]){
-    garcomTemp = comandas[num].garcom || "Hebster";
+    garcomTemp = comandas[num].garcom || "";
     if(comandas[num].itens){
       comandas[num].itens.forEach(it => {
         let cli = it.cliente || "Cliente 1";
@@ -1194,7 +1194,7 @@ function abrirMesa(num){
 }
 
 function atualizarGarcom(v){ 
-  garcomTemp = escapeHTML(v.trim()) || "Hebster"; 
+  garcomTemp = escapeHTML(v.trim()) || ""; 
   salvarRascunhoAutomatico();
 }
 
@@ -1240,7 +1240,7 @@ function salvarRascunhoAutomatico(){
   const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp || (modoCliente ? "Cliente Online" : "Hebster"), 
+    garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
     itens: itens, 
     total: total, 
     criadoEm: comandaAtual.criadoEm || Date.now(),
@@ -1484,7 +1484,7 @@ function renderCozinha(){
           if(categoriasCozinha.includes(catDoItem)){
             listaItensTimeline.push({
               mesa: i,
-              garcom: c.garcom || 'Hebster',
+              garcom: c.garcom || 'Sem Garçom',
               cliente: it.cliente || 'Cliente 1',
               nome: it.nome,
               qtd: it.qtd,
@@ -1595,7 +1595,7 @@ function renderChurrasco(){
           if(ehChurrasco){
             listaItensTimelineChurrasco.push({
               mesa: i,
-              garcom: c.garcom || 'Hebster',
+              garcom: c.garcom || 'Sem Garçom',
               cliente: it.cliente || 'Cliente 1',
               nome: it.nome,
               qtd: it.qtd,
@@ -1775,7 +1775,7 @@ function salvarComanda(numeroMesa) {
     let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
-      garcom: garcomTemp || (modoCliente ? "Cliente Online" : "Hebster"), 
+      garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
       itens: itens, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
@@ -2161,7 +2161,7 @@ function pagarItensSelecionados(num){
         mesa: num, 
         total: valTotalSel, 
         pagamento: formaPagamento, 
-        garcom: c.garcom || "Hebster", 
+        garcom: c.garcom || "Sem Garçom", 
         itens: itensPagosParaHistorico, 
         horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
         data: new Date().toLocaleDateString('pt-BR'),
@@ -2218,7 +2218,7 @@ function fecharMesaDireto(num){
        mesa: num, 
        total: c.total, 
        pagamento: formaPagamento, 
-       garcom: c.garcom || "Hebster", 
+       garcom: c.garcom || "Sem Garçom", 
        itens: todos, 
        horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
        data: new Date().toLocaleDateString('pt-BR'),
@@ -2265,7 +2265,7 @@ function exportarRelatoriosCSV() {
     let data = v.data || "";
     let horario = v.horario || "";
     let mesa = pad(v.mesa || 0);
-    let garcom = v.garcom || "Hebster";
+    let garcom = v.garcom || "Sem Garçom";
     let pag = v.pagamento || "Pix";
     let valor = (Number(v.total) || 0).toFixed(2).replace('.', ',');
     csvContent += `"${data}";"${horario}";"Mesa ${mesa}";"${garcom}";"${pag}";"${valor}"\n`;
@@ -2393,7 +2393,7 @@ function renderRelatorios(){
          if(!historicoVendas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons.</div>';
 
          historicoVendas.forEach(v => {
-           let garcomNome = escapeHTML(v.garcom || "Hebster");
+           let garcomNome = escapeHTML(v.garcom || "Sem Garçom");
            let mesaNum = pad(v.mesa || 0);
            let horarioExato = v.horario || "--:--";
            let dataExata = v.data || "";
@@ -2579,7 +2579,7 @@ function renderComandas(){
           <div class="row" style="align-items:center;margin-bottom:8px">
             <div>
               <h3>Mesa ${pad(i)}</h3>
-              <small class="muted">Garçom: <b>${escapeHTML(c.garcom || 'Hebster')}</b></small>
+              <small class="muted">Garçom: <b>${escapeHTML(c.garcom || 'Sem Garçom')}</b></small>
             </div>
             <div style="text-align:right">
               <span class="tag">${br(c.total)}</span>
