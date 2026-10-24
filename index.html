@@ -33,7 +33,8 @@
   --muted: #9ca3af;
   --input-bg: rgba(15, 23, 42, 0.8);
 }
-*{box-sizing:border-box} 
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none} 
+input, textarea, select { -webkit-user-select: auto; user-select: auto; }
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;-webkit-tap-highlight-color:transparent;transition:background .3s,color .3s}
 body{padding-bottom:140px}
 .app{max-width:960px;margin:auto;padding:16px 16px 140px}
@@ -529,6 +530,14 @@ body{padding-bottom:140px}
 </div>
 
 <script>
+// Função utilitária para Sanitização/Escape contra ataques XSS
+function escapeHTML(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdoF1I7BcItfHEY",
   authDomain: "bbchurrasco-app.firebaseapp.com",
@@ -555,27 +564,29 @@ db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   }
 });
 
-// Service Worker Registration
+// Service Worker Registration Otimizado
 let swRegistration = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    let swCode = `
-      self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v3').then(c => c.addAll(['./']))));
-      self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));
-      self.addEventListener('push', e => {
-        let data = e.data ? e.data.json() : { title: '🔥 B.B CHURRASCO', body: 'Novo Pedido!' };
-        e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: '🔥' }));
-      });
-    `;
-    let blob = new Blob([swCode], {type: 'text/javascript'});
-    let swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).then(reg => {
-      swRegistration = reg;
-    }).catch(err => console.log('SW registration failed: ', err));
+    try {
+      let swCode = `
+        self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v4').then(c => c.addAll(['./']))));
+        self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));
+        self.addEventListener('push', e => {
+          let data = e.data ? e.data.json() : { title: '🔥 B.B CHURRASCO', body: 'Novo Pedido!' };
+          e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: '🔥' }));
+        });
+      `;
+      let blob = new Blob([swCode], {type: 'text/javascript'});
+      let swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).then(reg => {
+        swRegistration = reg;
+      }).catch(err => console.log('SW registration failed: ', err));
+    } catch(e) { console.error('SW Error:', e); }
   });
 }
 
-// NOTIFICAÇÕES PUSH NATIVAS (Tratamento para suporte em iOS/Safari)
+// NOTIFICAÇÕES PUSH NATIVAS
 function pedirPermissaoPush() {
   if (!('Notification' in window) || !Notification.requestPermission) {
     showToast("Notificações em segundo plano não suportadas neste navegador.", true);
@@ -675,7 +686,7 @@ function toggleSound(){
   }
 }
 
-// Alerta Sonoro de Persistência (Loop por 1 minuto)
+// Alerta Sonoro de Persistência
 let intervalSinalPersistente = null;
 
 function iniciarAlertaPersistente(mensagem) {
@@ -702,6 +713,7 @@ function pararAlertaPersistente() {
   }
 }
 
+// Fechamento explícito de AudioContext para evitar vazamentos de memória em iOS
 function tocarBeepCurto() {
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -713,6 +725,7 @@ function tocarBeepCurto() {
     gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.2);
+    setTimeout(() => { audioCtx.close(); }, 300);
   } catch(e){}
 }
 
@@ -770,6 +783,9 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('themeToggleBtn');
   if(btn) btn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+  if('Notification' in window && Notification.permission === 'granted'){
+    document.getElementById('pushToggleBtn')?.classList.add('active');
+  }
 });
 
 function showToast(msg, isError = false){
@@ -778,7 +794,7 @@ function showToast(msg, isError = false){
   const t = document.createElement('div');
   t.className = 'toast';
   t.style.borderLeft = isError ? '4px solid #d32f2f' : '4px solid #10b981';
-  t.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${msg}</span>`;
+  t.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${escapeHTML(msg)}</span>`;
   container.appendChild(t);
   setTimeout(() => {
     t.style.opacity = '0';
@@ -887,6 +903,7 @@ function salvarCardapioDinamicoNoFirebase(){
   });
 }
 
+// Compressão Aprimorada de Imagens para Otimizar Firestore
 function comprimirImagemParaBase64(file, callback) {
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -895,8 +912,8 @@ function comprimirImagemParaBase64(file, callback) {
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;
-      const MAX_WIDTH = 250;
-      const MAX_HEIGHT = 250;
+      const MAX_WIDTH = 200;
+      const MAX_HEIGHT = 200;
       if (width > height) {
         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
       } else {
@@ -906,7 +923,7 @@ function comprimirImagemParaBase64(file, callback) {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
-      const dataurl = canvas.toDataURL('image/jpeg', 0.6);
+      const dataurl = canvas.toDataURL('image/jpeg', 0.5);
       callback(dataurl);
     };
     img.src = e.target.result;
@@ -929,8 +946,8 @@ function renderizarPainelAdmin(){
   let categoriasHTML = Object.keys(cardapio).map(cat => `
     <div class="card" style="margin-bottom:14px;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h3 style="margin:0;font-size:15px;font-weight:900;color:var(--brand)">📁 ${cat}</h3>
-        <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${cat}')">+ Novo Item</button>
+        <h3 style="margin:0;font-size:15px;font-weight:900;color:var(--brand)">📁 ${escapeHTML(cat)}</h3>
+        <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${escapeHTML(cat)}')">+ Novo Item</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${cardapio[cat].map((item, idx) => {
@@ -942,14 +959,14 @@ function renderizarPainelAdmin(){
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
-                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item[0]} ${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
-                <small style="color:var(--brand);font-weight:900">R$ ${item[1].toFixed(2)}</small>${item[3] ? `<small>• ${item[3]}</small>` : ''}
+                <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(item[0])} ${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
+                <small style="color:var(--brand);font-weight:900">R$ ${Number(item[1]).toFixed(2)}</small>${item[3] ? `<small>• ${escapeHTML(item[3])}</small>` : ''}
               </div>
             </div>
             <div style="display:flex;gap:4px">
-              <button onclick="alternarIndisponivelAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.1)'};color:${indisponivel ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Disponível' : 'Esgotar'}</button>
-              <button onclick="editarItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
-              <button onclick="removerItemAdmin('${cat}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
+              <button onclick="alternarIndisponivelAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.1)'};color:${indisponivel ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Disponível' : 'Esgotar'}</button>
+              <button onclick="editarItemAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
+              <button onclick="removerItemAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
         `}).join('')}
@@ -978,7 +995,7 @@ function alternarIndisponivelAdmin(cat, idx){
 function adicionarCategoriaAdmin(){
   let novaCat = prompt("Nome da nova categoria (ex: SOBREMESAS):");
   if(!novaCat || !novaCat.trim()) return;
-  novaCat = novaCat.trim().toUpperCase();
+  novaCat = escapeHTML(novaCat.trim().toUpperCase());
   if(cardapio[novaCat]){
     showToast("Categoria já existe.", true);
     return;
@@ -1000,10 +1017,10 @@ function adicionarItemAdmin(cat){
   document.getElementById("modalTitle").textContent = "📷 Enviar foto do novo prato";
   document.getElementById("modalBody").innerHTML = `
     <div style="text-align:center;padding:15px">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Selecione uma foto da galeria do seu celular para <b>${nome}</b>:</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Selecione uma foto da galeria do seu celular para <b>${escapeHTML(nome)}</b>:</p>
       <input type="file" id="inputFotoNovoItem" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;width:100%">
     </div>
-    <button class="primary" onclick="confirmarAdicaoItemAdmin('${cat}', '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">✅ Adicionar Item</button>
+    <button class="primary" onclick="confirmarAdicaoItemAdmin('${escapeHTML(cat)}', '${escapeHTML(nome)}', ${preco}, '${escapeHTML(desc)}')">✅ Adicionar Item</button>
     <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
@@ -1042,7 +1059,7 @@ function editarItemAdmin(cat, idx){
       <p style="font-size:12px;color:var(--muted)">Escolha uma nova foto direto da galeria (opcional):</p>
       <input type="file" id="inputFotoItemAdmin" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;width:100%">
     </div>
-    <button class="primary" onclick="confirmarEdicaoItemAdmin('${cat}', ${idx}, '${nome.replace(/'/g,"\\'")}', ${preco}, '${desc.replace(/'/g,"\\'")}')">💾 Salvar Alterações</button>
+    <button class="primary" onclick="confirmarEdicaoItemAdmin('${escapeHTML(cat)}', ${idx}, '${escapeHTML(nome)}', ${preco}, '${escapeHTML(desc)}')">💾 Salvar Alterações</button>
     <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
   `;
 }
@@ -1148,7 +1165,7 @@ function concluirLogin(email){
 
 function mudarTela(t, num=null){
   if(t === 'relatorios' && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) return;
-  telaAtual = t; if(num !== null) mesaSelecionada = Number(num); renderizar(); scrollTo(0,0);
+  telaAtual = t; if(num !== null) mesaSelecionada = Number(num); renderizar(); window.scrollTo(0,0);
 }
 
 function abrirMesa(num){
@@ -1177,19 +1194,19 @@ function abrirMesa(num){
 }
 
 function atualizarGarcom(v){ 
-  garcomTemp = v.trim() || "Hebster"; 
+  garcomTemp = escapeHTML(v.trim()) || "Hebster"; 
   salvarRascunhoAutomatico();
 }
 
 function mudarClienteAtual(novoCli){
-  clienteAtual = novoCli.trim() || "Cliente 1";
+  clienteAtual = escapeHTML(novoCli.trim()) || "Cliente 1";
   renderAtendimento();
 }
 
 function renomearClienteAtual(){
   let novoNome = prompt(`Renomear "${clienteAtual}" para:`, clienteAtual);
   if(!novoNome || !novoNome.trim()) return;
-  novoNome = novoNome.trim();
+  novoNome = escapeHTML(novoNome.trim());
   if(novoNome === clienteAtual) return;
   
   if(pedidoTemp[novoNome]){
@@ -1380,7 +1397,7 @@ function renderProdutos(){
    let renderThumb = `<span style="font-size:26px">📦</span>`;
    if (icon) {
      if (icon.startsWith('data:') || icon.startsWith('http')) {
-       renderThumb = `<img src="${icon}" alt="${nome}">`;
+       renderThumb = `<img src="${icon}" alt="${escapeHTML(nome)}">`;
      } else {
        renderThumb = `<span style="font-size:26px">${icon}</span>`;
      }
@@ -1390,21 +1407,21 @@ function renderProdutos(){
      <div class="prod-thumb">${renderThumb}</div>
      <div class="prod-info">
        <div class="prod-title">
-         ${nome} 
+         ${escapeHTML(nome)} 
          ${ehNovoDestaque ? '<span class="badge-novo-item">✨ NOVO</span>' : ''}
          ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
        </div>
-       ${desc ? `<div class="prod-desc-text">${desc}</div>` : ''}
-       <div class="prod-price">R$ ${preco.toFixed(2)}</div>
+       ${desc ? `<div class="prod-desc-text">${escapeHTML(desc)}</div>` : ''}
+       <div class="prod-price">R$ ${Number(preco).toFixed(2)}</div>
      </div>
      <div class="prod-action-qty">
        ${indisponivel ? `<span style="font-size:11px;color:#d32f2f;font-weight:900">Indisponível</span>` : (q === 0 ? `
-         <button class="btn-circle-plus" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
+         <button class="btn-circle-plus" onclick="alterarQtd('${escapeHTML(nome)}',1)">+</button>
        ` : `
          <div class="qty-control-inline">
-           <button onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',-1)">−</button>
+           <button onclick="alterarQtd('${escapeHTML(nome)}',-1)">−</button>
            <span>${q}</span>
-           <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${nome.replace(/'/g,"\\'")}',1)">+</button>
+           <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${escapeHTML(nome)}',1)">+</button>
          </div>
        `)}
      </div>
@@ -1505,7 +1522,7 @@ function renderCozinha(){
 
   let listaResumoProdutosHTML = Object.keys(contagemProdutosCozinha).sort((a,b) => contagemProdutosCozinha[b] - contagemProdutosCozinha[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span><b>${contagemProdutosCozinha[nome]}x</b> ${nome}</span>
+      <span><b>${contagemProdutosCozinha[nome]}x</b> ${escapeHTML(nome)}</span>
     </div>
   `).join('');
 
@@ -1518,20 +1535,20 @@ function renderCozinha(){
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
-            <small class="muted" style="margin-left:6px">Garçom: <b>${item.garcom}</b></small>
+            <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
           <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:900">
-              <span style="color:var(--brand)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
+              <span style="color:var(--brand)">[${escapeHTML(item.cliente)}]</span> ${item.qtd}x ${escapeHTML(item.nome)}
             </div>
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
       </div>
@@ -1610,7 +1627,7 @@ function renderChurrasco(){
 
   let listaResumoChurrascoHTML = Object.keys(contagemProdutosChurrasco).sort((a,b) => contagemProdutosChurrasco[b] - contagemProdutosChurrasco[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span><b>${contagemProdutosChurrasco[nome]}x</b> ${nome}</span>
+      <span><b>${contagemProdutosChurrasco[nome]}x</b> ${escapeHTML(nome)}</span>
     </div>
   `).join('');
 
@@ -1623,20 +1640,20 @@ function renderChurrasco(){
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
-            <small class="muted" style="margin-left:6px">Garçom: <b>${item.garcom}</b></small>
+            <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
           <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:900">
-              <span style="color:var(--brand)">[${item.cliente}]</span> ${item.qtd}x ${item.nome}
+              <span style="color:var(--brand)">[${escapeHTML(item.cliente)}]</span> ${item.qtd}x ${escapeHTML(item.nome)}
             </div>
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${item.cliente.replace(/'/g,"\\'")}', '${item.nome.replace(/'/g,"\\'")}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
       </div>
@@ -1739,7 +1756,7 @@ function processarTextoVoz(texto) {
 function adicionarNovoClientePrompt(){
   let nomeCli = prompt("Digite o nome ou apelido da nova pessoa (ex: João, Maria):");
   if(!nomeCli || !nomeCli.trim()) return;
-  nomeCli = nomeCli.trim();
+  nomeCli = escapeHTML(nomeCli.trim());
   if(!pedidoTemp[nomeCli]) pedidoTemp[nomeCli] = {};
   clienteAtual = nomeCli;
   renderAtendimento();
@@ -1817,15 +1834,15 @@ function abrirCarrinho(){
 
  let htmlCarrinho = "";
  for(const cli in itensPorPessoa){
-   htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--brand);margin-top:10px;margin-bottom:4px">👤 ${cli}</div>`;
+   htmlCarrinho += `<div style="font-weight:900;font-size:13px;color:var(--brand);margin-top:10px;margin-bottom:4px">👤 ${escapeHTML(cli)}</div>`;
    htmlCarrinho += itensPorPessoa[cli].map(i => `
      <div class="line" style="align-items:center">
-       <div><b>${i.nome}</b><br><small>${br(i.preco)} cada</small></div>
+       <div><b>${escapeHTML(i.nome)}</b><br><small>${br(i.preco)} cada</small></div>
        <div style="display:flex;align-items:center;gap:8px">
          <div class="qty-control-inline">
-           <button onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', -1)">−</button>
+           <button onclick="alterarQtdCarrinhoModal('${escapeHTML(i.cliente)}', '${escapeHTML(i.nome)}', -1)">−</button>
            <span>${i.qtd}</span>
-           <button style="background:var(--brand);color:#fff" onclick="alterarQtdCarrinhoModal('${i.cliente}', '${i.nome.replace(/'/g,"\\'")}', 1)">+</button>
+           <button style="background:var(--brand);color:#fff" onclick="alterarQtdCarrinhoModal('${escapeHTML(i.cliente)}', '${escapeHTML(i.nome)}', 1)">+</button>
          </div>
          <strong style="min-width:65px;text-align:right">${br(i.qtd*i.preco)}</strong>
        </div>
@@ -2002,12 +2019,12 @@ function dividirContaModal(num){
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:14px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
-            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${i.cliente ?? 'Cliente 1'}]</span> ${i.nome}</div>
+            <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${escapeHTML(i.cliente ?? 'Cliente 1')}]</span> ${escapeHTML(i.nome)}</div>
             <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
-            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${i.nome}" data-cliente="${i.cliente ?? 'Cliente 1'}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
+            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${escapeHTML(i.nome)}" data-cliente="${escapeHTML(i.cliente ?? 'Cliente 1')}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
             <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
           </div>
         </div>
@@ -2031,14 +2048,14 @@ function abrirJanelaConsumoCliente(num){
   
   let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
-      <span><b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome}</span>
+      <span><b>[${escapeHTML(i.cliente || 'Cliente 1')}]</b> ${i.qtd}x ${escapeHTML(i.nome)}</span>
       <b>${br(i.qtd * i.preco)}</b>
     </div>
   `).join('') : '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px">Nenhum consumo pendente.</div>';
 
   let itensPagosAnterioresHTML = (c.itensPagos || []).length ? (c.itensPagos || []).map(i => `
     <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;color:#10b981">
-      <span>✅ <b>[${i.cliente || 'Cliente 1'}]</b> ${i.qtd}x ${i.nome} (Pago)</span>
+      <span>✅ <b>[${escapeHTML(i.cliente || 'Cliente 1')}]</b> ${i.qtd}x ${escapeHTML(i.nome)} (Pago)</span>
       <span>${br(i.qtd * i.preco)}</span>
     </div>
   `).join('') : '';
@@ -2152,7 +2169,7 @@ function cancelarComandaModal(num){
     mesa: num,
     garcom: c.garcom || "Desconhecido",
     totalCancelado: c.total,
-    motivo: motivo.trim() || "Não informado",
+    motivo: escapeHTML(motivo.trim()) || "Não informado",
     horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
     data: new Date().toLocaleDateString('pt-BR'),
     timestamp: Date.now(),
@@ -2204,7 +2221,7 @@ function adicionarDespesa(){
   if(isNaN(valor) || valor <= 0){ showToast("Valor inválido.", true); return; }
   
   let registroDespesa = { 
-      desc, 
+      desc: escapeHTML(desc), 
       valor, 
       horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
       data: new Date().toLocaleDateString('pt-BR'),
@@ -2356,7 +2373,7 @@ function renderRelatorios(){
          if(!historicoVendas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons.</div>';
 
          historicoVendas.forEach(v => {
-           let garcomNome = v.garcom || "Hebster";
+           let garcomNome = escapeHTML(v.garcom || "Hebster");
            let mesaNum = pad(v.mesa || 0);
            let horarioExato = v.horario || "--:--";
            let dataExata = v.data || "";
@@ -2384,7 +2401,7 @@ function renderRelatorios(){
     ${despesas.length ? `
     <div class="card" style="padding:16px;margin-bottom:14px">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Registradas</h3>
-      ${despesas.map(d => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${d.desc} (${d.data})</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
+      ${despesas.map(d => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${escapeHTML(d.desc)} (${d.data})</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
     </div>` : ''}
 
     <div class="card" style="padding:16px;margin-bottom:14px">
@@ -2401,7 +2418,7 @@ function renderRelatorios(){
          });
          let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
             <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span><b>${prodVendidos[nome].qtd}x</b> ${nome}</span>
+              <span><b>${prodVendidos[nome].qtd}x</b> ${escapeHTML(nome)}</span>
               <b>${br(prodVendidos[nome].total)}</b>
             </div>
          `).join('');
@@ -2416,7 +2433,7 @@ function renderRelatorios(){
       ${cancelamentos.map(c => `
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
           <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)} (${c.data})</b> <b>${br(c.totalCancelado)}</b></div>
-          <div style="font-size:11px;color:var(--muted)">Motivo: ${c.motivo}</div>
+          <div style="font-size:11px;color:var(--muted)">Motivo: ${escapeHTML(c.motivo)}</div>
         </div>
       `).join('')}
     </div>` : ''}
@@ -2468,7 +2485,7 @@ function renderMesas(){
        <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
        ${(busy && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
        ${(busy && tempoInfo) ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
-       ${(busy && c.garcom) ? `<div class="garcom-tag">👤 ${c.garcom}</div>` : ''}
+       ${(busy && c.garcom) ? `<div class="garcom-tag">👤 ${escapeHTML(c.garcom)}</div>` : ''}
      </div>
    `);
  }
@@ -2509,7 +2526,7 @@ function renderComandas(){
               return `
                 <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
                   <div>
-                    <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span><br>
+                    <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)}</span><br>
                     <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>${badgeHtml}
                   </div>
                   <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
@@ -2529,7 +2546,7 @@ function renderComandas(){
             </div>
             ${c.itensPagos.map(it => `
               <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
-                <span><b>[${it.cliente || 'Cliente 1'}]</b> ${it.qtd}x ${it.nome}</span>
+                <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)}</span>
                 <span>${br(it.qtd * it.preco)}</span>
               </div>
             `).join('')}
@@ -2542,7 +2559,7 @@ function renderComandas(){
           <div class="row" style="align-items:center;margin-bottom:8px">
             <div>
               <h3>Mesa ${pad(i)}</h3>
-              <small class="muted">Garçom: <b>${c.garcom || 'Hebster'}</b></small>
+              <small class="muted">Garçom: <b>${escapeHTML(c.garcom || 'Hebster')}</b></small>
             </div>
             <div style="text-align:right">
               <span class="tag">${br(c.total)}</span>
@@ -2572,9 +2589,9 @@ function renderAtendimento(){
   let catBtns = Object.keys(cardapio).map(cat => {
     let icoMap = { "CHURRASCOS": "🔥", "CARANGUEJO": "🦀", "BEBIDAS": "🍺", "GUARNIÇÕES": "🍚", "PETISCOS": "🍟", "REFRIGERANTES": "🥤", "SUCOS": "🧃", "DIVERSOS": "🚬" };
     return `
-      <div class="side-cat ${categoriaAtual === cat ? 'active' : ''}" data-cat="${cat}" onclick="setCategoria('${cat}')">
+      <div class="side-cat ${categoriaAtual === cat ? 'active' : ''}" data-cat="${escapeHTML(cat)}" onclick="setCategoria('${escapeHTML(cat)}')">
         <span class="cat-ico">${icoMap[cat] || '🍽️'}</span>
-        <span>${cat}</span>
+        <span>${escapeHTML(cat)}</span>
       </div>
     `;
   }).join('');
@@ -2584,7 +2601,7 @@ function renderAtendimento(){
   if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
 
   let pillsPessoasHTML = listaPessoasClientes.map(cli => `
-    <button onclick="mudarClienteAtual('${cli}')" style="padding:6px 14px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${cli}</button>
+    <button onclick="mudarClienteAtual('${escapeHTML(cli)}')" style="padding:6px 14px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${escapeHTML(cli)}</button>
   `).join('');
 
   document.getElementById("conteudo").innerHTML = `
@@ -2592,11 +2609,11 @@ function renderAtendimento(){
       ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
       <div class="mesa-head">
         <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'} — Pedido</h2>
-        <p>Adicionando para: <b>${clienteAtual}</b></p>
+        <p>Adicionando para: <b>${escapeHTML(clienteAtual)}</b></p>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${modoCliente ? '' : `<button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:14px;width:40px;height:40px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>`}
-        ${modoCliente ? '' : `<input type="text" value="${garcomTemp}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:800;outline:none;width:105px">`}
+        ${modoCliente ? '' : `<input type="text" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:800;outline:none;width:105px">`}
       </div>
     </div>
 
@@ -2655,4 +2672,3 @@ if(modoCliente) {
 </script>
 </body>
 </html>
-
