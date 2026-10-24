@@ -47,7 +47,7 @@ body{padding-bottom:140px}
   border: 1px solid var(--border);
   color: var(--ink);
   border-radius: 28px;
-  padding: 20px 22px;
+  padding: 16px 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.04);
   position: relative;
   overflow: hidden;
@@ -60,8 +60,22 @@ body{padding-bottom:140px}
   background: linear-gradient(135deg, #1f2937, #111827);
   color: #fff;
 }
-.header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0;color:var(--brand)}
-.header p{margin:4px 0 0;font-size:11px;opacity:.8;font-weight:700}
+.header-title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--brand);
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+  flex-shrink: 0;
+}
+.header h1{font-size:20px;font-weight:900;letter-spacing:-.5px;margin:0;color:var(--brand)}
+.header p{margin:2px 0 0;font-size:11px;opacity:.8;font-weight:700}
 .header-actions{display:flex;gap:8px;align-items:center}
 .theme-btn, .sound-btn, .admin-btn, .push-btn{
   background: var(--input-bg);
@@ -473,7 +487,7 @@ body{padding-bottom:140px}
 <div id="login-screen" style="position:fixed;inset:0;background:radial-gradient(circle at center, #ffffff 0%, #f1f5f3 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);backdrop-filter:blur(25px);border:1px solid var(--border);border-radius:28px;padding:28px;width:100%;max-width:360px;box-shadow:0 20px 40px rgba(0,0,0,.08)">
     <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:36px;margin-bottom:6px">🔥</div>
+      <img src="https://i.ibb.co/68Hn6yJ/bb-churrasco-logo.jpg" alt="B.B Churrasco Logo" style="width:90px;height:90px;border-radius:50%;object-fit:cover;margin:0 auto 10px;border:3px solid #d32f2f;box-shadow:0 8px 20px rgba(211,47,47,0.3)">
       <h2 style="font-size:22px;font-weight:900;margin:0;color:var(--ink)">B.B CHURRASCO</h2>
       <p style="font-size:11px;color:var(--muted);margin:4px 0 0;font-weight:700">Acesse o painel do garçom ou administração</p>
     </div>
@@ -494,9 +508,12 @@ body{padding-bottom:140px}
 
 <div class="app">
 <header class="header">
-  <div>
-    <h1>🔥 B.B CHURRASCO</h1>
-    <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
+  <div class="header-title-box">
+    <img src="https://i.ibb.co/68Hn6yJ/bb-churrasco-logo.jpg" alt="B.B Churrasco" class="header-logo">
+    <div>
+      <h1>B.B CHURRASCO</h1>
+      <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
+    </div>
   </div>
   <div class="header-actions">
     <button class="push-btn" id="pushToggleBtn" onclick="pedirPermissaoPush()" title="Notificações Push no Celular">📲</button>
