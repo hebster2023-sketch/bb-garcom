@@ -39,16 +39,17 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-syst
 body{padding-bottom:140px}
 .app{max-width:960px;margin:auto;padding:16px 16px 140px}
 
-/* Header iOS Style */
+/* Header Estilizado com Imagem de Churrasco na Brasa */
 .header{
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid var(--border);
-  color: var(--ink);
+  background: linear-gradient(180deg, rgba(15, 10, 8, 0.45) 0%, rgba(10, 5, 3, 0.85) 100%), 
+              url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop&q=80') center/cover no-repeat;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 87, 34, 0.35);
+  color: #ffffff;
   border-radius: 28px;
-  padding: 20px 22px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+  padding: 24px 22px;
+  box-shadow: 0 12px 35px rgba(211, 47, 47, 0.25), inset 0 0 20px rgba(0,0,0,0.5);
   position: relative;
   overflow: hidden;
   margin-bottom: 16px;
@@ -56,17 +57,27 @@ body{padding-bottom:140px}
   justify-content: space-between;
   align-items: center;
 }
-[data-theme="dark"] .header {
-  background: linear-gradient(135deg, #1f2937, #111827);
-  color: #fff;
+.header h1{
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8), 0 0 15px rgba(255, 87, 34, 0.6);
 }
-.header h1{font-size:22px;font-weight:900;letter-spacing:-.5px;margin:0;color:var(--brand)}
-.header p{margin:4px 0 0;font-size:11px;opacity:.8;font-weight:700}
+.header p{
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #ffca28;
+  font-weight: 800;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  letter-spacing: 0.3px;
+}
 .header-actions{display:flex;gap:8px;align-items:center}
 .theme-btn, .sound-btn, .admin-btn, .push-btn{
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  color: var(--ink);
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
   width: 40px;
   height: 40px;
   border-radius: 14px;
@@ -74,14 +85,12 @@ body{padding-bottom:140px}
   cursor: pointer;
   display: grid;
   place-items: center;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: transform .2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-[data-theme="dark"] .theme-btn, [data-theme="dark"] .sound-btn, [data-theme="dark"] .admin-btn, [data-theme="dark"] .push-btn {
-  color: #fff;
-}
 .theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active{transform:scale(.85)}
-.sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.2);border:1px solid #10b981;color:#10b981}
+.sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.35);border:1px solid #10b981;color:#fff}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
