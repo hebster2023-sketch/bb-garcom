@@ -1944,18 +1944,32 @@ function alternarCamposCalculadoraTroco() {
   
   if (formaSelect.value === 'Dinheiro') {
     boxTroco.style.display = 'block';
+    if(mesaSelecionada) calcularTrocoPagamento(comandas[mesaSelecionada]?.total || 0);
   } else {
     boxTroco.style.display = 'none';
   }
 }
 
-function calcularTrocoPagamento(totalAPagar) {
+// CÁLCULO DE TROCO DINÂMICO CORRIGIDO (Leva em conta se há itens selecionados para baixa parcial)
+function calcularTrocoPagamento(totalComandaMesa) {
   const inputValorEntregue = document.getElementById('inputValorEntregueDinheiro');
   const lblTroco = document.getElementById('lblTrocoCalculado');
   if (!inputValorEntregue || !lblTroco) return;
 
+  // Descobre quanto foi selecionado nos itens específicos para pagar
+  let valTotalSel = 0;
+  document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
+    let qtd = parseInt(span.textContent) || 0;
+    let preco = parseFloat(span.dataset.preco) || 0;
+    valTotalSel += qtd * preco;
+  });
+
+  // Se houver seleção parcial de itens, o alvo do pagamento é o selecionado.
+  // Se nada foi selecionado, o alvo é o valor total da comanda da mesa.
+  const alvoPagamento = valTotalSel > 0 ? valTotalSel : (totalComandaMesa || 0);
+
   const entregue = parseFloat(inputValorEntregue.value.replace(',', '.')) || 0;
-  const troco = Math.max(0, entregue - totalAPagar);
+  const troco = Math.max(0, entregue - alvoPagamento);
   lblTroco.textContent = br(troco);
 }
 
@@ -1982,6 +1996,7 @@ function enviarContaWhatsApp(num) {
 
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
+ mesaSelecionada = num;
  document.getElementById("modalTitle").textContent = `Pagamento — Mesa ${pad(num)}`;
  
  document.getElementById("modalBody").innerHTML = `
@@ -2093,6 +2108,11 @@ function calcularValorSelecionadoComControle(){
     totalSel += qtd * preco;
   });
   document.getElementById('lblTotalSelecionado').textContent = br(totalSel);
+  
+  // Atualiza também o troco em tempo real caso a forma selecionada seja Dinheiro
+  if (mesaSelecionada && comandas[mesaSelecionada]) {
+    calcularTrocoPagamento(comandas[mesaSelecionada].total);
+  }
 }
 
 function pagarItensSelecionados(num){
