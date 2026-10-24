@@ -633,7 +633,7 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "Cliente 1", garcomTemp = "", categoriaAtual = "CHURRASCOS";
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = "", categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
@@ -933,7 +933,7 @@ function comprimirImagemParaBase64(file, callback) {
 
 // ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
-  let senha = prompt("Digite a senha do Administrador (Padrão: 2201):");
+  let senha = prompt("Digite a senha do Administrador (Padrão:):");
   if(senha === null) return;
   if(senha !== "2201"){
     showToast("Senha incorreta!", true);
