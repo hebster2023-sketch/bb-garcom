@@ -1,3 +1,7 @@
+Aqui está o código completo do seu sistema atualizado com as três melhorias solicitadas:
+ * Juntar / Unir Mesas (Mesclagem de Comandas): Foi adicionada a função unirMesas(numOrigem) que mescla os itens, itens pagos, garçom e total de uma mesa para outra e libera a mesa de origem.
+ * Aviso Sonoro Otimizado por Voz para o Garçom: O alerta de voz foi atualizado na função atualizarStatusItemCozinha() para anunciar: "Atenção garçom: [item] da Mesa [mesa] está pronto!" quando marcado como pronto na cozinha ou churrasqueira.
+ * Filtro por Garçom na Tela de Mesas: Adicionada a aba/filtro "Minhas Mesas" na grade principal de mesas, que filtra apenas as mesas associadas ao nome do garçom inserido no atendimento.
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -1462,7 +1466,9 @@ function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
     if (novoStatus === 'preparando') {
       iniciarAlertaPersistente(`Atenção garçom! Mesa ${pad(mesaNum)} está preparando o item ${nomeItem}.`);
     } else if (novoStatus === 'pronto') {
-      iniciarAlertaPersistente(`Atenção garçom! Item ${nomeItem} da Mesa ${pad(mesaNum)} está pronto para servir!`);
+      // Notificação sonora com mensagem exata requerida no formato "Atenção garçom: [item] da Mesa [mesa] está pronto!"
+      iniciarAlertaPersistente(`Atenção garçom: ${nomeItem} da Mesa ${pad(mesaNum)} está pronto!`);
+      dispararNotificacaoPush(`✅ Item Pronto na Mesa ${pad(mesaNum)}!`, `${nomeItem} está pronto para servir.`);
     }
     
     renderizar();
@@ -1943,6 +1949,72 @@ function executarTransferencia(numOrigem){
     renderizar();
   }).catch(err => {
     showToast("Erro ao transferir: " + err.message, true);
+  });
+}
+
+// NOVO: Função para Juntar / Unir Mesas (Mesclagem de Comandas)
+function unirMesas(numOrigem){
+  const c = comandas[numOrigem];
+  if(!c){ showToast("Esta mesa está vazia para juntar.", true); return; }
+  
+  let opcoesMesas = "";
+  for(let i=1; i<=30; i++){
+    if(i !== numOrigem && comandas[i]){
+      opcoesMesas += `<option value="${i}">Mesa ${pad(i)} (Ocupada - ${br(comandas[i].total || 0)})</option>`;
+    }
+  }
+
+  if(!opcoesMesas){
+    showToast("Não há outras mesas ocupadas para mesclar.", true);
+    return;
+  }
+
+  document.getElementById("modalTitle").textContent = `Juntar / Unir Mesa ${pad(numOrigem)}`;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Selecione para qual mesa deseja mesclar os itens da Mesa ${pad(numOrigem)}:</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Mesa Principal (Destino)</label>
+      <select id="selectMesaUnirDestino" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none">${opcoesMesas}</select>
+    </div>
+    <button class="primary" onclick="executarUniaoMesas(${numOrigem})">🔗 Unir Comandas</button>
+    <button class="secondary" onclick="fecharModal()">Voltar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+function executarUniaoMesas(numOrigem){
+  const destSelect = document.getElementById("selectMesaUnirDestino");
+  if(!destSelect) return;
+  const numDestino = parseInt(destSelect.value);
+  const dadosOrigem = comandas[numOrigem];
+  const dadosDestino = comandas[numDestino];
+  if(!dadosOrigem || !dadosDestino) return;
+
+  let itensCombinados = [...(dadosDestino.itens || []), ...(dadosOrigem.itens || [])];
+  let itensPagosCombinados = [...(dadosDestino.itensPagos || []), ...(dadosOrigem.itensPagos || [])];
+  let totalCombinado = Number(dadosDestino.total || 0) + Number(dadosOrigem.total || 0);
+
+  const batch = db.batch();
+  const refDestino = db.collection("comandas").doc(String(numDestino));
+  const refOrigem = db.collection("comandas").doc(String(numOrigem));
+
+  batch.set(refDestino, {
+    garcom: dadosDestino.garcom || dadosOrigem.garcom || "",
+    itens: itensCombinados,
+    itensPagos: itensPagosCombinados,
+    total: totalCombinado,
+    criadoEm: Math.min(dadosDestino.criadoEm || Date.now(), dadosOrigem.criadoEm || Date.now()),
+    atualizadoEm: Date.now()
+  });
+
+  batch.delete(refOrigem);
+
+  batch.commit().then(() => {
+    fecharModal();
+    showToast(`Mesa ${pad(numOrigem)} unida com sucesso à Mesa ${pad(numDestino)}!`);
+    renderizar();
+  }).catch(err => {
+    showToast("Erro ao unir mesas: " + err.message, true);
   });
 }
 
@@ -2492,6 +2564,7 @@ function calcularTempoDecorrido(timestampCriacao){
 
 function renderMesas(){
  let totalAbertas = 0;
+ let minhasAtendidas = 0;
  let arrayMesasHTML = [];
 
  for(let i=1; i<=30; i++){
@@ -2499,8 +2572,12 @@ function renderMesas(){
    let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || Number(c.total || 0) > 0));
    if(busy) totalAbertas++;
 
+   let ehMinhaMesa = busy && c.garcom && garcomTemp && c.garcom.toLowerCase().trim() === garcomTemp.toLowerCase().trim();
+   if(ehMinhaMesa) minhasAtendidas++;
+
    if(filtroMesaAtual === 'livres' && busy) continue;
    if(filtroMesaAtual === 'ocupadas' && !busy) continue;
+   if(filtroMesaAtual === 'minhas' && !ehMinhaMesa) continue;
 
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
    let statusClass = busy ? 'ocupada' : 'livre';
@@ -2523,6 +2600,7 @@ function renderMesas(){
    <div class="filter-tabs">
      <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
      <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${totalAbertas})</button>
+     <button class="filter-tab ${filtroMesaAtual === 'minhas' ? 'active' : ''}" onclick="mudarFiltroMesa('minhas')">👤 Minhas (${minhasAtendidas})</button>
      <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${30 - totalAbertas})</button>
    </div>
    <div class="tables">
@@ -2596,10 +2674,11 @@ function renderComandas(){
           </div>
           ${produtosListaHTML}
           ${itensPagosHTML}
-          <div style="display:flex;gap:6px;margin-top:12px">
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg)" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3)" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
-            <button class="primary" style="padding:10px;font-size:12px" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg);flex:1" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄 Transferir</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(211,47,47,0.08);color:var(--brand);border-color:rgba(211,47,47,0.2);flex:1" onclick="unirMesas(${i})" title="Juntar Mesas">🔗 Juntar</button>
+            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3);flex:1" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
+            <button class="primary" style="padding:10px;font-size:12px;width:100%" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
           </div>
         </div>
       `);
@@ -2701,3 +2780,4 @@ if(modoCliente) {
 </script>
 </body>
 </html>
+
