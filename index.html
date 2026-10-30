@@ -815,6 +815,7 @@ function showToast(msg, isError = false){
 // ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
 let cardapio = {
   "CHURRASCOS":[
+    ["Cupim", 10, "🍖", "", false],
     ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false],
     ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado", false],
     ["Linguiça", 8, "🍖", "", false],
@@ -829,6 +830,7 @@ let cardapio = {
     ["Caldo de Caranguejo", 5, "🦀", "", false]
   ],
   "BEBIDAS":[
+    ["Dose de cachaça", 3, "🥃", "", false],
     ["Skol", 5, "🍺", "", false],
     ["Brahma Chopp", 5, "🍺", "", false],
     ["Brahma Puro Malte", 5, "🍺", "", false],
@@ -860,6 +862,8 @@ let cardapio = {
     ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false]
   ],
   "PETISCOS":[
+    ["Macaxeira", 16, "🍟", "", false],
+    ["Coxinha", 16, "🍗", "", false],
     ["Batata frita", 15, "🍟", "", false],
     ["Calabresa acebolada", 15, "🍢", "", false],
     ["Camarão (porção)", 25, "🍤", "", false],
@@ -1462,7 +1466,6 @@ function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
     if (novoStatus === 'preparando') {
       iniciarAlertaPersistente(`Atenção garçom! Mesa ${pad(mesaNum)} está preparando o item ${nomeItem}.`);
     } else if (novoStatus === 'pronto') {
-      // Notificação sonora com mensagem exata requerida no formato "Atenção garçom: [item] da Mesa [mesa] está pronto!"
       iniciarAlertaPersistente(`Atenção garçom: ${nomeItem} da Mesa ${pad(mesaNum)} está pronto!`);
       dispararNotificacaoPush(`✅ Item Pronto na Mesa ${pad(mesaNum)}!`, `${nomeItem} está pronto para servir.`);
     }
@@ -2027,13 +2030,12 @@ function alternarCamposCalculadoraTroco() {
   }
 }
 
-// CÁLCULO DE TROCO DINÂMICO CORRIGIDO (Leva em conta se há itens selecionados para baixa parcial)
+// CÁLCULO DE TROCO DINÂMICO CORRIGIDO
 function calcularTrocoPagamento(totalComandaMesa) {
   const inputValorEntregue = document.getElementById('inputValorEntregueDinheiro');
   const lblTroco = document.getElementById('lblTrocoCalculado');
   if (!inputValorEntregue || !lblTroco) return;
 
-  // Descobre quanto foi selecionado nos itens específicos para pagar
   let valTotalSel = 0;
   document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
     let qtd = parseInt(span.textContent) || 0;
@@ -2041,8 +2043,6 @@ function calcularTrocoPagamento(totalComandaMesa) {
     valTotalSel += qtd * preco;
   });
 
-  // Se houver seleção parcial de itens, o alvo do pagamento é o selecionado.
-  // Se nada foi selecionado, o alvo é o valor total da comanda da mesa.
   const alvoPagamento = valTotalSel > 0 ? valTotalSel : (totalComandaMesa || 0);
 
   const entregue = parseFloat(inputValorEntregue.value.replace(',', '.')) || 0;
@@ -2186,7 +2186,6 @@ function calcularValorSelecionadoComControle(){
   });
   document.getElementById('lblTotalSelecionado').textContent = br(totalSel);
   
-  // Atualiza também o troco em tempo real caso a forma selecionada seja Dinheiro
   if (mesaSelecionada && comandas[mesaSelecionada]) {
     calcularTrocoPagamento(comandas[mesaSelecionada].total);
   }
@@ -2776,4 +2775,3 @@ if(modoCliente) {
 </script>
 </body>
 </html>
-
