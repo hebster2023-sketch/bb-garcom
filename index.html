@@ -559,10 +559,32 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
+// CONFIGURAÇÃO DO ATENDENTE VIRTUAL (WHATSAPP AUTOMÁTICO)
+const NUMERO_ESTABELECIMENTO = "5585996532573";
+const URL_BOT_WEBHOOK = "https://us-central1-bbchurrasco-app.cloudfunctions.net/whatsappWebhook";
+
+function enviarMensagemAutomaticamenteWhatsApp(numeroCliente, linkCardapio) {
+  if (!numeroCliente) return;
+  fetch(URL_BOT_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: numeroCliente,
+      message: `Olá! Seja bem-vindo ao *B.B CHURRASCO* 🔥\n\nAcesse nosso cardápio digital interativo para fazer seu pedido:\n${linkCardapio}`
+    })
+  }).catch(err => console.error("Erro ao enviar auto-resposta WhatsApp:", err));
+}
+
 // Detecção do modo Cardápio Digital (Delivery / QR Code de Mesa)
 const urlParams = new URLSearchParams(window.location.search);
 const modoCliente = urlParams.get('modo') === 'delivery' || urlParams.has('mesa');
 const mesaUrlCliente = parseInt(urlParams.get('mesa')) || null;
+const telefoneCliente = urlParams.get('fone') || null;
+
+if (modoCliente && telefoneCliente) {
+  const urlAtual = window.location.href;
+  enviarMensagemAutomaticamenteWhatsApp(telefoneCliente, urlAtual);
+}
 
 // Ativando modo offline nativo robusto (Firestore Cache)
 db.enablePersistence({synchronizeTabs: true}).catch((err) => {
@@ -952,7 +974,7 @@ function comprimirImagemParaBase64(file, callback) {
 
 // ----------------- PAINEL ADMINISTRATIVO -----------------
 function abrirPainelAdmin(){
-  let senha = prompt("Digite a senha do Administrador (Padrão:):");
+  let senha = prompt("Digite a senha do Administrador:");
   if(senha === null) return;
   if(senha !== "2201"){
     showToast("Senha incorreta!", true);
@@ -1957,7 +1979,6 @@ function executarTransferencia(numOrigem){
   });
 }
 
-// NOVO: Função para Juntar / Unir Mesas (Mesclagem de Comandas)
 function unirMesas(numOrigem){
   const c = comandas[numOrigem];
   if(!c){ showToast("Esta mesa está vazia para juntar.", true); return; }
@@ -2036,7 +2057,6 @@ function alternarCamposCalculadoraTroco() {
   }
 }
 
-// CÁLCULO DE TROCO DINÂMICO CORRIGIDO
 function calcularTrocoPagamento(totalComandaMesa) {
   const inputValorEntregue = document.getElementById('inputValorEntregueDinheiro');
   const lblTroco = document.getElementById('lblTrocoCalculado');
