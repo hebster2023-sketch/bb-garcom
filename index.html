@@ -1,3 +1,9 @@
+Para atualizar o sistema de 30 para 45 mesas, foi criada uma constante TOTAL_MESAS = 45 no topo do script e ajustados todos os pontos onde o limite de mesas estava travado em 30:
+ * Validação do Firebase (iniciarOuvintesFirebase): Agora aceita documentos de mesa de 1 até 45 (antes excluía mesas acima de 30).
+ * Grade e Filtros de Mesas (renderMesas): Exibe todas as 45 mesas e atualiza os contadores das abas (Todas (45) e Livres).
+ * Cozinha, Churrasco e Comandas: Os laços de leitura agora percorrem até a mesa 45.
+ * Transferência e União de Mesas: Os seletores de destino agora listam até a mesa 45.
+Aqui está o código completo atualizado pronto para copiar e colar:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -539,6 +545,9 @@ body{padding-bottom:140px}
 </div>
 
 <script>
+// TOTAL DE MESAS DO SISTEMA
+const TOTAL_MESAS = 45;
+
 // Função utilitária para Sanitização/Escape contra ataques XSS
 function escapeHTML(str) {
   if (typeof str !== 'string') return str;
@@ -1138,7 +1147,7 @@ function iniciarOuvintesFirebase() {
     snapshot.forEach(doc => { 
       let id = doc.id;
       let num = parseInt(id);
-      if(isNaN(num) || num < 1 || num > 30 || String(num) !== String(id).trim()){
+      if(isNaN(num) || num < 1 || num > TOTAL_MESAS || String(num) !== String(id).trim()){
         db.collection("comandas").doc(id).delete().catch(()=>{});
         return;
       }
@@ -1511,7 +1520,7 @@ function renderCozinha(){
   let totalValorCozinha = 0;
   let contagemProdutosCozinha = {};
 
-  for(let i=1; i<=30; i++){
+  for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
     if(c){
       if(c.itens && c.itens.length > 0){
@@ -1628,7 +1637,7 @@ function renderChurrasco(){
   let totalValorChurrasco = 0;
   let contagemProdutosChurrasco = {};
 
-  for(let i=1; i<=30; i++){
+  for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
     if(c){
       if(c.itens && c.itens.length > 0){
@@ -1915,7 +1924,7 @@ function abrirModalTransferencia(numOrigem){
   if(!c){ showToast("Esta mesa está vazia para transferir.", true); return; }
   
   let opcoesMesas = "";
-  for(let i=1; i<=30; i++){
+  for(let i=1; i<=TOTAL_MESAS; i++){
     if(i !== numOrigem){
       let ocupadaStr = comandas[i] ? " (Ocupada)" : " (Livre)";
       opcoesMesas += `<option value="${i}">Mesa ${pad(i)}${ocupadaStr}</option>`;
@@ -1984,7 +1993,7 @@ function unirMesas(numOrigem){
   if(!c){ showToast("Esta mesa está vazia para juntar.", true); return; }
   
   let opcoesMesas = "";
-  for(let i=1; i<=30; i++){
+  for(let i=1; i<=TOTAL_MESAS; i++){
     if(i !== numOrigem && comandas[i]){
       opcoesMesas += `<option value="${i}">Mesa ${pad(i)} (Ocupada - ${br(comandas[i].total || 0)})</option>`;
     }
@@ -2588,7 +2597,7 @@ function renderMesas(){
  let minhasAtendidas = 0;
  let arrayMesasHTML = [];
 
- for(let i=1; i<=30; i++){
+ for(let i=1; i<=TOTAL_MESAS; i++){
    let c = comandas[i];
    let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || Number(c.total || 0) > 0));
    if(busy) totalAbertas++;
@@ -2619,10 +2628,10 @@ function renderMesas(){
 
  document.getElementById("conteudo").innerHTML = `
    <div class="filter-tabs">
-     <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (30)</button>
+     <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (${TOTAL_MESAS})</button>
      <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${totalAbertas})</button>
      <button class="filter-tab ${filtroMesaAtual === 'minhas' ? 'active' : ''}" onclick="mudarFiltroMesa('minhas')">👤 Minhas (${minhasAtendidas})</button>
-     <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${30 - totalAbertas})</button>
+     <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${TOTAL_MESAS - totalAbertas})</button>
    </div>
    <div class="tables">
      ${arrayMesasHTML.join('')}
@@ -2633,7 +2642,7 @@ function renderMesas(){
 function renderComandas(){
   let comandasHTML = [];
 
-  for(let i=1; i<=30; i++){
+  for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
       let produtosListaHTML = "";
@@ -2801,3 +2810,4 @@ if(modoCliente) {
 </script>
 </body>
 </html>
+
