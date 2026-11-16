@@ -1,3 +1,9 @@
+O problema acontece porque o seletor de pagamento já vem marcado como Pix por padrão e o navegador exibe apenas um confirm() nativo, fazendo o garçom clicar rápido sem escolher a forma correta.
+Atualizei o código para resolver isso:
+ * Seleção obrigatória de pagamento: Ao clicar tanto no botão verde (Pagar Selecionados) quanto no botão vermelho (Fechar Mesa Completa), abre-se uma janela visual exigindo que o garçom toque na forma de pagamento (Pix, Cartão de Crédito, Cartão de Débito ou Dinheiro) antes de confirmar.
+ * Sem padrão automático: O seletor inicia vazio ("Selecione a forma de pagamento..."), impedindo que qualquer fechamento caia no Pix por engano.
+ * Calculadora de troco integrada: Caso o garçom toque em Dinheiro na confirmação, o campo de valor recebido e o cálculo automático do troco aparecem na hora.
+Aqui está o código completo e atualizado:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -472,6 +478,37 @@ body{padding-bottom:140px}
 .command .row{display:flex;justify-content:space-between;gap:10px}
 .command h3{margin:0;font-size:16px;font-weight:900;color:var(--ink)}
 .tag{font-size:11px;font-weight:900;border-radius:999px;padding:4px 12px;background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211,47,47,0.2)}
+
+/* Botões de Escolha de Pagamento */
+.pay-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0;
+}
+.pay-choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 10px;
+  border-radius: 18px;
+  border: 2px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.pay-choice-btn:active { transform: scale(0.94); }
+.pay-choice-btn.selected {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
+}
 </style>
 </head>
 <body>
@@ -2047,38 +2084,6 @@ function executarUniaoMesas(numOrigem){
   });
 }
 
-function alternarCamposCalculadoraTroco() {
-  const formaSelect = document.getElementById('formaPagamentoSelect');
-  const boxTroco = document.getElementById('boxTrocoDinheiro');
-  if(!formaSelect || !boxTroco) return;
-  
-  if (formaSelect.value === 'Dinheiro') {
-    boxTroco.style.display = 'block';
-    if(mesaSelecionada) calcularTrocoPagamento(comandas[mesaSelecionada]?.total || 0);
-  } else {
-    boxTroco.style.display = 'none';
-  }
-}
-
-function calcularTrocoPagamento(totalComandaMesa) {
-  const inputValorEntregue = document.getElementById('inputValorEntregueDinheiro');
-  const lblTroco = document.getElementById('lblTrocoCalculado');
-  if (!inputValorEntregue || !lblTroco) return;
-
-  let valTotalSel = 0;
-  document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
-    let qtd = parseInt(span.textContent) || 0;
-    let preco = parseFloat(span.dataset.preco) || 0;
-    valTotalSel += qtd * preco;
-  });
-
-  const alvoPagamento = valTotalSel > 0 ? valTotalSel : (totalComandaMesa || 0);
-
-  const entregue = parseFloat(inputValorEntregue.value.replace(',', '.')) || 0;
-  const troco = Math.max(0, entregue - alvoPagamento);
-  lblTroco.textContent = br(troco);
-}
-
 function enviarContaWhatsApp(num) {
   const c = comandas[num];
   if (!c) return;
@@ -2115,25 +2120,6 @@ function dividirContaModal(num){
     </button>
   </div>
 
-  <div style="margin-bottom:12px">
-    <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💳 Forma de Pagamento</label>
-    <select id="formaPagamentoSelect" onchange="alternarCamposCalculadoraTroco()" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none">
-      <option value="Pix">Pix</option>
-      <option value="Cartão de Crédito">Cartão de Crédito</option>
-      <option value="Cartão de Débito">Cartão de Débito</option>
-      <option value="Dinheiro">Dinheiro</option>
-    </select>
-  </div>
-
-  <div id="boxTrocoDinheiro" style="display:none;background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px">
-    <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💵 Valor Entregue pelo Cliente (R$)</label>
-    <input type="number" id="inputValorEntregueDinheiro" step="0.01" placeholder="ex: 50.00" oninput="calcularTrocoPagamento(${c.total})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;font-weight:800;font-size:14px;outline:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;font-weight:900">
-      <span>💰 Troco a Devolver:</span>
-      <span id="lblTrocoCalculado" style="color:#10b981;font-size:16px">R$ 0,00</span>
-    </div>
-  </div>
-
   <div class="card" style="padding:14px;margin-bottom:12px">
     <div style="font-weight:900;margin-bottom:6px;font-size:13px">🎯 Baixar / Pagar Itens Específicos:</div>
     <div style="max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px">
@@ -2155,10 +2141,10 @@ function dividirContaModal(num){
       <span style="font-weight:700">Total Selecionado:</span>
       <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
     </div>
-    <button class="primary" style="margin-top:10px;background:#10b981;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="pagarItensSelecionados(${num})">✅ Pagar Selecionados (Manter Mesa)</button>
+    <button class="primary" style="margin-top:10px;background:#10b981;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="abrirConfirmacaoPagamento(${num}, 'parcial')">✅ Pagar Selecionados (Manter Mesa)</button>
   </div>
 
-  <button class="primary" onclick="fecharMesaDireto(${num})" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="primary" onclick="abrirConfirmacaoPagamento(${num}, 'total')" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
   <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
@@ -2214,57 +2200,152 @@ function calcularValorSelecionadoComControle(){
     totalSel += qtd * preco;
   });
   document.getElementById('lblTotalSelecionado').textContent = br(totalSel);
-  
-  if (mesaSelecionada && comandas[mesaSelecionada]) {
-    calcularTrocoPagamento(comandas[mesaSelecionada].total);
+}
+
+// ----------------- NOVO FLUXO OBRIGATÓRIO DE ESCOLHA DE PAGAMENTO -----------------
+let formaPagamentoEscolhidaTemp = "";
+let baixasPendentesTemp = {};
+let valorPendenteTemp = 0;
+
+function abrirConfirmacaoPagamento(num, tipo) {
+  const c = comandas[num];
+  if (!c) return;
+
+  formaPagamentoEscolhidaTemp = "";
+  baixasPendentesTemp = {};
+  valorPendenteTemp = 0;
+
+  if (tipo === 'parcial') {
+    let temSelecao = false;
+    document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
+      let qtdPagar = parseInt(span.textContent) || 0;
+      if (qtdPagar > 0) {
+        temSelecao = true;
+        let nome = span.dataset.nome;
+        let cli = span.dataset.cliente;
+        let preco = parseFloat(span.dataset.preco);
+        valorPendenteTemp += qtdPagar * preco;
+        let chave = cli + "_" + nome;
+        baixasPendentesTemp[chave] = (baixasPendentesTemp[chave] || 0) + qtdPagar;
+      }
+    });
+
+    if (!temSelecao) {
+      showToast("Selecione a quantidade de pelo menos um item primeiro.", true);
+      return;
+    }
+  } else {
+    valorPendenteTemp = Number(c.total || 0);
+  }
+
+  const tituloAcao = tipo === 'parcial' ? 'Baixa Parcial (Manter Mesa)' : 'Fechar Mesa Completa';
+  document.getElementById("modalTitle").textContent = `💳 Forma de Pagamento`;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="text-align:center;background:var(--input-bg);padding:14px;border-radius:18px;border:1px solid var(--border);margin-bottom:14px">
+      <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase">${tituloAcao} — Mesa ${pad(num)}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--brand);margin-top:4px">${br(valorPendenteTemp)}</div>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--ink);margin-bottom:6px;text-align:center">👇 Toque na forma de pagamento utilizada:</div>
+    
+    <div class="pay-choice-grid">
+      <button type="button" class="pay-choice-btn" id="btnPay-Pix" onclick="selecionarMetodoPagamento('Pix')">
+        <span style="font-size:24px">💠</span>
+        <span>Pix</span>
+      </button>
+      <button type="button" class="pay-choice-btn" id="btnPay-Cartão de Crédito" onclick="selecionarMetodoPagamento('Cartão de Crédito')">
+        <span style="font-size:24px">💳</span>
+        <span>Crédito</span>
+      </button>
+      <button type="button" class="pay-choice-btn" id="btnPay-Cartão de Débito" onclick="selecionarMetodoPagamento('Cartão de Débito')">
+        <span style="font-size:24px">🏧</span>
+        <span>Débito</span>
+      </button>
+      <button type="button" class="pay-choice-btn" id="btnPay-Dinheiro" onclick="selecionarMetodoPagamento('Dinheiro')">
+        <span style="font-size:24px">💵</span>
+        <span>Dinheiro</span>
+      </button>
+    </div>
+
+    <div id="boxTrocoModalConfirmacao" style="display:none;background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:14px">
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💵 Valor Entregue pelo Cliente (R$)</label>
+      <input type="number" id="inputTrocoModal" step="0.01" placeholder="ex: 100.00" oninput="atualizarTrocoModal(${valorPendenteTemp})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;font-weight:800;font-size:15px;outline:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;font-weight:900">
+        <span>💰 Troco a Devolver:</span>
+        <span id="lblTrocoModal" style="color:#10b981;font-size:16px">R$ 0,00</span>
+      </div>
+    </div>
+
+    <button id="btnConfirmarFinalPagamento" class="primary" onclick="executarPagamentoConfirmado(${num}, '${tipo}')" style="opacity:0.45;pointer-events:none;background:#10b981;font-size:14px;padding:15px">
+      Selecione uma opção acima
+    </button>
+    <button class="secondary" onclick="dividirContaModal(${num})">← Voltar</button>
+  `;
+}
+
+function selecionarMetodoPagamento(metodo) {
+  formaPagamentoEscolhidaTemp = metodo;
+
+  document.querySelectorAll('.pay-choice-btn').forEach(btn => btn.classList.remove('selected'));
+  const btnAtivo = document.getElementById(`btnPay-${metodo}`);
+  if (btnAtivo) btnAtivo.classList.add('selected');
+
+  const boxTroco = document.getElementById('boxTrocoModalConfirmacao');
+  if (boxTroco) {
+    boxTroco.style.display = metodo === 'Dinheiro' ? 'block' : 'none';
+  }
+
+  const btnConfirmar = document.getElementById('btnConfirmarFinalPagamento');
+  if (btnConfirmar) {
+    btnConfirmar.style.opacity = '1';
+    btnConfirmar.style.pointerEvents = 'auto';
+    btnConfirmar.textContent = `✅ Confirmar Pagamento via ${metodo}`;
   }
 }
 
-function pagarItensSelecionados(num){
-  const c = comandas[num]; if(!c) return;
-  const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
-  let valTotalSel = 0;
-  let baixas = {};
-  let temSelecao = false;
+function atualizarTrocoModal(valorAlvo) {
+  const input = document.getElementById('inputTrocoModal');
+  const lbl = document.getElementById('lblTrocoModal');
+  if (!input || !lbl) return;
+  const entregue = parseFloat(input.value.replace(',', '.')) || 0;
+  const troco = Math.max(0, entregue - valorAlvo);
+  lbl.textContent = br(troco);
+}
 
-  document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
-    let qtdPagar = parseInt(span.textContent) || 0;
-    if(qtdPagar > 0){
-      temSelecao = true;
-      let nome = span.dataset.nome;
-      let cli = span.dataset.cliente;
-      let preco = parseFloat(span.dataset.preco);
-      valTotalSel += qtdPagar * preco;
-      let chave = cli + "_" + nome;
-      baixas[chave] = (baixas[chave] || 0) + qtdPagar;
-    }
-  });
+function executarPagamentoConfirmado(num, tipo) {
+  if (!formaPagamentoEscolhidaTemp) {
+    showToast("Por favor, selecione a forma de pagamento!", true);
+    return;
+  }
 
-  if(!temSelecao){ showToast("Selecione a quantidade de um item.", true); return; }
+  const c = comandas[num];
+  if (!c) return;
+  const formaPagamento = formaPagamentoEscolhidaTemp;
 
-  if(confirm(`Confirmar pagamento de ${br(valTotalSel)} via ${formaPagamento}?`)){
+  if (tipo === 'parcial') {
     let itensPagosParaHistorico = [];
     let novosItens = [];
     let itensPagosAcumulados = c.itensPagos ? [...c.itensPagos] : [];
+    let baixas = { ...baixasPendentesTemp };
 
     c.itens.forEach(it => {
       let cli = it.cliente || "Cliente 1";
       let chave = cli + "_" + it.nome;
       let qtdBaixada = baixas[chave] || 0;
-      if(qtdBaixada > 0){
+      if (qtdBaixada > 0) {
         baixas[chave] -= qtdBaixada;
         itensPagosParaHistorico.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem });
         let jaExiste = itensPagosAcumulados.find(ip => ip.cliente === cli && ip.nome === it.nome);
-        if(jaExiste){ jaExiste.qtd += qtdBaixada; }
+        if (jaExiste) { jaExiste.qtd += qtdBaixada; }
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if(qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || '', horario: it.horario, timestampItem: it.timestampItem });
+      if (qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || '', horario: it.horario, timestampItem: it.timestampItem });
     });
 
     const vendaParcial = { 
         mesa: num, 
-        total: valTotalSel, 
+        total: valorPendenteTemp, 
         pagamento: formaPagamento, 
         garcom: c.garcom || "Sem Garçom", 
         itens: itensPagosParaHistorico, 
@@ -2273,14 +2354,36 @@ function pagarItensSelecionados(num){
         timestamp: Date.now()
     };
     
-    let novoTotal = Math.max(0, Number(c.total) - valTotalSel);
+    let novoTotal = Math.max(0, Number(c.total) - valorPendenteTemp);
 
     db.collection("historico").add(vendaParcial).then(() => {
       db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
         fecharModal(); 
-        showToast(`Baixa de ${br(valTotalSel)} (${formaPagamento}) realizada!`); 
+        showToast(`Baixa de ${br(valorPendenteTemp)} (${formaPagamento}) realizada!`); 
         renderizar();
       });
+    });
+
+  } else {
+    let todos = [...(c.itens || [])];
+    if (c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco, horario: ip.horario, timestampItem: ip.timestampItem }));
+
+    let novaVenda = { 
+        mesa: num, 
+        total: c.total, 
+        pagamento: formaPagamento, 
+        garcom: c.garcom || "Sem Garçom", 
+        itens: todos, 
+        horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+        data: new Date().toLocaleDateString('pt-BR'),
+        timestamp: Date.now()
+    };
+
+    const pHist = c.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
+
+    pHist.then(() => {
+      fecharComanda(num);
+      fecharModal();
     });
   }
 }
@@ -2311,33 +2414,6 @@ function cancelarComandaModal(num){
 }
 
 function fecharMesa(num){ dividirContaModal(num); }
-
-function fecharMesaDireto(num){
- const c = comandas[num]; if(!c) return;
- const formaPagamento = document.getElementById('formaPagamentoSelect')?.value || 'Pix';
- if(confirm(`Deseja fechar e liberar completamente a Mesa ${pad(num)} (${br(c.total)}) via ${formaPagamento}?`)){
-   let todos = [...(c.itens || [])];
-   if(c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco, horario: ip.horario, timestampItem: ip.timestampItem }));
-
-   let novaVenda = { 
-       mesa: num, 
-       total: c.total, 
-       pagamento: formaPagamento, 
-       garcom: c.garcom || "Sem Garçom", 
-       itens: todos, 
-       horario: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
-       data: new Date().toLocaleDateString('pt-BR'),
-       timestamp: Date.now()
-   };
-
-   const pHist = c.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
-
-   pHist.then(() => {
-     fecharComanda(num);
-     fecharModal();
-   });
- }
-}
 
 function adicionarDespesa(){
   let desc = prompt("Nome da despesa:"); if(!desc) return;
