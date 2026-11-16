@@ -1,9 +1,3 @@
-Para atualizar o sistema de 30 para 45 mesas, foi criada uma constante TOTAL_MESAS = 45 no topo do script e ajustados todos os pontos onde o limite de mesas estava travado em 30:
- * Validação do Firebase (iniciarOuvintesFirebase): Agora aceita documentos de mesa de 1 até 45 (antes excluía mesas acima de 30).
- * Grade e Filtros de Mesas (renderMesas): Exibe todas as 45 mesas e atualiza os contadores das abas (Todas (45) e Livres).
- * Cozinha, Churrasco e Comandas: Os laços de leitura agora percorrem até a mesa 45.
- * Transferência e União de Mesas: Os seletores de destino agora listam até a mesa 45.
-Aqui está o código completo atualizado pronto para copiar e colar:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
