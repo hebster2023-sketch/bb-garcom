@@ -1,9 +1,3 @@
-O problema acontece porque o seletor de pagamento já vem marcado como Pix por padrão e o navegador exibe apenas um confirm() nativo, fazendo o garçom clicar rápido sem escolher a forma correta.
-Atualizei o código para resolver isso:
- * Seleção obrigatória de pagamento: Ao clicar tanto no botão verde (Pagar Selecionados) quanto no botão vermelho (Fechar Mesa Completa), abre-se uma janela visual exigindo que o garçom toque na forma de pagamento (Pix, Cartão de Crédito, Cartão de Débito ou Dinheiro) antes de confirmar.
- * Sem padrão automático: O seletor inicia vazio ("Selecione a forma de pagamento..."), impedindo que qualquer fechamento caia no Pix por engano.
- * Calculadora de troco integrada: Caso o garçom toque em Dinheiro na confirmação, o campo de valor recebido e o cálculo automático do troco aparecem na hora.
-Aqui está o código completo e atualizado:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
