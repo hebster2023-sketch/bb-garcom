@@ -118,14 +118,14 @@ body{padding-bottom:140px}
   left: 50%;
   bottom: 20px;
   transform: translateX(-50%);
-  width: min(720px, calc(100% - 32px));
+  width: min(740px, calc(100% - 24px));
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   border: 1px solid var(--border);
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  padding: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  padding: 6px;
   border-radius: 32px;
   box-shadow: 0 20px 40px rgba(0,0,0,.08);
 }
@@ -137,8 +137,8 @@ body{padding-bottom:140px}
   background: none;
   color: var(--muted);
   font-weight: 800;
-  font-size: 10px;
-  padding: 8px 2px;
+  font-size: 9px;
+  padding: 8px 1px;
   border-radius: 20px;
   display: flex;
   flex-direction: column;
@@ -148,7 +148,7 @@ body{padding-bottom:140px}
 }
 .bottom button.active{color:var(--brand);background:rgba(211, 47, 47, 0.08);transform:translateY(-2px)}
 .bottom button:active{transform:scale(0.92)}
-.bottom .ico{font-size:18px;margin-bottom:2px}
+.bottom .ico{font-size:17px;margin-bottom:2px}
 
 /* Filtros de Mesas */
 .filter-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
@@ -570,12 +570,13 @@ body{padding-bottom:140px}
   <button onclick="abrirCarrinho()">Ver pedido →</button>
 </div>
 
-<!-- BARRA DE NAVEGAÇÃO INFERIOR COM 5 ABAS -->
+<!-- BARRA DE NAVEGAÇÃO INFERIOR COM 6 ABAS -->
 <nav class="bottom" id="navInferior">
  <button id="navMesas" onclick="mudarTela('mesas')"><span class="ico">🪑</span>Mesas</button>
  <button id="navComandas" onclick="mudarTela('comandas')"><span class="ico">📋</span>Comandas</button>
  <button id="navCozinha" onclick="tentarAcessarSetor('cozinha')"><span class="ico">🍳</span>Cozinha</button>
  <button id="navChurrasco" onclick="tentarAcessarSetor('churrasco')"><span class="ico">🥩</span>Churrasco</button>
+ <button id="navBebidas" onclick="tentarAcessarSetor('bebidas')"><span class="ico">🍺</span>Bebidas</button>
  <button id="navRelatorios" onclick="mudarTela('relatorios')"><span class="ico">📊</span>Relatórios</button>
 </nav>
 
@@ -720,10 +721,11 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
-// Senhas de acesso aos setores (Cozinha e Churrasco)
+// Senhas de acesso aos setores (Cozinha, Churrasco e Bebidas)
 const SENHAS_SETORES = {
   cozinha: "1234",
-  churrasco: "5678"
+  churrasco: "5678",
+  bebidas: "9012"
 };
 
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
@@ -746,7 +748,7 @@ function tentarAcessarSetor(setor){
 
   if(senhaDigitada === SENHAS_SETORES[setor]){
     sessionStorage.setItem(`acesso_${setor}`, "true");
-    showToast(`Acesso liberado para a ${setor}!`);
+    showToast(`Acesso liberado para ${setor}!`);
     mudarTela(setor);
   } else {
     showToast("Senha incorreta! Acesso negado.", true);
@@ -1199,7 +1201,7 @@ function iniciarOuvintesFirebase() {
     verificarNovosPedidos(novasComandas);
     comandas = novasComandas;
 
-    if(["mesas", "comandas", "cozinha", "churrasco"].includes(telaAtual)) renderizar();
+    if(["mesas", "comandas", "cozinha", "churrasco", "bebidas"].includes(telaAtual)) renderizar();
   }, err => console.error("Erro offline/snapshot:", err));
 
   db.collection("historico").onSnapshot(snapshot => {
@@ -1207,7 +1209,7 @@ function iniciarOuvintesFirebase() {
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
     // Ordena do mais recente para o mais antigo para exibição consistente
     historicoVendas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    if(["relatorios", "cozinha", "churrasco"].includes(telaAtual)) renderizar();
+    if(["relatorios", "cozinha", "churrasco", "bebidas"].includes(telaAtual)) renderizar();
   }, err => {});
 
   db.collection("despesas").onSnapshot(snapshot => {
@@ -1245,12 +1247,12 @@ function concluirLogin(email){
   
   if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(4,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(5,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
     document.getElementById('navRelatorios').style.display = 'flex';
-    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(5,1fr)';
+    document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(6,1fr)';
     document.getElementById('user-role-label').textContent = 'B.B ADMIN — Gestão Completa';
   }
   iniciarOuvintesFirebase();
@@ -1396,7 +1398,7 @@ function itensTempComClientes(){
   const horarioAtualStr = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   const comandaAntiga = comandas[mesaSelecionada] || {};
 
-  const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS"];
+  const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS", "BEBIDAS", "REFRIGERANTES"];
 
   for(const cli in pedidoTemp){
     for(const prod in pedidoTemp[cli]){
@@ -1558,7 +1560,7 @@ function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
 }
 
 function renderCozinha(){
-  const categoriasCozinha = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS"];
+  const categoriasCozinha = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES"];
   let listaItensTimeline = [];
   let totalQtdCozinha = 0;
   let totalValorCozinha = 0;
@@ -1776,6 +1778,124 @@ function renderChurrasco(){
     </div>
 
     ${cardsChurrascoHTML || '<div class="empty">Nenhum pedido de churrasco pendente no momento.</div>'}
+  `;
+}
+
+// ----------------- MÓDULO DE BEBIDAS -----------------
+function renderBebidas(){
+  const categoriasBebidas = ["BEBIDAS", "REFRIGERANTES", "SUCOS"];
+  let listaItensTimelineBebidas = [];
+  let totalQtdBebidas = 0;
+  let totalValorBebidas = 0;
+  let contagemProdutosBebidas = {};
+
+  for(let i=1; i<=TOTAL_MESAS; i++){
+    let c = comandas[i];
+    if(c){
+      if(c.itens && c.itens.length > 0){
+        c.itens.forEach(it => {
+          let catDoItem = "";
+          for(let cat in cardapio){
+            if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+              catDoItem = cat;
+              break;
+            }
+          }
+          if(categoriasBebidas.includes(catDoItem)){
+            listaItensTimelineBebidas.push({
+              mesa: i,
+              garcom: c.garcom || 'Sem Garçom',
+              cliente: it.cliente || 'Cliente 1',
+              nome: it.nome,
+              qtd: it.qtd,
+              preco: it.preco,
+              status: it.statusCozinha || 'pendente',
+              horario: it.horario || '--:--',
+              timestamp: it.timestampItem || c.criadoEm || 0
+            });
+          }
+        });
+      }
+    }
+  }
+
+  historicoVendas.forEach(v => {
+    if(v.itens && Array.isArray(v.itens)){
+      v.itens.forEach(it => {
+        let catDoItem = "";
+        for(let cat in cardapio){
+          if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+            catDoItem = cat;
+            break;
+          }
+        }
+        if(categoriasBebidas.includes(catDoItem)){
+          totalQtdBebidas += it.qtd;
+          totalValorBebidas += (it.qtd * Number(it.preco || 0));
+          contagemProdutosBebidas[it.nome] = (contagemProdutosBebidas[it.nome] || 0) + it.qtd;
+        }
+      });
+    }
+  });
+
+  listaItensTimelineBebidas.sort((a, b) => a.timestamp - b.timestamp);
+
+  let listaResumoBebidasHTML = Object.keys(contagemProdutosBebidas).sort((a,b) => contagemProdutosBebidas[b] - contagemProdutosBebidas[a]).map(nome => `
+    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span><b>${contagemProdutosBebidas[nome]}x</b> ${escapeHTML(nome)}</span>
+    </div>
+  `).join('');
+
+  let cardsBebidasHTML = listaItensTimelineBebidas.map(item => {
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
+    let labelStatus = item.status === 'preparando' ? '🧊 Separando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
+    
+    return `
+      <div class="card command" style="border-left: 4px solid #0284c7; margin-bottom:8px; padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <span class="tag">Mesa ${pad(item.mesa)}</span>
+            <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
+          </div>
+          <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+        </div>
+        <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:900">
+              <span style="color:var(--brand)">[${escapeHTML(item.cliente)}]</span> ${item.qtd}x ${escapeHTML(item.nome)}
+            </div>
+            <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
+          </div>
+          <div style="display:flex;gap:4px">
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Separar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById("conteudo").innerHTML = `
+    <div class="section-title">
+      <div><h2>Módulo Bebidas</h2><span class="muted">Linha do tempo de bebidas (Ordem de chegada)</span></div>
+      <button onclick="sessionStorage.removeItem('acesso_bebidas'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear Bebidas</button>
+    </div>
+    
+    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
+      <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas em Bebidas (Acumulado)</h3>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
+        <span>Total de bebidas: <b>${totalQtdBebidas} un</b></span>
+        <span>Valor estimado: <b style="color:#10b981">${br(totalValorBebidas)}</b></span>
+      </div>
+      ${listaResumoBebidasHTML ? `
+        <div style="border-top:1px dashed var(--border);padding-top:8px">
+          <div style="font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Produtos que saíram (Incluindo baixados):</div>
+          ${listaResumoBebidasHTML}
+        </div>
+      ` : ''}
+    </div>
+
+    ${cardsBebidasHTML || '<div class="empty">Nenhum pedido de bebida pendente no momento.</div>'}
   `;
 }
 
@@ -2944,6 +3064,7 @@ function renderizar(){
   else if(telaAtual === 'comandas') renderComandas();
   else if(telaAtual === 'cozinha') renderCozinha();
   else if(telaAtual === 'churrasco') renderChurrasco();
+  else if(telaAtual === 'bebidas') renderBebidas();
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
 }
