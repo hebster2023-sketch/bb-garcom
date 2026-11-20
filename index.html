@@ -503,6 +503,23 @@ body{padding-bottom:140px}
   color: #10b981;
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
 }
+
+/* Cartão Clicável no Relatório */
+.report-sale-card {
+  background: var(--input-bg);
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+.report-sale-card:hover {
+  border-color: var(--brand);
+}
+.report-sale-card:active {
+  transform: scale(0.98);
+}
 </style>
 </head>
 <body>
@@ -1188,6 +1205,8 @@ function iniciarOuvintesFirebase() {
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
+    // Ordena do mais recente para o mais antigo para exibição consistente
+    historicoVendas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     if(["relatorios", "cozinha", "churrasco"].includes(telaAtual)) renderizar();
   }, err => {});
 
@@ -2435,7 +2454,7 @@ function exportarRelatoriosCSV() {
     return;
   }
 
-  let csvContent = "\uFEFFData;Horario;Mesa;Garcom;Forma_Pagamento;Valor_Total\n";
+  let csvContent = "\uFEFFData;Horario;Mesa;Garcom;Forma_Pagamento;Valor_Total;Itens_Consumidos\n";
   historicoVendas.forEach(v => {
     let data = v.data || "";
     let horario = v.horario || "";
@@ -2443,7 +2462,8 @@ function exportarRelatoriosCSV() {
     let garcom = v.garcom || "Sem Garçom";
     let pag = v.pagamento || "Pix";
     let valor = (Number(v.total) || 0).toFixed(2).replace('.', ',');
-    csvContent += `"${data}";"${horario}";"Mesa ${mesa}";"${garcom}";"${pag}";"${valor}"\n`;
+    let itensResumo = (v.itens || []).map(i => `${i.qtd}x ${i.nome}`).join(" | ");
+    csvContent += `"${data}";"${horario}";"Mesa ${mesa}";"${garcom}";"${pag}";"${valor}";"${itensResumo}"\n`;
   });
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2486,6 +2506,61 @@ function limparRelatorios(){
       });
     });
   }
+}
+
+// NOVO MODAL: EXIBE DETALHES COMPLETOS DA MESA FECHADA NO RELATÓRIO
+function abrirDetalhesVendaHistorico(index) {
+  const venda = historicoVendas[index];
+  if (!venda) return;
+
+  const mesaNum = pad(venda.mesa || 0);
+  const garcomNome = escapeHTML(venda.garcom || "Sem Garçom");
+  const dataExata = venda.data || "";
+  const horarioExato = venda.horario || "--:--";
+  const formaPag = escapeHTML(venda.pagamento || "Pix");
+  const itens = venda.itens || [];
+
+  let itensHTML = itens.length ? itens.map(i => `
+    <div class="line" style="align-items:center">
+      <div>
+        <div style="font-weight:900;font-size:13px">
+          <span style="color:var(--brand)">[${escapeHTML(i.cliente || 'Cliente 1')}]</span> ${i.qtd}x ${escapeHTML(i.nome)}
+        </div>
+        <small>${br(i.preco)} cada ${i.horario ? `• Pedido às ${i.horario}` : ''}</small>
+      </div>
+      <strong style="font-size:14px">${br(i.qtd * Number(i.preco || 0))}</strong>
+    </div>
+  `).join("") : '<div class="empty">Nenhum detalhe de produto gravado nesta venda.</div>';
+
+  document.getElementById("modalTitle").textContent = `🧾 Detalhes — Mesa ${mesaNum}`;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="background:var(--input-bg);padding:12px 14px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;font-size:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span>👤 Garçom:</span>
+        <b>${garcomNome}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span>📅 Fechamento:</span>
+        <b>${dataExata} às ${horarioExato}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span>💳 Pagamento:</span>
+        <b>${formaPag}</b>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Itens Consumidos:</div>
+    <div style="max-height:260px;overflow:auto;padding-right:4px">
+      ${itensHTML}
+    </div>
+
+    <div class="totalrow">
+      <span>Total Pago</span>
+      <span style="color:#10b981">${br(venda.total)}</span>
+    </div>
+    <button class="secondary" onclick="fecharModal()">Fechar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
 }
 
 function renderRelatorios(){
@@ -2561,22 +2636,26 @@ function renderRelatorios(){
     </div>
 
     <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="margin:0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons</h3>
+        <span style="font-size:10px;color:var(--muted);font-weight:800">Toque para ver itens</span>
+      </div>
       <div style="display:flex;flex-direction:column;gap:8px">
       ${(function(){
          let htmlGarcons = "";
          if(!historicoVendas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons.</div>';
 
-         historicoVendas.forEach(v => {
+         historicoVendas.forEach((v, idx) => {
            let garcomNome = escapeHTML(v.garcom || "Sem Garçom");
            let mesaNum = pad(v.mesa || 0);
            let horarioExato = v.horario || "--:--";
            let dataExata = v.data || "";
            let valorGerado = Number(v.total || 0);
            let formaPag = v.pagamento || "Pix";
+           let qtdItens = (v.itens || []).reduce((acc, item) => acc + (Number(item.qtd) || 0), 0);
 
            htmlGarcons += `
-             <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border);font-size:12px">
+             <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${idx})">
                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
                  <b style="color:var(--brand)">👤 Garçom: ${garcomNome}</b>
                  <span style="font-size:11px;color:var(--muted);font-weight:700">📅 ${dataExata} às ${horarioExato}</span>
@@ -2584,6 +2663,10 @@ function renderRelatorios(){
                <div style="display:flex;justify-content:space-between;align-items:center">
                  <span>🪑 Mesa atendida/fechada: <b>Mesa ${mesaNum}</b> (${formaPag})</span>
                  <b style="color:#10b981;font-size:13px">${br(valorGerado)}</b>
+               </div>
+               <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);font-weight:800">
+                 <span>📦 ${qtdItens} ${qtdItens === 1 ? 'item consumido' : 'itens consumidos'}</span>
+                 <span style="color:var(--brand)">Ver detalhes →</span>
                </div>
              </div>
            `;
@@ -2874,4 +2957,3 @@ if(modoCliente) {
 </script>
 </body>
 </html>
-
