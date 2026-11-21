@@ -172,7 +172,7 @@ body{padding-bottom:140px}
 /* Grid de Mesas Modernizadas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .card-mesa, .table{
-  min-height: 140px;
+  min-height: 145px;
   border-radius: 26px;
   padding: 14px 10px;
   border: 1px solid var(--border);
@@ -212,6 +212,25 @@ body{padding-bottom:140px}
 .timer.tempo-verde{background:#e6f4ea;color:#137333}
 .timer.tempo-amarelo{background:#fef7e0;color:#b06000}
 .timer.tempo-vermelho{background:#ffe5e5;color:#d32f2f}
+
+/* Alerta Discreto de Mesa Parada / Sem Consumo */
+.alerta-parada{
+  font-size: 8.5px;
+  font-weight: 900;
+  margin-top: 4px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  text-align: center;
+  line-height: 1.2;
+}
+[data-theme="dark"] .alerta-parada{
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
 .table .garcom-tag{font-size:9px;background:var(--input-bg);border:1px solid var(--border);padding:2px 8px;border-radius:99px;margin-top:4px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .item-novo-destaque {
@@ -716,7 +735,9 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = "", categoriaAtual = "CHURRASCOS";
+// Recupera o nome do garçom salvo na sessão (localStorage) para não precisar digitar toda hora
+let garcomSessao = localStorage.getItem('bb_garcom_atual') || "";
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = garcomSessao, categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
@@ -1207,7 +1228,6 @@ function iniciarOuvintesFirebase() {
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
-    // Ordena do mais recente para o mais antigo para exibição consistente
     historicoVendas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     if(["relatorios", "cozinha", "churrasco", "bebidas"].includes(telaAtual)) renderizar();
   }, err => {});
@@ -1245,10 +1265,20 @@ function concluirLogin(email){
   document.getElementById('login-screen').style.display = 'none';
   const isAdmin = email.toLowerCase().includes('admin');
   
+  // Se ainda não houver nome de garçom salvo na sessão, preenche automaticamente com o início do e-mail
+  if (!garcomSessao && email) {
+    let prefixo = email.split('@')[0];
+    if (prefixo && prefixo.toLowerCase() !== 'admin' && prefixo.toLowerCase() !== 'garcom') {
+      garcomSessao = escapeHTML(prefixo.charAt(0).toUpperCase() + prefixo.slice(1));
+      localStorage.setItem('bb_garcom_atual', garcomSessao);
+      garcomTemp = garcomSessao;
+    }
+  }
+
   if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
     document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(5,1fr)';
-    document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
+    document.getElementById('user-role-label').textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
     document.getElementById('navRelatorios').style.display = 'flex';
@@ -1265,8 +1295,11 @@ function mudarTela(t, num=null){
 }
 
 function abrirMesa(num){
-  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; garcomTemp = ""; termoBuscaProduto = "";
+  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; termoBuscaProduto = "";
   
+  // Mantém o nome do garçom travado na sessão por padrão, mas respeita se a mesa já tiver um garçom atribuído
+  garcomTemp = garcomSessao || "";
+
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
       novoPedidoAlerta: false,
@@ -1276,7 +1309,9 @@ function abrirMesa(num){
   }
 
   if(comandas[num]){
-    garcomTemp = comandas[num].garcom || "";
+    if(comandas[num].garcom) {
+      garcomTemp = comandas[num].garcom;
+    }
     if(comandas[num].itens){
       comandas[num].itens.forEach(it => {
         let cli = it.cliente || "Cliente 1";
@@ -1291,6 +1326,12 @@ function abrirMesa(num){
 
 function atualizarGarcom(v){ 
   garcomTemp = escapeHTML(v.trim()) || ""; 
+  garcomSessao = garcomTemp;
+  localStorage.setItem('bb_garcom_atual', garcomSessao);
+  const roleLabel = document.getElementById('user-role-label');
+  if (roleLabel && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) {
+    roleLabel.textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
+  }
   salvarRascunhoAutomatico();
 }
 
@@ -1336,7 +1377,7 @@ function salvarRascunhoAutomatico(){
   const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
+    garcom: garcomTemp || garcomSessao || (modoCliente ? "Cliente Online" : ""), 
     itens: itens, 
     total: total, 
     criadoEm: comandaAtual.criadoEm || Date.now(),
@@ -1990,7 +2031,7 @@ function salvarComanda(numeroMesa) {
     let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
-      garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
+      garcom: garcomTemp || garcomSessao || (modoCliente ? "Cliente Online" : ""), 
       itens: itens, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
@@ -2628,7 +2669,7 @@ function limparRelatorios(){
   }
 }
 
-// NOVO MODAL: EXIBE DETALHES COMPLETOS DA MESA FECHADA NO RELATÓRIO
+// EXIBE DETALHES COMPLETOS DA MESA FECHADA NO RELATÓRIO
 function abrirDetalhesVendaHistorico(index) {
   const venda = historicoVendas[index];
   if (!venda) return;
@@ -2859,17 +2900,31 @@ function calcularTempoDecorrido(timestampCriacao){
   return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
 }
 
+// Calcula tempo de inatividade (Giro de Mesa) desde a última atualização/pedido
+function calcularTempoSemConsumo(c){
+  if(!c) return null;
+  let refTempo = c.atualizadoEm || c.criadoEm;
+  if(!refTempo) return null;
+  let diffMin = Math.floor((Date.now() - refTempo) / 60000);
+  if(diffMin < 15) return null; // Exibe aviso discreto a partir de 15 minutos sem pedido
+  if(diffMin < 60) return `⏳ Sem pedido há ${diffMin} min`;
+  let horas = Math.floor(diffMin / 60);
+  let mins = diffMin % 60;
+  return `⏳ Sem pedido há ${horas}h${mins > 0 ? ' ' + mins + 'm' : ''}`;
+}
+
 function renderMesas(){
  let totalAbertas = 0;
  let minhasAtendidas = 0;
  let arrayMesasHTML = [];
+ const nomeFiltroGarcom = (garcomSessao || garcomTemp || "").toLowerCase().trim();
 
  for(let i=1; i<=TOTAL_MESAS; i++){
    let c = comandas[i];
    let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || Number(c.total || 0) > 0));
    if(busy) totalAbertas++;
 
-   let ehMinhaMesa = busy && c.garcom && garcomTemp && c.garcom.toLowerCase().trim() === garcomTemp.toLowerCase().trim();
+   let ehMinhaMesa = busy && c.garcom && nomeFiltroGarcom && c.garcom.toLowerCase().trim() === nomeFiltroGarcom;
    if(ehMinhaMesa) minhasAtendidas++;
 
    if(filtroMesaAtual === 'livres' && busy) continue;
@@ -2877,6 +2932,7 @@ function renderMesas(){
    if(filtroMesaAtual === 'minhas' && !ehMinhaMesa) continue;
 
    let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
+   let textoSemConsumo = busy ? calcularTempoSemConsumo(c) : null;
    let statusClass = busy ? 'ocupada' : 'livre';
    
    let alertaNovo = (c && c.novoPedidoAlerta && c.origemPedido === 'cliente') ? 'novo-pedido-ativo' : '';
@@ -2888,6 +2944,7 @@ function renderMesas(){
        <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
        ${(busy && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
        ${(busy && tempoInfo) ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
+       ${(busy && textoSemConsumo) ? `<div class="alerta-parada">${textoSemConsumo}</div>` : ''}
        ${(busy && c.garcom) ? `<div class="garcom-tag">👤 ${escapeHTML(c.garcom)}</div>` : ''}
      </div>
    `);
@@ -2912,6 +2969,7 @@ function renderComandas(){
   for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
     if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
+      let textoSemConsumo = calcularTempoSemConsumo(c);
       let produtosListaHTML = "";
       if(c.itens && c.itens.length > 0){
         produtosListaHTML = `
@@ -2964,6 +3022,7 @@ function renderComandas(){
             <div>
               <h3>Mesa ${pad(i)}</h3>
               <small class="muted">Garçom: <b>${escapeHTML(c.garcom || 'Sem Garçom')}</b></small>
+              ${textoSemConsumo ? `<div class="alerta-parada" style="display:inline-block;margin-top:4px">${textoSemConsumo}</div>` : ''}
             </div>
             <div style="text-align:right">
               <span class="tag">${br(c.total)}</span>
@@ -3068,6 +3127,13 @@ function renderizar(){
   else if(telaAtual === 'relatorios') renderRelatorios();
   else if(telaAtual === 'atendimento') renderAtendimento();
 }
+
+// Atualiza automaticamente os tempos e alertas de mesas paradas a cada 30 segundos
+setInterval(() => {
+  if (!modoCliente && (telaAtual === 'mesas' || telaAtual === 'comandas')) {
+    renderizar();
+  }
+}, 30000);
 
 if(modoCliente) {
   renderizar();
