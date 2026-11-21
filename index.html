@@ -1,9 +1,3 @@
-As quatro melhorias solicitadas nas imagens foram aplicadas diretamente no seu código:
- * Filtro de Data nos Relatórios (renderRelatorios): Inicia filtrado automaticamente na data de Hoje (new Date().toLocaleDateString('pt-BR')), com um seletor de data no topo e opção para visualizar "Todo o Histórico Acumulado" (incluindo exportação CSV filtrada pelo período selecionado).
- * Cronômetro de Espera na Fila (Cozinha, Churrasco e Bebidas): Exibe um contador em tempo real ao lado do horário (ex.: há 12 min) que muda de cor conforme o tempo de espera (verde < 10 min, amarelo 10–19 min, vermelho ≥ 20 min) e atualiza a cada 30 segundos.
- * Resumo de "Total Já Pago" e "Saldo Restante" (dividirContaModal): Exibe no topo do modal de pagamento o valor já abatido (itensPagos) e o saldo restante da mesa, bloqueando valores negativos.
- * Botões Rápidos de Troco em Dinheiro (abrirConfirmacaoPagamento): Ao selecionar Dinheiro, exibe botões rápidos de R$ 20, R$ 50, R$ 100 e R$ 200 ao lado do campo livre para calcular o troco instantaneamente.
-Aqui está o código completo atualizado pronto para copiar e substituir:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
