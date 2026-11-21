@@ -766,9 +766,11 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-// Recupera o nome do garçom salvo na sessão (localStorage) para não precisar digitar toda hora
-let garcomSessao = localStorage.getItem('bb_garcom_atual') || "";
-let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = garcomSessao, categoriaAtual = "CHURRASCOS";
+
+// Inicia sempre vazio e remove qualquer prefixo de e-mail salvo anteriormente
+localStorage.removeItem('bb_garcom_atual');
+let garcomSessao = "";
+let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = "", categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
@@ -1314,20 +1316,15 @@ function concluirLogin(email){
   document.getElementById('login-screen').style.display = 'none';
   const isAdmin = email.toLowerCase().includes('admin');
   
-  // Se ainda não houver nome de garçom salvo na sessão, preenche automaticamente com o início do e-mail
-  if (!garcomSessao && email) {
-    let prefixo = email.split('@')[0];
-    if (prefixo && prefixo.toLowerCase() !== 'admin' && prefixo.toLowerCase() !== 'garcom') {
-      garcomSessao = escapeHTML(prefixo.charAt(0).toUpperCase() + prefixo.slice(1));
-      localStorage.setItem('bb_garcom_atual', garcomSessao);
-      garcomTemp = garcomSessao;
-    }
-  }
+  // Garante que o nome do garçom comece totalmente vazio ao entrar com qualquer e-mail
+  garcomSessao = "";
+  garcomTemp = "";
+  localStorage.removeItem('bb_garcom_atual');
 
   if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
     document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(5,1fr)';
-    document.getElementById('user-role-label').textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
+    document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
     document.getElementById('navRelatorios').style.display = 'flex';
@@ -1346,8 +1343,8 @@ function mudarTela(t, num=null){
 function abrirMesa(num){
   mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; termoBuscaProduto = "";
   
-  // Mantém o nome do garçom travado na sessão por padrão, mas respeita se a mesa já tiver um garçom atribuído
-  garcomTemp = garcomSessao || "";
+  // Mantém o espaço vazio por padrão quando a mesa é aberta, preenchendo apenas se já houver garçom salvo na mesa
+  garcomTemp = "";
 
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
@@ -1376,7 +1373,6 @@ function abrirMesa(num){
 function atualizarGarcom(v){ 
   garcomTemp = escapeHTML(v.trim()) || ""; 
   garcomSessao = garcomTemp;
-  localStorage.setItem('bb_garcom_atual', garcomSessao);
   const roleLabel = document.getElementById('user-role-label');
   if (roleLabel && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) {
     roleLabel.textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
@@ -1426,7 +1422,7 @@ function salvarRascunhoAutomatico(){
   const comandaAtual = comandas[mesaSelecionada] || {};
 
   const dadosMesa = { 
-    garcom: garcomTemp || garcomSessao || (modoCliente ? "Cliente Online" : ""), 
+    garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
     itens: itens, 
     total: total, 
     criadoEm: comandaAtual.criadoEm || Date.now(),
@@ -2105,7 +2101,7 @@ function salvarComanda(numeroMesa) {
     let totalGeralAcumulado = totalTemp();
 
     const dadosMesa = { 
-      garcom: garcomTemp || garcomSessao || (modoCliente ? "Cliente Online" : ""), 
+      garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
       itens: itens, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
@@ -3237,7 +3233,7 @@ function renderAtendimento(){
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${modoCliente ? '' : `<button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:14px;width:40px;height:40px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>`}
-        ${modoCliente ? '' : `<input type="text" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:800;outline:none;width:105px">`}
+        ${modoCliente ? '' : `<input type="text" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:800;outline:none;width:115px">`}
       </div>
     </div>
 
@@ -3304,4 +3300,3 @@ if(modoCliente) {
 </script>
 </body>
 </html>
-
