@@ -1,3 +1,9 @@
+As quatro melhorias solicitadas nas imagens foram aplicadas diretamente no seu código:
+ * Filtro de Data nos Relatórios (renderRelatorios): Inicia filtrado automaticamente na data de Hoje (new Date().toLocaleDateString('pt-BR')), com um seletor de data no topo e opção para visualizar "Todo o Histórico Acumulado" (incluindo exportação CSV filtrada pelo período selecionado).
+ * Cronômetro de Espera na Fila (Cozinha, Churrasco e Bebidas): Exibe um contador em tempo real ao lado do horário (ex.: há 12 min) que muda de cor conforme o tempo de espera (verde < 10 min, amarelo 10–19 min, vermelho ≥ 20 min) e atualiza a cada 30 segundos.
+ * Resumo de "Total Já Pago" e "Saldo Restante" (dividirContaModal): Exibe no topo do modal de pagamento o valor já abatido (itensPagos) e o saldo restante da mesa, bloqueando valores negativos.
+ * Botões Rápidos de Troco em Dinheiro (abrirConfirmacaoPagamento): Ao selecionar Dinheiro, exibe botões rápidos de R$ 20, R$ 50, R$ 100 e R$ 200 ao lado do campo livre para calcular o troco instantaneamente.
+Aqui está o código completo atualizado pronto para copiar e substituir:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -212,6 +218,12 @@ body{padding-bottom:140px}
 .timer.tempo-verde{background:#e6f4ea;color:#137333}
 .timer.tempo-amarelo{background:#fef7e0;color:#b06000}
 .timer.tempo-vermelho{background:#ffe5e5;color:#d32f2f}
+
+/* Cronômetro de Fila (Cozinha / Churrasco / Bebidas) */
+.fila-timer{font-size:10px;font-weight:900;padding:2px 8px;border-radius:99px;margin-left:6px;display:inline-block}
+.fila-verde{background:#e6f4ea;color:#137333}
+.fila-amarelo{background:#fef7e0;color:#b06000}
+.fila-vermelho{background:#ffe5e5;color:#d32f2f}
 
 /* Alerta Discreto de Mesa Parada / Sem Consumo */
 .alerta-parada{
@@ -523,6 +535,31 @@ body{padding-bottom:140px}
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
 }
 
+/* Botões Rápidos de Notas (Troco Rápido) */
+.quick-cash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.quick-cash-btn {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all .15s;
+}
+.quick-cash-btn:active {
+  transform: scale(0.92);
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+
 /* Cartão Clicável no Relatório */
 .report-sale-card {
   background: var(--input-bg);
@@ -742,6 +779,10 @@ let filtroMesaAtual = "todas";
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
+// Filtro de Data dos Relatórios (Padrão: Hoje)
+const obterDataHojeBR = () => new Date().toLocaleDateString('pt-BR');
+let dataFiltroRelatorio = obterDataHojeBR(); // formato DD/MM/AAAA ou 'TODAS'
+
 // Senhas de acesso aos setores (Cozinha, Churrasco e Bebidas)
 const SENHAS_SETORES = {
   cozinha: "1234",
@@ -751,6 +792,20 @@ const SENHAS_SETORES = {
 
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
+
+// Converte DD/MM/AAAA <-> AAAA-MM-DD para o input type="date"
+function brParaInputDate(dataBR) {
+  if (!dataBR || dataBR === 'TODAS') return '';
+  const partes = dataBR.split('/');
+  if (partes.length !== 3) return '';
+  return `${partes[2]}-${partes[1]}-${partes[0]}`;
+}
+function inputDateParaBR(dataISO) {
+  if (!dataISO) return obterDataHojeBR();
+  const partes = dataISO.split('-');
+  if (partes.length !== 3) return obterDataHojeBR();
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
 
 function tentarAcessarSetor(setor){
   if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
@@ -1571,6 +1626,19 @@ function renderProdutos(){
  atualizarBar();
 }
 
+// Helper: Cronômetro de Espera na Fila (Cozinha, Churrasco, Bebidas)
+function formatarEsperaFila(timestamp, status) {
+  if (!timestamp) return '';
+  const diffMin = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  if (status === 'pronto') {
+    return `<span class="fila-timer fila-verde">há ${diffMin} min</span>`;
+  }
+  let classe = 'fila-verde';
+  if (diffMin >= 10 && diffMin < 20) classe = 'fila-amarelo';
+  else if (diffMin >= 20) classe = 'fila-vermelho';
+  return `<span class="fila-timer ${classe}">há ${diffMin} min</span>`;
+}
+
 // ----------------- MÓDULO DA COZINHA -----------------
 function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
   const comanda = comandas[mesaNum];
@@ -1667,15 +1735,19 @@ function renderCozinha(){
   let cardsTimelineHTML = listaItensTimeline.map(item => {
     let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
     let labelStatus = item.status === 'preparando' ? '🔥 Preparando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
+    let badgeCronometro = formatarEsperaFila(item.timestamp, item.status);
     
     return `
       <div class="card command" style="border-left: 4px solid var(--brand); margin-bottom:8px; padding:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
             <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
-          <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+          <div style="display:flex;align-items:center">
+            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+            ${badgeCronometro}
+          </div>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
@@ -1772,15 +1844,19 @@ function renderChurrasco(){
   let cardsChurrascoHTML = listaItensTimelineChurrasco.map(item => {
     let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
     let labelStatus = item.status === 'preparando' ? '🔥 Assando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Na Fila');
+    let badgeCronometro = formatarEsperaFila(item.timestamp, item.status);
 
     return `
       <div class="card command" style="border-left: 4px solid #d32f2f; margin-bottom:8px; padding:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
             <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
-          <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+          <div style="display:flex;align-items:center">
+            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+            ${badgeCronometro}
+          </div>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
@@ -1890,15 +1966,19 @@ function renderBebidas(){
   let cardsBebidasHTML = listaItensTimelineBebidas.map(item => {
     let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
     let labelStatus = item.status === 'preparando' ? '🧊 Separando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
+    let badgeCronometro = formatarEsperaFila(item.timestamp, item.status);
     
     return `
       <div class="card command" style="border-left: 4px solid #0284c7; margin-bottom:8px; padding:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
             <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
-          <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+          <div style="display:flex;align-items:center">
+            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
+            ${badgeCronometro}
+          </div>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="flex:1">
@@ -2283,8 +2363,22 @@ function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  mesaSelecionada = num;
  document.getElementById("modalTitle").textContent = `Pagamento — Mesa ${pad(num)}`;
+
+ const totalJaPago = (c.itensPagos || []).reduce((acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
+ const saldoRestante = Math.max(0, Number(c.total) || 0);
  
  document.getElementById("modalBody").innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:10px;border-radius:16px;text-align:center">
+      <div style="font-size:10px;font-weight:900;color:#10b981;text-transform:uppercase">✅ Total Já Pago</div>
+      <div style="font-size:16px;font-weight:900;color:#10b981;margin-top:2px">${br(totalJaPago)}</div>
+    </div>
+    <div style="background:rgba(211,47,47,0.08);border:1px solid rgba(211,47,47,0.25);padding:10px;border-radius:16px;text-align:center">
+      <div style="font-size:10px;font-weight:900;color:var(--brand);text-transform:uppercase">⏳ Saldo Restante</div>
+      <div style="font-size:16px;font-weight:900;color:var(--brand);margin-top:2px">${br(saldoRestante)}</div>
+    </div>
+  </div>
+
   <div style="display:flex;gap:8px;margin-bottom:14px">
     <button class="secondary" style="margin:0;font-size:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:#25d366;color:#fff;border:0" onclick="enviarContaWhatsApp(${num})">
       <span>💬</span> Enviar WhatsApp
@@ -2318,7 +2412,7 @@ function dividirContaModal(num){
     <button class="primary" style="margin-top:10px;background:#10b981;font-size:13px;padding:12px;box-shadow:0 6px 18px rgba(16,185,129,0.3)" onclick="abrirConfirmacaoPagamento(${num}, 'parcial')">✅ Pagar Selecionados (Manter Mesa)</button>
   </div>
 
-  <button class="primary" onclick="abrirConfirmacaoPagamento(${num}, 'total')" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(c.total)})</button>
+  <button class="primary" onclick="abrirConfirmacaoPagamento(${num}, 'total')" style="margin-bottom:6px;background:var(--brand);font-size:13px;padding:14px">✅ Fechar Mesa Completa (${br(saldoRestante)})</button>
   <button class="secondary" onclick="cancelarComandaModal(${num})" style="margin-bottom:6px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand);font-size:13px;padding:12px">⚠️ Cancelar Comanda</button>
   <button class="secondary" onclick="fecharModal()">Voltar</button>`;
  document.getElementById("modal").classList.add("show");
@@ -2326,6 +2420,8 @@ function dividirContaModal(num){
 
 function abrirJanelaConsumoCliente(num){
   const c = comandas[num]; if(!c) return;
+  const totalJaPago = (c.itensPagos || []).reduce((acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
+  const saldoRestante = Math.max(0, Number(c.total) || 0);
   
   let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
@@ -2346,9 +2442,13 @@ function abrirJanelaConsumoCliente(num){
     <div style="background:var(--input-bg);padding:14px;border-radius:18px;margin-bottom:14px;border:1px solid var(--border)">
       <div style="max-height:220px;overflow:auto">${itensPendentesHTML}</div>
       ${itensPagosAnterioresHTML ? `<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px">${itensPagosAnterioresHTML}</div>` : ''}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:13px">
-        <span style="font-weight:700">Total Consumido:</span>
-        <b style="color:var(--brand);font-size:16px">${br(c.total)}</b>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:#10b981">
+        <span style="font-weight:700">Total Já Pago:</span>
+        <b>${br(totalJaPago)}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:13px">
+        <span style="font-weight:700">Saldo Restante:</span>
+        <b style="color:var(--brand);font-size:16px">${br(saldoRestante)}</b>
       </div>
     </div>
     <button class="secondary" onclick="dividirContaModal(${num})">← Voltar para Pagamento</button>
@@ -2409,7 +2509,7 @@ function abrirConfirmacaoPagamento(num, tipo) {
       return;
     }
   } else {
-    valorPendenteTemp = Number(c.total || 0);
+    valorPendenteTemp = Math.max(0, Number(c.total || 0));
   }
 
   const tituloAcao = tipo === 'parcial' ? 'Baixa Parcial (Manter Mesa)' : 'Fechar Mesa Completa';
@@ -2444,7 +2544,15 @@ function abrirConfirmacaoPagamento(num, tipo) {
     <div id="boxTrocoModalConfirmacao" style="display:none;background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:14px">
       <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💵 Valor Entregue pelo Cliente (R$)</label>
       <input type="number" id="inputTrocoModal" step="0.01" placeholder="ex: 100.00" oninput="atualizarTrocoModal(${valorPendenteTemp})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;font-weight:800;font-size:15px;outline:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;font-weight:900">
+      
+      <div class="quick-cash-grid">
+        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(20, ${valorPendenteTemp})">R$ 20</button>
+        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(50, ${valorPendenteTemp})">R$ 50</button>
+        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(100, ${valorPendenteTemp})">R$ 100</button>
+        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(200, ${valorPendenteTemp})">R$ 200</button>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:13px;font-weight:900">
         <span>💰 Troco a Devolver:</span>
         <span id="lblTrocoModal" style="color:#10b981;font-size:16px">R$ 0,00</span>
       </div>
@@ -2455,6 +2563,13 @@ function abrirConfirmacaoPagamento(num, tipo) {
     </button>
     <button class="secondary" onclick="dividirContaModal(${num})">← Voltar</button>
   `;
+}
+
+function definirNotaRapida(valorNota, valorAlvo) {
+  const input = document.getElementById('inputTrocoModal');
+  if (!input) return;
+  input.value = valorNota;
+  atualizarTrocoModal(valorAlvo);
 }
 
 function selecionarMetodoPagamento(metodo) {
@@ -2544,7 +2659,7 @@ function executarPagamentoConfirmado(num, tipo) {
 
     let novaVenda = { 
         mesa: num, 
-        total: c.total, 
+        total: Math.max(0, Number(c.total) || 0), 
         pagamento: formaPagamento, 
         garcom: c.garcom || "Sem Garçom", 
         itens: todos, 
@@ -2553,7 +2668,7 @@ function executarPagamentoConfirmado(num, tipo) {
         timestamp: Date.now()
     };
 
-    const pHist = c.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
+    const pHist = novaVenda.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
 
     pHist.then(() => {
       fecharComanda(num);
@@ -2609,14 +2724,20 @@ function adicionarDespesa(){
   });
 }
 
+function obterVendasFiltradasRelatorio() {
+  if (dataFiltroRelatorio === 'TODAS') return historicoVendas;
+  return historicoVendas.filter(v => (v.data || '') === dataFiltroRelatorio);
+}
+
 function exportarRelatoriosCSV() {
-  if (!historicoVendas.length) {
-    showToast("Não há vendas registradas para exportar.", true);
+  const vendasParaExportar = obterVendasFiltradasRelatorio();
+  if (!vendasParaExportar.length) {
+    showToast("Não há vendas registradas neste período para exportar.", true);
     return;
   }
 
   let csvContent = "\uFEFFData;Horario;Mesa;Garcom;Forma_Pagamento;Valor_Total;Itens_Consumidos\n";
-  historicoVendas.forEach(v => {
+  vendasParaExportar.forEach(v => {
     let data = v.data || "";
     let horario = v.horario || "";
     let mesa = pad(v.mesa || 0);
@@ -2627,11 +2748,12 @@ function exportarRelatoriosCSV() {
     csvContent += `"${data}";"${horario}";"Mesa ${mesa}";"${garcom}";"${pag}";"${valor}";"${itensResumo}"\n`;
   });
 
+  const sufixoArquivo = dataFiltroRelatorio === 'TODAS' ? 'Acumulado' : dataFiltroRelatorio.replace(/\//g, '-');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `Relatorio_Vendas_BBChurrasco_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
+  link.setAttribute("download", `Relatorio_Vendas_BBChurrasco_${sufixoArquivo}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -2724,10 +2846,40 @@ function abrirDetalhesVendaHistorico(index) {
   document.getElementById("modal").classList.add("show");
 }
 
+function alterarDataRelatorioInput(valISO) {
+  dataFiltroRelatorio = inputDateParaBR(valISO);
+  renderRelatorios();
+}
+
+function definirFiltroRelatorio(modo) {
+  if (modo === 'HOJE') {
+    dataFiltroRelatorio = obterDataHojeBR();
+  } else {
+    dataFiltroRelatorio = 'TODAS';
+  }
+  renderRelatorios();
+}
+
 function renderRelatorios(){
+  const hojeBR = obterDataHojeBR();
+  const ehTodas = dataFiltroRelatorio === 'TODAS';
+  const ehHoje = dataFiltroRelatorio === hojeBR;
+
+  const vendasFiltradas = ehTodas
+    ? historicoVendas
+    : historicoVendas.filter(v => (v.data || '') === dataFiltroRelatorio);
+
+  const despesasFiltradas = ehTodas
+    ? despesas
+    : despesas.filter(d => (d.data || '') === dataFiltroRelatorio);
+
+  const cancelamentosFiltrados = ehTodas
+    ? cancelamentos
+    : cancelamentos.filter(c => (c.data || '') === dataFiltroRelatorio);
+
   let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
   
-  historicoVendas.forEach(v => {
+  vendasFiltradas.forEach(v => {
     let t = Number(v.total) || 0;
     totalGeral += t;
     if(v.pagamento === 'Pix') totalPix += t;
@@ -2736,19 +2888,32 @@ function renderRelatorios(){
     else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
   });
 
-  let totalDespesas = despesas.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
+  let totalDespesas = despesasFiltradas.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
   let saldoLiquido = totalGeral - totalDespesas;
 
   const urlBase = window.location.origin + window.location.pathname;
   const linkMesaPadrao = `${urlBase}?mesa=1`;
   const linkDeliveryPadrao = `${urlBase}?modo=delivery`;
 
+  const subtituloPeriodo = ehTodas
+    ? 'Histórico Acumulado (Todas as Datas)'
+    : (ehHoje ? `Resumo de Hoje (${dataFiltroRelatorio})` : `Turno do dia ${dataFiltroRelatorio}`);
+
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
-      <div><h2>Relatórios Financeiros</h2><span class="muted">Histórico Acumulado</span></div>
+      <div><h2>Relatórios Financeiros</h2><span class="muted">${subtituloPeriodo}</span></div>
       <div style="display:flex;gap:6px">
         <button onclick="exportarRelatoriosCSV()" style="border:0;background:#10b981;color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">📥 Exportar CSV</button>
         <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">+ Gasto</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:8px">📅 Filtrar Período / Turno:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <button onclick="definirFiltroRelatorio('HOJE')" style="padding:8px 12px;border-radius:12px;border:1px solid ${ehHoje ? 'var(--brand)' : 'var(--border)'};background:${ehHoje ? 'var(--brand)' : 'var(--input-bg)'};color:${ehHoje ? '#fff' : 'var(--ink)'};font-size:11px;font-weight:900;cursor:pointer">Hoje (${hojeBR})</button>
+        <button onclick="definirFiltroRelatorio('TODAS')" style="padding:8px 12px;border-radius:12px;border:1px solid ${ehTodas ? 'var(--brand)' : 'var(--border)'};background:${ehTodas ? 'var(--brand)' : 'var(--input-bg)'};color:${ehTodas ? '#fff' : 'var(--ink)'};font-size:11px;font-weight:900;cursor:pointer">Todo Histórico</button>
+        <input type="date" value="${brParaInputDate(dataFiltroRelatorio)}" onchange="alterarDataRelatorioInput(this.value)" style="flex:1;min-width:130px;padding:7px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none">
       </div>
     </div>
 
@@ -2784,7 +2949,7 @@ function renderRelatorios(){
     </div>
 
     <div class="card" style="padding:16px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
-      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido em Caixa</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido (${ehTodas ? 'Acumulado' : dataFiltroRelatorio})</span>
       <div style="font-size:26px;font-weight:900;color:var(--ink);margin-top:4px">${br(saldoLiquido)}</div>
     </div>
 
@@ -2804,9 +2969,10 @@ function renderRelatorios(){
       <div style="display:flex;flex-direction:column;gap:8px">
       ${(function(){
          let htmlGarcons = "";
-         if(!historicoVendas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada por garçons.</div>';
+         if(!vendasFiltradas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada neste período.</div>';
 
-         historicoVendas.forEach((v, idx) => {
+         vendasFiltradas.forEach((v) => {
+           const idxOriginal = historicoVendas.indexOf(v);
            let garcomNome = escapeHTML(v.garcom || "Sem Garçom");
            let mesaNum = pad(v.mesa || 0);
            let horarioExato = v.horario || "--:--";
@@ -2816,7 +2982,7 @@ function renderRelatorios(){
            let qtdItens = (v.itens || []).reduce((acc, item) => acc + (Number(item.qtd) || 0), 0);
 
            htmlGarcons += `
-             <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${idx})">
+             <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${idxOriginal})">
                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
                  <b style="color:var(--brand)">👤 Garçom: ${garcomNome}</b>
                  <span style="font-size:11px;color:var(--muted);font-weight:700">📅 ${dataExata} às ${horarioExato}</span>
@@ -2837,18 +3003,18 @@ function renderRelatorios(){
       </div>
     </div>
     
-    ${despesas.length ? `
+    ${despesasFiltradas.length ? `
     <div class="card" style="padding:16px;margin-bottom:14px">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Registradas</h3>
-      ${despesas.map(d => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${escapeHTML(d.desc)} (${d.data})</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
+      ${despesasFiltradas.map(d => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${escapeHTML(d.desc)} (${d.data})</span> <b>${br(Number(d.valor))}</b></div>`).join('')}
     </div>` : ''}
 
     <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Total de Produtos Vendidos (Acumulado)</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Total de Produtos Vendidos (${ehTodas ? 'Acumulado' : dataFiltroRelatorio})</h3>
       <div style="max-height:250px;overflow-y:auto;padding-right:5px">
       ${(function(){
          let prodVendidos = {};
-         historicoVendas.forEach(v => {
+         vendasFiltradas.forEach(v => {
             (v.itens || []).forEach(it => {
                if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
                prodVendidos[it.nome].qtd += it.qtd;
@@ -2861,15 +3027,15 @@ function renderRelatorios(){
               <b>${br(prodVendidos[nome].total)}</b>
             </div>
          `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido registrado.</div>';
+         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido registrado neste período.</div>';
       })()}
       </div>
     </div>
 
-    ${cancelamentos.length ? `
+    ${cancelamentosFiltrados.length ? `
     <div class="card" style="padding:16px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
       <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Registradas</h3>
-      ${cancelamentos.map(c => `
+      ${cancelamentosFiltrados.map(c => `
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
           <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)} (${c.data})</b> <b>${br(c.totalCancelado)}</b></div>
           <div style="font-size:11px;color:var(--muted)">Motivo: ${escapeHTML(c.motivo)}</div>
@@ -3128,9 +3294,9 @@ function renderizar(){
   else if(telaAtual === 'atendimento') renderAtendimento();
 }
 
-// Atualiza automaticamente os tempos e alertas de mesas paradas a cada 30 segundos
+// Atualiza automaticamente os tempos, cronômetros da fila e alertas de mesas paradas a cada 30 segundos
 setInterval(() => {
-  if (!modoCliente && (telaAtual === 'mesas' || telaAtual === 'comandas')) {
+  if (!modoCliente && ['mesas', 'comandas', 'cozinha', 'churrasco', 'bebidas'].includes(telaAtual)) {
     renderizar();
   }
 }, 30000);
@@ -3144,3 +3310,4 @@ if(modoCliente) {
 </script>
 </body>
 </html>
+
