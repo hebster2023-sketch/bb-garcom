@@ -490,6 +490,7 @@ body{padding-bottom:140px}
 .totalrow{display:flex;justify-content:space-between;font-size:18px;font-weight:900;padding:16px 0;border-top:2px dashed var(--border);margin-top:6px}
 .primary{width:100%;border:0;background:var(--brand);color:#fff;border-radius:16px;padding:14px;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(211, 47, 47, 0.25);cursor:pointer;transition:transform .2s}
 .primary:active{transform:scale(0.97)}
+.primary:disabled{opacity:0.55;pointer-events:none}
 .secondary{width:100%;background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:16px;padding:12px;font-weight:900;margin-top:8px;cursor:pointer;font-size:13px;transition:transform .2s}
 .secondary:active{transform:scale(0.97)}
 .empty{padding:30px 15px;text-align:center;color:var(--muted);font-weight:700;font-size:13px}
@@ -772,7 +773,8 @@ function dispararNotificacaoPush(titulo, mensagem) {
 
 let somAtivo = false;
 let primeiraCargaFirebase = true;
-let salvandoPedidoEmAndamento = false; 
+let salvandoPedidoEmAndamento = false;
+let processandoPagamento = false; // Trava contra duplo/triplo clique ao fechar mesa
 
 let comandas = {};
 let historicoVendas = [];
@@ -857,12 +859,10 @@ function obterIntervaloTurnoPadrao() {
   const fim = new Date(agora);
 
   if (agora.getHours() < 12) {
-    // Se estamos pela manhã/madrugada (ex: 08:30 de domingo), o turno começou ontem (sábado) às 15:00 e vai até hoje às 09:00
     inicio.setDate(agora.getDate() - 1);
     inicio.setHours(15, 0, 0, 0);
     fim.setHours(9, 0, 0, 0);
   } else {
-    // Se estamos à tarde/noite (ex: 19:00), o turno começou hoje às 15:00 e vai até amanhã às 09:00
     inicio.setHours(15, 0, 0, 0);
     fim.setDate(agora.getDate() + 1);
     fim.setHours(9, 0, 0, 0);
@@ -876,8 +876,8 @@ function obterIntervaloTurnoPadrao() {
 
 const turnoInicialPadrao = obterIntervaloTurnoPadrao();
 let modoFiltroRelatorio = 'PERIODO'; // 'PERIODO' ou 'TODAS'
-let filtroDataHoraInicio = turnoInicialPadrao.inicio; // formato AAAA-MM-DDTHH:MM
-let filtroDataHoraFim = turnoInicialPadrao.fim;       // formato AAAA-MM-DDTHH:MM
+let filtroDataHoraInicio = turnoInicialPadrao.inicio;
+let filtroDataHoraFim = turnoInicialPadrao.fim;
 
 function registroDentroDoPeriodo(reg) {
   if (modoFiltroRelatorio === 'TODAS') return true;
@@ -885,7 +885,7 @@ function registroDentroDoPeriodo(reg) {
   if (!ts) return false;
 
   const tsInicio = filtroDataHoraInicio ? new Date(filtroDataHoraInicio).getTime() : 0;
-  const tsFim = filtroDataHoraFim ? new Date(filtroDataHoraFim).getTime() + 59999 : Infinity; // inclui até o final do minuto selecionado
+  const tsFim = filtroDataHoraFim ? new Date(filtroDataHoraFim).getTime() + 59999 : Infinity;
 
   return ts >= tsInicio && ts <= tsFim;
 }
@@ -963,7 +963,6 @@ function pararAlertaPersistente() {
   }
 }
 
-// Fechamento explícito de AudioContext para evitar vazamentos de memória em iOS
 function tocarBeepCurto() {
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1163,7 +1162,6 @@ function salvarCardapioDinamicoNoFirebase(){
   });
 }
 
-// Compressão Aprimorada de Imagens para Otimizar Firestore
 function comprimirImagemParaBase64(file, callback) {
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -1372,20 +1370,23 @@ function iniciarOuvintesFirebase() {
 
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
-    snapshot.forEach(doc => { historicoVendas.push(doc.data()); });
+    snapshot.forEach(doc => {
+      // Salva o doc.id junto dos dados para permitir excluir comandas duplicadas individualmente
+      historicoVendas.push({ ...doc.data(), _docId: doc.id });
+    });
     historicoVendas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     if(["relatorios", "cozinha", "churrasco", "bebidas"].includes(telaAtual)) renderizar();
   }, err => {});
 
   db.collection("despesas").onSnapshot(snapshot => {
     despesas = [];
-    snapshot.forEach(doc => { despesas.push(doc.data()); });
+    snapshot.forEach(doc => { despesas.push({ ...doc.data(), _docId: doc.id }); });
     if(telaAtual === "relatorios") renderizar();
   }, err => {});
 
   db.collection("cancelamentos").onSnapshot(snapshot => {
     cancelamentos = [];
-    snapshot.forEach(doc => { cancelamentos.push(doc.data()); });
+    snapshot.forEach(doc => { cancelamentos.push({ ...doc.data(), _docId: doc.id }); });
     if(telaAtual === "relatorios") renderizar();
   }, err => {});
 }
@@ -1410,7 +1411,6 @@ function concluirLogin(email){
   document.getElementById('login-screen').style.display = 'none';
   const isAdmin = email.toLowerCase().includes('admin');
   
-  // Garante que o nome do garçom comece totalmente vazio ao entrar com qualquer e-mail
   garcomSessao = "";
   garcomTemp = "";
   localStorage.removeItem('bb_garcom_atual');
@@ -1436,8 +1436,6 @@ function mudarTela(t, num=null){
 
 function abrirMesa(num){
   mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; termoBuscaProduto = "";
-  
-  // Mantém o espaço vazio por padrão quando a mesa é aberta, preenchendo apenas se já houver garçom salvo na mesa
   garcomTemp = "";
 
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
@@ -2578,6 +2576,7 @@ function abrirConfirmacaoPagamento(num, tipo) {
   const c = comandas[num];
   if (!c) return;
 
+  processandoPagamento = false; // Reseta trava ao abrir tela de confirmação
   formaPagamentoEscolhidaTemp = "";
   baixasPendentesTemp = {};
   valorPendenteTemp = 0;
@@ -2666,6 +2665,7 @@ function definirNotaRapida(valorNota, valorAlvo) {
 }
 
 function selecionarMetodoPagamento(metodo) {
+  if (processandoPagamento) return;
   formaPagamentoEscolhidaTemp = metodo;
 
   document.querySelectorAll('.pay-choice-btn').forEach(btn => btn.classList.remove('selected'));
@@ -2681,6 +2681,7 @@ function selecionarMetodoPagamento(metodo) {
   if (btnConfirmar) {
     btnConfirmar.style.opacity = '1';
     btnConfirmar.style.pointerEvents = 'auto';
+    btnConfirmar.disabled = false;
     btnConfirmar.textContent = `✅ Confirmar Pagamento via ${metodo}`;
   }
 }
@@ -2694,16 +2695,36 @@ function atualizarTrocoModal(valorAlvo) {
   lbl.textContent = br(troco);
 }
 
+// CORREÇÃO PRINCIPAL: Bloqueio imediato contra múltiplos cliques + batch atômico
 function executarPagamentoConfirmado(num, tipo) {
+  if (processandoPagamento) return; // Ignora cliques extras imediatamente
   if (!formaPagamentoEscolhidaTemp) {
     showToast("Por favor, selecione a forma de pagamento!", true);
     return;
   }
 
   const c = comandas[num];
-  if (!c) return;
+  if (!c) {
+    showToast("Esta mesa já foi fechada!", true);
+    fecharModal();
+    return;
+  }
+
+  // Trava o botão e a execução no exato milissegundo do primeiro toque
+  processandoPagamento = true;
+  const btnConfirmar = document.getElementById('btnConfirmarFinalPagamento');
+  if (btnConfirmar) {
+    btnConfirmar.disabled = true;
+    btnConfirmar.style.opacity = '0.6';
+    btnConfirmar.style.pointerEvents = 'none';
+    btnConfirmar.textContent = '⏳ Fechando mesa...';
+  }
+
   const formaPagamento = formaPagamentoEscolhidaTemp;
   const agora = new Date();
+  const numMesaStr = String(num);
+  const batch = db.batch();
+  const refMesa = db.collection("comandas").doc(numMesaStr);
 
   if (tipo === 'parcial') {
     let itensPagosParaHistorico = [];
@@ -2711,7 +2732,7 @@ function executarPagamentoConfirmado(num, tipo) {
     let itensPagosAcumulados = c.itensPagos ? [...c.itensPagos] : [];
     let baixas = { ...baixasPendentesTemp };
 
-    c.itens.forEach(it => {
+    (c.itens || []).forEach(it => {
       let cli = it.cliente || "Cliente 1";
       let chave = cli + "_" + it.nome;
       let qtdBaixada = baixas[chave] || 0;
@@ -2740,12 +2761,24 @@ function executarPagamentoConfirmado(num, tipo) {
     
     let novoTotal = Math.max(0, Number(c.total) - valorPendenteTemp);
 
-    db.collection("historico").add(vendaParcial).then(() => {
-      db.collection("comandas").doc(String(num)).update({ total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() }).then(() => {
-        fecharModal(); 
-        showToast(`Baixa de ${br(valorPendenteTemp)} (${formaPagamento}) realizada!`); 
-        renderizar();
-      });
+    const refHist = db.collection("historico").doc();
+    batch.set(refHist, vendaParcial);
+    batch.update(refMesa, { total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() });
+
+    batch.commit().then(() => {
+      processandoPagamento = false;
+      fecharModal(); 
+      showToast(`Baixa de ${br(valorPendenteTemp)} (${formaPagamento}) realizada!`); 
+      renderizar();
+    }).catch(err => {
+      processandoPagamento = false;
+      if (btnConfirmar) {
+        btnConfirmar.disabled = false;
+        btnConfirmar.style.opacity = '1';
+        btnConfirmar.style.pointerEvents = 'auto';
+        btnConfirmar.textContent = `✅ Confirmar Pagamento via ${formaPagamento}`;
+      }
+      showToast("Erro ao registrar pagamento: " + err.message, true);
     });
 
   } else {
@@ -2764,11 +2797,27 @@ function executarPagamentoConfirmado(num, tipo) {
         timestamp: agora.getTime()
     };
 
-    const pHist = novaVenda.total > 0 && todos.length ? db.collection("historico").add(novaVenda) : Promise.resolve();
+    if (novaVenda.total > 0 && todos.length) {
+      const refHist = db.collection("historico").doc();
+      batch.set(refHist, novaVenda);
+    }
+    batch.delete(refMesa);
 
-    pHist.then(() => {
-      fecharComanda(num);
+    batch.commit().then(() => {
+      processandoPagamento = false;
+      delete comandas[numMesaStr]; // Limpa imediatamente da memória local
       fecharModal();
+      showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
+      renderizar();
+    }).catch(err => {
+      processandoPagamento = false;
+      if (btnConfirmar) {
+        btnConfirmar.disabled = false;
+        btnConfirmar.style.opacity = '1';
+        btnConfirmar.style.pointerEvents = 'auto';
+        btnConfirmar.textContent = `✅ Confirmar Pagamento via ${formaPagamento}`;
+      }
+      showToast("Erro ao fechar mesa: " + err.message, true);
     });
   }
 }
@@ -2893,7 +2942,35 @@ function limparRelatorios(){
   }
 }
 
-// EXIBE DETALHES COMPLETOS DA MESA FECHADA NO RELATÓRIO
+// NOVA FUNÇÃO: Excluir uma venda fechada específica (ideal para remover duplicadas)
+function excluirVendaHistorico(docId, mesaNum, valorTotal, horarioStr) {
+  if (!docId) {
+    showToast("Não foi possível identificar este registro para exclusão.", true);
+    return;
+  }
+
+  const confirmou = confirm(
+    `🗑️ Apagar este registro fechado?\n\n` +
+    `• Mesa: ${pad(mesaNum || 0)}\n` +
+    `• Valor: ${br(valorTotal)}\n` +
+    `• Horário: ${horarioStr || '--:--'}\n\n` +
+    `Essa ação remove apenas este registro do relatório e recalcula o caixa.`
+  );
+
+  if (!confirmou) return;
+
+  db.collection("historico").doc(docId).delete()
+    .then(() => {
+      fecharModal();
+      showToast(`🗑️ Registro da Mesa ${pad(mesaNum || 0)} (${br(valorTotal)}) apagado!`);
+      renderRelatorios();
+    })
+    .catch(err => {
+      showToast("Erro ao apagar registro: " + err.message, true);
+    });
+}
+
+// EXIBE DETALHES COMPLETOS DA MESA FECHADA NO RELATÓRIO + BOTÃO DE APAGAR
 function abrirDetalhesVendaHistorico(index) {
   const venda = historicoVendas[index];
   if (!venda) return;
@@ -2936,7 +3013,7 @@ function abrirDetalhesVendaHistorico(index) {
     </div>
 
     <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Itens Consumidos:</div>
-    <div style="max-height:260px;overflow:auto;padding-right:4px">
+    <div style="max-height:240px;overflow:auto;padding-right:4px">
       ${itensHTML}
     </div>
 
@@ -2944,6 +3021,12 @@ function abrirDetalhesVendaHistorico(index) {
       <span>Total Pago</span>
       <span style="color:#10b981">${br(venda.total)}</span>
     </div>
+
+    ${venda._docId ? `
+      <button class="secondary" onclick="excluirVendaHistorico('${escapeHTML(venda._docId)}', ${Number(venda.mesa || 0)}, ${Number(venda.total || 0)}, '${escapeHTML(horarioExato)}')" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-bottom:6px">
+        🗑️ Apagar Esta Comanda Fechada (Duplicada)
+      </button>
+    ` : ''}
     <button class="secondary" onclick="fecharModal()">Fechar</button>
   `;
   document.getElementById("modal").classList.add("show");
@@ -3091,7 +3174,7 @@ function renderRelatorios(){
     <div class="card" style="padding:16px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <h3 style="margin:0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (${vendasFiltradas.length})</h3>
-        <span style="font-size:10px;color:var(--muted);font-weight:800">Toque para ver itens</span>
+        <span style="font-size:10px;color:var(--muted);font-weight:800">Toque para detalhes/apagar</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
       ${(function(){
@@ -3121,7 +3204,10 @@ function renderRelatorios(){
                </div>
                <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);font-weight:800">
                  <span>📦 ${qtdItens} ${qtdItens === 1 ? 'item consumido' : 'itens consumidos'}</span>
-                 <span style="color:var(--brand)">Ver detalhes →</span>
+                 <div style="display:flex;align-items:center;gap:8px">
+                   ${v._docId ? `<button type="button" onclick="event.stopPropagation(); excluirVendaHistorico('${escapeHTML(v._docId)}', ${Number(v.mesa || 0)}, ${valorGerado}, '${escapeHTML(horarioExato)}')" style="border:1px solid rgba(211,47,47,0.3);background:rgba(211,47,47,0.1);color:var(--brand);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:900;cursor:pointer">🗑️ Apagar</button>` : ''}
+                   <span style="color:var(--brand)">Ver detalhes →</span>
+                 </div>
                </div>
              </div>
            `;
@@ -3199,13 +3285,12 @@ function calcularTempoDecorrido(timestampCriacao){
   return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
 }
 
-// Calcula tempo de inatividade (Giro de Mesa) desde a última atualização/pedido
 function calcularTempoSemConsumo(c){
   if(!c) return null;
   let refTempo = c.atualizadoEm || c.criadoEm;
   if(!refTempo) return null;
   let diffMin = Math.floor((Date.now() - refTempo) / 60000);
-  if(diffMin < 15) return null; // Exibe aviso discreto a partir de 15 minutos sem pedido
+  if(diffMin < 15) return null;
   if(diffMin < 60) return `⏳ Sem pedido há ${diffMin} min`;
   let horas = Math.floor(diffMin / 60);
   let mins = diffMin % 60;
@@ -3287,7 +3372,7 @@ function renderComandas(){
               return `
                 <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
                   <div>
-                    <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${i.qtd}x ${escapeHTML(it.nome)}</span><br>
+                    <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)}</span><br>
                     <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>${badgeHtml}
                   </div>
                   <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
