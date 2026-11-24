@@ -56,6 +56,7 @@ body{padding-bottom:140px}
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 .header h1{
   font-size: 24px;
@@ -73,7 +74,7 @@ body{padding-bottom:140px}
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   letter-spacing: 0.3px;
 }
-.header-actions{display:flex;gap:8px;align-items:center}
+.header-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
 .theme-btn, .sound-btn, .admin-btn, .push-btn{
   background: rgba(20, 20, 20, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -91,6 +92,43 @@ body{padding-bottom:140px}
 }
 .theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active{transform:scale(.85)}
 .sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.35);border:1px solid #10b981;color:#fff}
+
+/* Indicador de Status de Conexão / Contingência Offline (Item 45) */
+.net-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+}
+.net-status-badge.online {
+  background: rgba(16, 185, 129, 0.22);
+  border: 1px solid rgba(16, 185, 129, 0.65);
+  color: #a7f3d0;
+}
+.net-status-badge.offline {
+  background: rgba(245, 158, 11, 0.28);
+  border: 1px solid rgba(245, 158, 11, 0.85);
+  color: #fde68a;
+  animation: pulseOffline 1.6s infinite;
+}
+.net-status-badge.syncing {
+  background: rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(56, 189, 248, 0.75);
+  color: #bae6fd;
+}
+@keyframes pulseOffline {
+  0% { opacity: 1; }
+  50% { opacity: 0.72; }
+  100% { opacity: 1; }
+}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
@@ -614,9 +652,10 @@ body{padding-bottom:140px}
 
 <div class="app">
 <header class="header">
-  <div>
+  <div style="min-width:0;flex:1">
     <h1>🔥 B.B CHURRASCO</h1>
     <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
+    <div id="connection-status-badge" class="net-status-badge online">🟢 Online</div>
   </div>
   <div class="header-actions">
     <button class="push-btn" id="pushToggleBtn" onclick="pedirPermissaoPush()" title="Notificações Push no Celular">📲</button>
@@ -678,6 +717,38 @@ const firebaseConfig = {
 };
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
+
+// ----------------- MODO CONTINGÊNCIA / FILA LOCAL (ITEM 45) -----------------
+let aparelhoOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+let temPendenciasLocais = false;
+
+function atualizarIndicadorConexao() {
+  const badge = document.getElementById('connection-status-badge');
+  if (!badge) return;
+
+  if (!aparelhoOnline) {
+    badge.className = 'net-status-badge offline';
+    badge.textContent = '🟡 Offline — Salvando local';
+  } else if (temPendenciasLocais) {
+    badge.className = 'net-status-badge syncing';
+    badge.textContent = '🔄 Sincronizando pendências...';
+  } else {
+    badge.className = 'net-status-badge online';
+    badge.textContent = '🟢 Online';
+  }
+}
+
+window.addEventListener('online', () => {
+  aparelhoOnline = true;
+  atualizarIndicadorConexao();
+  showToast("🟢 Conexão restabelecida! Sincronizando dados...");
+});
+
+window.addEventListener('offline', () => {
+  aparelhoOnline = false;
+  atualizarIndicadorConexao();
+  showToast("🟡 Sem internet — Modo contingência ativo (salvando local).", true);
+});
 
 // CONFIGURAÇÃO DO ATENDENTE VIRTUAL (WHATSAPP AUTOMÁTICO)
 const NUMERO_ESTABELECIMENTO = "5585996532573";
@@ -789,9 +860,6 @@ let cancelamentos = [];
 localStorage.removeItem('bb_garcom_atual');
 let garcomSessao = "";
 
-// NOVA ESTRUTURA:
-// - itensMesaExistentes: array com lotes já salvos na mesa (cada lote tem itemId, horario, timestampItem, statusCozinha)
-// - novosLotesTemp: array com novos lançamentos feitos nesta rodada (cada clique cria seu próprio lote individual!)
 let telaAtual = "mesas", mesaSelecionada = null;
 let itensMesaExistentes = [];
 let novosLotesTemp = [];
@@ -803,6 +871,38 @@ let usuarioLogadoEmail = "";
 
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
+
+// ----------------- LOG DE AUDITORIA DE CANCELAMENTOS E ALTERAÇÕES PÓS-ENVIO (ITEM 43) -----------------
+function obterResponsavelAuditoria() {
+  if (garcomSessao && garcomSessao.trim()) return garcomSessao.trim();
+  if (garcomTemp && garcomTemp.trim()) return garcomTemp.trim();
+  if (usuarioLogadoEmail) {
+    return usuarioLogadoEmail.toLowerCase().includes('admin')
+      ? `Admin (${usuarioLogadoEmail})`
+      : usuarioLogadoEmail;
+  }
+  return modoCliente ? "Cliente Digital" : "Operador não identificado";
+}
+
+function registrarLogAuditoria({ tipoAcao, mesa, itemDescricao, valorImpactado, motivo }) {
+  const agora = new Date();
+  const registro = {
+    tipoAcao: tipoAcao || "Cancelamento / Alteração",
+    mesa: Number(mesa || 0),
+    garcom: obterResponsavelAuditoria(),
+    itemDescricao: escapeHTML(String(itemDescricao || "Item não especificado")),
+    totalCancelado: Number(valorImpactado || 0),
+    motivo: escapeHTML(String(motivo || "Não informado").trim()) || "Não informado",
+    horario: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    data: agora.toLocaleDateString('pt-BR'),
+    diaSemana: DIAS_SEMANA_PT[agora.getDay()],
+    timestamp: agora.getTime()
+  };
+
+  return db.collection("cancelamentos").add(registro).catch(err => {
+    console.error("Erro ao gravar log de auditoria:", err);
+  });
+}
 
 // ----------------- GESTÃO DE PERÍODO (DATA + HORA INICIAL E FINAL) & DIAS DA SEMANA -----------------
 const DIAS_SEMANA_PT = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
@@ -1039,6 +1139,7 @@ function toggleTheme(){
 const savedTheme = localStorage.getItem('bb_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 document.addEventListener('DOMContentLoaded', () => {
+  atualizarIndicadorConexao();
   const btn = document.getElementById('themeToggleBtn');
   if(btn) btn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
   if('Notification' in window && Notification.permission === 'granted'){
@@ -1359,7 +1460,10 @@ function removerItemAdmin(cat, idx){
 function iniciarOuvintesFirebase() {
   carregarCardapioDinamico();
 
-  db.collection("comandas").onSnapshot(snapshot => {
+  db.collection("comandas").onSnapshot({ includeMetadataChanges: true }, snapshot => {
+    temPendenciasLocais = snapshot.metadata.hasPendingWrites;
+    atualizarIndicadorConexao();
+
     let novasComandas = {};
     snapshot.forEach(doc => { 
       let id = doc.id;
@@ -1405,6 +1509,7 @@ function iniciarOuvintesFirebase() {
   db.collection("cancelamentos").onSnapshot(snapshot => {
     cancelamentos = [];
     snapshot.forEach(doc => { cancelamentos.push({ ...doc.data(), _docId: doc.id }); });
+    cancelamentos.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     if(telaAtual === "relatorios") renderizar();
   }, err => {});
 }
@@ -1541,9 +1646,7 @@ function renomearClienteAtual(){
   showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
-// LÓGICA CORRIGIDA:
-// Cada clique em "+" cria ou soma APENAS dentro do novo lançamento da rodada atual (`novosLotesTemp`),
-// preservando os lotes anteriores intactos com seus horários originais!
+// LÓGICA DE ALTERAÇÃO DE QUANTIDADE COM AUDITORIA PÓS-ENVIO (ITEM 43)
 function alterarQtd(nome, delta){ 
   let pObj = produtosFlat().find(p => p.nome === nome);
   if(pObj && pObj.indisponivel){
@@ -1556,7 +1659,6 @@ function alterarQtd(nome, delta){
   const horarioAtualStr = agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   const timestampAtual = agora.getTime();
 
-  // Procura se já existe um lote NOVO (ainda não enviado) para este cliente e produto nesta rodada
   let idxNovo = novosLotesTemp.findIndex(it => it.cliente === clienteAtual && it.nome === nome);
 
   if (delta > 0) {
@@ -1586,14 +1688,31 @@ function alterarQtd(nome, delta){
         novosLotesTemp.splice(idxNovo, 1);
       }
     } else {
-      // Se não houver lote novo pendente, reduz do último lote já salvo na mesa (do mais recente para o mais antigo)
+      // Remoção de item JÁ ENVIADO: exige motivo e grava no Log de Auditoria (Item 43)
       for (let i = itensMesaExistentes.length - 1; i >= 0; i--) {
         if (itensMesaExistentes[i].cliente === clienteAtual && itensMesaExistentes[i].nome === nome) {
-          itensMesaExistentes[i].qtd += delta;
+          const qtdRemover = Math.min(Math.abs(delta), itensMesaExistentes[i].qtd);
+          const motivoRemocao = prompt(
+            `🔒 Auditoria Pós-Envio (Mesa ${pad(mesaSelecionada)})\n` +
+            `Informe o motivo para remover ${qtdRemover}x "${nome}" (${clienteAtual}):`,
+            "Erro no lançamento / Desistência do cliente"
+          );
+          if (motivoRemocao === null) return;
+
+          const valorImpactado = qtdRemover * Number(itensMesaExistentes[i].preco || 0);
+          itensMesaExistentes[i].qtd -= qtdRemover;
           if (itensMesaExistentes[i].qtd <= 0) {
             itensMesaExistentes.splice(i, 1);
           }
-          // Atualiza imediatamente na comanda do Firebase
+
+          registrarLogAuditoria({
+            tipoAcao: "Remoção Pós-Envio",
+            mesa: mesaSelecionada,
+            itemDescricao: `${qtdRemover}x ${nome} [${clienteAtual}]`,
+            valorImpactado: valorImpactado,
+            motivo: motivoRemocao
+          });
+
           if (mesaSelecionada && comandas[mesaSelecionada]) {
             const totalAtualizado = todosItensDaMesaAtual().reduce((s, x) => s + (x.qtd * x.preco), 0);
             db.collection("comandas").doc(String(mesaSelecionada)).update({
@@ -1602,6 +1721,7 @@ function alterarQtd(nome, delta){
               atualizadoEm: Date.now()
             }).catch(()=>{});
           }
+          showToast(`Remoção registrada na auditoria (${qtdRemover}x ${nome}).`, true);
           break;
         }
       }
@@ -1630,7 +1750,6 @@ function produtosFlat(){
   return a; 
 }
 
-// Retorna todos os lotes individuais da mesa (já salvos + novos desta rodada), sem nunca fundir horários diferentes
 function todosItensDaMesaAtual(){
   return [...itensMesaExistentes, ...novosLotesTemp].filter(it => it.qtd > 0);
 }
@@ -1695,7 +1814,6 @@ function renderProdutos(){
    
    const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < tempoDestaqueLimite));
 
-   // Soma total desse produto para o cliente atual (lotes antigos + novos) para exibir no contador do card
    const q = todosItens
      .filter(x => x.cliente === clienteAtual && x.nome === nome)
      .reduce((acc, x) => acc + (Number(x.qtd) || 0), 0);
@@ -1758,7 +1876,6 @@ function atualizarStatusItemCozinha(mesaNum, itemId, novoStatus, clienteFallback
   const comanda = comandas[mesaNum];
   if(!comanda || !comanda.itens) return;
 
-  // Localiza exatamente o lote pelo itemId (ou fallback por cliente + nome + timestamp)
   let idx = comanda.itens.findIndex(it => itemId && it.itemId === itemId);
   if (idx === -1) {
     idx = comanda.itens.findIndex(it =>
@@ -2254,7 +2371,7 @@ function salvarComanda(numeroMesa) {
         salvandoPedidoEmAndamento = false;
         novosLotesTemp = []; 
         fecharModal();
-        showToast(`✅ Pedido enviado com sucesso na Mesa ${pad(numMesaStr)}!`);
+        showToast(aparelhoOnline ? `✅ Pedido enviado com sucesso na Mesa ${pad(numMesaStr)}!` : `🟡 Pedido salvo localmente na Mesa ${pad(numMesaStr)} (será sincronizado assim que houver rede).`);
         if(modoCliente) {
           document.getElementById("modalTitle").textContent = "✅ Pedido Enviado!";
           document.getElementById("modalBody").innerHTML = `
@@ -2340,10 +2457,35 @@ function alterarQtdLoteModal(itemId, delta){
   } else {
     let idxAnt = itensMesaExistentes.findIndex(it => it.itemId === itemId);
     if (idxAnt !== -1) {
-      itensMesaExistentes[idxAnt].qtd += delta;
-      if (itensMesaExistentes[idxAnt].qtd <= 0) {
-        itensMesaExistentes.splice(idxAnt, 1);
+      const itemAlvo = itensMesaExistentes[idxAnt];
+      if (delta < 0) {
+        // Auditoria pós-envio dentro do modal do carrinho (Item 43)
+        const qtdRemover = Math.min(Math.abs(delta), itemAlvo.qtd);
+        const motivoRemocao = prompt(
+          `🔒 Auditoria Pós-Envio (Mesa ${pad(mesaSelecionada)})\n` +
+          `Informe o motivo para remover ${qtdRemover}x "${itemAlvo.nome}" (${itemAlvo.cliente || 'Cliente 1'}):`,
+          "Erro no lançamento / Desistência do cliente"
+        );
+        if (motivoRemocao === null) return;
+
+        const valorImpactado = qtdRemover * Number(itemAlvo.preco || 0);
+        itemAlvo.qtd -= qtdRemover;
+        if (itemAlvo.qtd <= 0) {
+          itensMesaExistentes.splice(idxAnt, 1);
+        }
+
+        registrarLogAuditoria({
+          tipoAcao: "Remoção Pós-Envio",
+          mesa: mesaSelecionada,
+          itemDescricao: `${qtdRemover}x ${itemAlvo.nome} [${itemAlvo.cliente || 'Cliente 1'}]`,
+          valorImpactado: valorImpactado,
+          motivo: motivoRemocao
+        });
+        showToast(`Remoção registrada na auditoria (${qtdRemover}x ${itemAlvo.nome}).`, true);
+      } else {
+        itemAlvo.qtd += delta;
       }
+
       if (mesaSelecionada && comandas[mesaSelecionada]) {
         const totalAtualizado = todosItensDaMesaAtual().reduce((s, x) => s + (x.qtd * x.preco), 0);
         db.collection("comandas").doc(String(mesaSelecionada)).update({
@@ -2889,16 +3031,19 @@ function executarPagamentoConfirmado(num, tipo) {
 
 function cancelarComandaModal(num){
   const c = comandas[num]; if(!c) return;
-  let motivo = prompt(`Motivo do cancelamento da Mesa ${pad(num)}:`, "Desistência do cliente / Erro no pedido");
+  let motivo = prompt(`🔒 Auditoria de Cancelamento — Mesa ${pad(num)}\nInforme o motivo do cancelamento:`, "Desistência do cliente / Erro no pedido");
   if(motivo === null) return;
   const agora = new Date();
+  const resumoItens = (c.itens || []).map(i => `${i.qtd}x ${i.nome}`).join(", ");
   
   let registroCancelamento = {
+    tipoAcao: "Cancelamento de Comanda",
     mesa: num,
-    garcom: c.garcom || "Desconhecido",
+    garcom: obterResponsavelAuditoria() || c.garcom || "Desconhecido",
+    itemDescricao: resumoItens ? `Comanda inteira (${resumoItens})` : "Comanda inteira",
     totalCancelado: c.total,
     motivo: escapeHTML(motivo.trim()) || "Não informado",
-    horario: agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    horario: agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
     data: agora.toLocaleDateString('pt-BR'),
     diaSemana: DIAS_SEMANA_PT[agora.getDay()],
     timestamp: agora.getTime(),
@@ -2908,7 +3053,7 @@ function cancelarComandaModal(num){
   db.collection("cancelamentos").add(registroCancelamento).then(() => {
     fecharComanda(num);
     fecharModal();
-    showToast("Comanda cancelada e registrada com sucesso!", true);
+    showToast("Comanda cancelada e registrada na auditoria!", true);
   }).catch(err => {
     showToast("Erro ao registrar cancelamento: " + err.message, true);
   });
@@ -3013,20 +3158,29 @@ function excluirVendaHistorico(docId, mesaNum, valorTotal, horarioStr) {
     return;
   }
 
-  const confirmou = confirm(
+  const motivoExclusao = prompt(
     `🗑️ Apagar este registro fechado?\n\n` +
     `• Mesa: ${pad(mesaNum || 0)}\n` +
     `• Valor: ${br(valorTotal)}\n` +
     `• Horário: ${horarioStr || '--:--'}\n\n` +
-    `Essa ação remove apenas este registro do relatório e recalcula o caixa.`
+    `Informe o motivo para registrar no Log de Auditoria:`,
+    "Lançamento duplicado no fechamento"
   );
 
-  if (!confirmou) return;
+  if (motivoExclusao === null) return;
+
+  registrarLogAuditoria({
+    tipoAcao: "Exclusão de Fechamento",
+    mesa: mesaNum,
+    itemDescricao: `Fechamento de Mesa ${pad(mesaNum || 0)} (${horarioStr || '--:--'})`,
+    valorImpactado: valorTotal,
+    motivo: motivoExclusao
+  });
 
   db.collection("historico").doc(docId).delete()
     .then(() => {
       fecharModal();
-      showToast(`🗑️ Registro da Mesa ${pad(mesaNum || 0)} (${br(valorTotal)}) apagado!`);
+      showToast(`🗑️ Registro da Mesa ${pad(mesaNum || 0)} (${br(valorTotal)}) apagado e auditado!`);
       renderRelatorios();
     })
     .catch(err => {
@@ -3314,13 +3468,18 @@ function renderRelatorios(){
 
     ${cancelamentosFiltrados.length ? `
     <div class="card" style="padding:16px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Registradas</h3>
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Log de Auditoria — Cancelamentos e Alterações Pós-Envio (${cancelamentosFiltrados.length})</h3>
       ${cancelamentosFiltrados.map(c => {
         let diaSemC = c.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(c));
         return `
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
-          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)} (${diaSemC ? diaSemC + ', ' : ''}${c.data}${c.horario ? ' às ' + c.horario : ''})</b> <b>${br(c.totalCancelado)}</b></div>
-          <div style="font-size:11px;color:var(--muted)">Motivo: ${escapeHTML(c.motivo)}</div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;gap:6px;flex-wrap:wrap">
+            <b>Mesa ${pad(c.mesa)} • ${escapeHTML(c.tipoAcao || 'Cancelamento')}</b>
+            <b style="color:#d97706">${br(c.totalCancelado)}</b>
+          </div>
+          <div style="font-size:11px;color:var(--ink);margin-top:2px">👤 Responsável: <b>${escapeHTML(c.garcom || 'Não informado')}</b> • 🕒 ${diaSemC ? diaSemC + ', ' : ''}${c.data}${c.horario ? ' às ' + c.horario : ''}</div>
+          ${c.itemDescricao ? `<div style="font-size:11px;color:var(--ink);margin-top:2px">📦 Item/Detalhe: <b>${escapeHTML(c.itemDescricao)}</b></div>` : ''}
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">📝 Motivo: ${escapeHTML(c.motivo)}</div>
         </div>
       `}).join('')}
     </div>` : ''}
