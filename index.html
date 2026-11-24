@@ -853,7 +853,6 @@ let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
-let ultimoPedidoCliente = {}; // Guarda a última rodada por cliente para repetição rápida
 
 localStorage.removeItem('bb_garcom_atual');
 let garcomSessao = "";
@@ -1610,16 +1609,6 @@ function renomearClienteAtual(){
   showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
-function repetirUltimoPedidoCliente() {
-  const ultimo = ultimoPedidoCliente[clienteAtual];
-  if (!ultimo || !ultimo.nome) {
-    showToast(`Nenhum item anterior registrado para ${clienteAtual}.`, true);
-    return;
-  }
-  alterarQtd(ultimo.nome, 1);
-  showToast(`🔄 +1 ${ultimo.nome} repetido para ${clienteAtual}!`);
-}
-
 function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
@@ -1652,7 +1641,6 @@ function alterarQtd(nome, delta){
   pedidoTemp[clienteAtual][nome] = novaQtd;
 
   if(delta > 0) {
-    ultimoPedidoCliente[clienteAtual] = { nome: nome, timestamp: Date.now() };
     if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
       let itFound = comandas[mesaSelecionada].itens.find(x => x.cliente === clienteAtual && x.nome === nome);
       if(itFound) {
@@ -2280,7 +2268,6 @@ function processarTextoVoz(texto) {
 
       if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
       pedidoTemp[clienteAtual][p.nome] = (pedidoTemp[clienteAtual][p.nome] || 0) + qtd;
-      ultimoPedidoCliente[clienteAtual] = { nome: p.nome, timestamp: Date.now() };
       adicionados++;
     }
   });
@@ -3562,8 +3549,6 @@ function renderAtendimento(){
     <button onclick="mudarClienteAtual('${escapeHTML(cli)}')" style="padding:6px 14px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${escapeHTML(cli)}</button>
   `).join('');
 
-  const temUltimoItem = !!(ultimoPedidoCliente[clienteAtual] && ultimoPedidoCliente[clienteAtual].nome);
-
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:14px">
       ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
@@ -3583,7 +3568,6 @@ function renderAtendimento(){
         ${pillsPessoasHTML}
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
-        ${temUltimoItem ? `<button onclick="repetirUltimoPedidoCliente()" style="padding:6px 10px;border-radius:12px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.12);color:#10b981;font-weight:900;font-size:11px;cursor:pointer" title="Repetir último item (${escapeHTML(ultimoPedidoCliente[clienteAtual].nome)})">🔄 Repetir</button>` : ''}
         <button onclick="adicionarNovoClientePrompt()" style="padding:6px 12px;border-radius:12px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
         <button onclick="renomearClienteAtual()" style="padding:6px 12px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
       </div>
