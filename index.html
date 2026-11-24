@@ -48,7 +48,7 @@ body{padding-bottom:140px}
   border: 1px solid rgba(255, 87, 34, 0.35);
   color: #ffffff;
   border-radius: 28px;
-  padding: 24px 22px;
+  padding: 20px 18px;
   box-shadow: 0 12px 35px rgba(211, 47, 47, 0.25), inset 0 0 20px rgba(0,0,0,0.5);
   position: relative;
   overflow: hidden;
@@ -56,9 +56,10 @@ body{padding-bottom:140px}
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 .header h1{
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
   letter-spacing: -0.5px;
   margin: 0;
@@ -73,15 +74,47 @@ body{padding-bottom:140px}
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   letter-spacing: 0.3px;
 }
-.header-actions{display:flex;gap:8px;align-items:center}
-.theme-btn, .sound-btn, .admin-btn, .push-btn{
+
+/* Indicador de Status de Conexão (Contingência / Fila Local) */
+.net-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+.net-status-badge.online {
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  color: #a7f3d0;
+}
+.net-status-badge.offline {
+  background: rgba(245, 158, 11, 0.3);
+  border: 1px solid #f59e0b;
+  color: #fde68a;
+  animation: pulseOffline 1.8s infinite;
+}
+@keyframes pulseOffline {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.theme-btn, .sound-btn, .admin-btn, .push-btn, .logout-btn{
   background: rgba(20, 20, 20, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  font-size: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  font-size: 15px;
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -89,7 +122,7 @@ body{padding-bottom:140px}
   -webkit-backdrop-filter: blur(12px);
   transition: transform .2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active{transform:scale(.85)}
+.theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active, .logout-btn:active{transform:scale(.85)}
 .sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.35);border:1px solid #10b981;color:#fff}
 
 /* Toast Flutuante */
@@ -597,32 +630,36 @@ body{padding-bottom:140px}
       <h2 style="font-size:22px;font-weight:900;margin:0;color:var(--ink)">B.B CHURRASCO</h2>
       <p style="font-size:11px;color:var(--muted);margin:4px 0 0;font-weight:700">Acesse o painel do garçom ou administração</p>
     </div>
-    <form onsubmit="handleLogin(event)" style="display:flex;flex-direction:column;gap:12px">
+    <form onsubmit="handleLogin(event)" autocomplete="on" style="display:flex;flex-direction:column;gap:12px">
       <div>
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">E-mail</label>
-        <input type="email" id="login-email" required style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none" placeholder="ex: garcom@bbchurrasco.com">
+        <input type="email" id="login-email" name="email" autocomplete="username" required style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none" placeholder="ex: garcom@bbchurrasco.com">
       </div>
       <div>
         <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Senha</label>
-        <input type="password" id="login-password" required style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
+        <input type="password" id="login-password" name="password" autocomplete="current-password" required style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none" placeholder="••••••••">
       </div>
       <div id="login-error" style="color:#d32f2f;font-size:11px;font-weight:800;text-align:center;display:none">E-mail ou senha incorretos.</div>
-      <button type="submit" style="background:var(--brand);color:#fff;border:0;border-radius:14px;padding:14px;font-weight:900;font-size:14px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(211,47,47,0.25)">Entrar no Sistema</button>
+      <button type="submit" id="btn-submit-login" style="background:var(--brand);color:#fff;border:0;border-radius:14px;padding:14px;font-weight:900;font-size:14px;cursor:pointer;margin-top:4px;box-shadow:0 6px 18px rgba(211,47,47,0.25)">Entrar no Sistema</button>
     </form>
   </div>
 </div>
 
 <div class="app">
 <header class="header">
-  <div>
+  <div style="min-width:0;flex:1">
     <h1>🔥 B.B CHURRASCO</h1>
     <p id="user-role-label">B.B GARÇOM — Atendimento por Cliente</p>
+    <div id="netStatusBadge" class="net-status-badge online" title="Status de conexão e sincronização local">
+      <span>🟢</span> <span>Online</span>
+    </div>
   </div>
   <div class="header-actions">
     <button class="push-btn" id="pushToggleBtn" onclick="pedirPermissaoPush()" title="Notificações Push no Celular">📲</button>
     <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
     <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
     <button class="admin-btn" id="adminHeaderBtn" onclick="abrirPainelAdmin()" title="Painel Administrativo">⚙</button>
+    <button class="logout-btn" id="logoutHeaderBtn" onclick="sairDoSistema()" title="Trocar Conta / Sair">🚪</button>
   </div>
 </header>
 <div id="conteudo"></div>
@@ -674,6 +711,11 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
+// GARANTE PERSISTÊNCIA DE LOGIN NO NAVEGADOR (LOCAL)
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
+  console.warn("Persistência de Auth:", err);
+});
+
 // CONFIGURAÇÃO DO ATENDENTE VIRTUAL (WHATSAPP AUTOMÁTICO)
 const NUMERO_ESTABELECIMENTO = "5585996532573";
 const URL_BOT_WEBHOOK = "https://us-central1-bbchurrasco-app.cloudfunctions.net/whatsappWebhook";
@@ -708,6 +750,36 @@ db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   } else if (err.code == 'unimplemented') {
     console.warn("O navegador não suporta persistência offline completa.");
   }
+});
+
+// ----------------- MODO CONTINGÊNCIA / STATUS DE CONEXÃO E FILA LOCAL -----------------
+let temPendenciasLocais = false;
+
+function atualizarIndicadorRede() {
+  const badge = document.getElementById('netStatusBadge');
+  if (!badge) return;
+  const estaOnline = navigator.onLine;
+
+  if (!estaOnline) {
+    badge.className = 'net-status-badge offline';
+    badge.innerHTML = `<span>🟡</span> <span>Offline - Salvando local</span>`;
+  } else if (temPendenciasLocais) {
+    badge.className = 'net-status-badge offline';
+    badge.innerHTML = `<span>🟡</span> <span>Sincronizando fila...</span>`;
+  } else {
+    badge.className = 'net-status-badge online';
+    badge.innerHTML = `<span>🟢</span> <span>Online</span>`;
+  }
+}
+
+window.addEventListener('online', () => {
+  atualizarIndicadorRede();
+  showToast("🟢 Conexão restabelecida! Sincronizando dados...");
+});
+
+window.addEventListener('offline', () => {
+  atualizarIndicadorRede();
+  showToast("🟡 Sem internet: Modo Contingência ativo (salvando localmente).", true);
 });
 
 // Service Worker Registration Otimizado
@@ -774,14 +846,15 @@ function dispararNotificacaoPush(titulo, mensagem) {
 let somAtivo = false;
 let primeiraCargaFirebase = true;
 let salvandoPedidoEmAndamento = false;
-let processandoPagamento = false; // Trava contra duplo/triplo clique ao fechar mesa
+let processandoPagamento = false;
+let ouvintesFirebaseIniciados = false;
 
 let comandas = {};
 let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
+let ultimoPedidoCliente = {}; // Guarda a última rodada por cliente para repetição rápida
 
-// Inicia sempre vazio e remove qualquer prefixo de e-mail salvo anteriormente
 localStorage.removeItem('bb_garcom_atual');
 let garcomSessao = "";
 let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = "", categoriaAtual = "CHURRASCOS";
@@ -799,17 +872,6 @@ const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 function obterDiaSemanaPorTimestamp(ts) {
   if (!ts) return "";
   const d = new Date(ts);
-  if (isNaN(d.getTime())) return "";
-  return DIAS_SEMANA_PT[d.getDay()];
-}
-
-function obterDiaSemanaPorDataBR(dataBR, horarioStr = "12:00") {
-  if (!dataBR) return "";
-  const partes = dataBR.split('/');
-  if (partes.length !== 3) return "";
-  const [dia, mes, ano] = partes.map(Number);
-  const [hora, min] = (horarioStr || "12:00").split(':').map(Number);
-  const d = new Date(ano, mes - 1, dia, hora || 12, min || 0, 0);
   if (isNaN(d.getTime())) return "";
   return DIAS_SEMANA_PT[d.getDay()];
 }
@@ -852,7 +914,6 @@ function obterTimestampRegistro(reg) {
   return 0;
 }
 
-// Calcula automaticamente o expediente atual ou da última madrugada (ex: 15:00 de ontem até 09:00 de hoje)
 function obterIntervaloTurnoPadrao() {
   const agora = new Date();
   const inicio = new Date(agora);
@@ -875,7 +936,7 @@ function obterIntervaloTurnoPadrao() {
 }
 
 const turnoInicialPadrao = obterIntervaloTurnoPadrao();
-let modoFiltroRelatorio = 'PERIODO'; // 'PERIODO' ou 'TODAS'
+let modoFiltroRelatorio = 'PERIODO';
 let filtroDataHoraInicio = turnoInicialPadrao.inicio;
 let filtroDataHoraFim = turnoInicialPadrao.fim;
 
@@ -890,7 +951,6 @@ function registroDentroDoPeriodo(reg) {
   return ts >= tsInicio && ts <= tsFim;
 }
 
-// Senhas de acesso aos setores (Cozinha, Churrasco e Bebidas)
 const SENHAS_SETORES = {
   cozinha: "1234",
   churrasco: "5678",
@@ -936,7 +996,6 @@ function toggleSound(){
   }
 }
 
-// Alerta Sonoro de Persistência
 let intervalSinalPersistente = null;
 
 function iniciarAlertaPersistente(mensagem) {
@@ -1035,6 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if('Notification' in window && Notification.permission === 'granted'){
     document.getElementById('pushToggleBtn')?.classList.add('active');
   }
+  atualizarIndicadorRede();
 });
 
 function showToast(msg, isError = false){
@@ -1348,9 +1408,14 @@ function removerItemAdmin(cat, idx){
 }
 
 function iniciarOuvintesFirebase() {
+  if (ouvintesFirebaseIniciados) return;
+  ouvintesFirebaseIniciados = true;
   carregarCardapioDinamico();
 
-  db.collection("comandas").onSnapshot(snapshot => {
+  db.collection("comandas").onSnapshot({ includeMetadataChanges: true }, snapshot => {
+    temPendenciasLocais = snapshot.metadata.hasPendingWrites;
+    atualizarIndicadorRede();
+
     let novasComandas = {};
     snapshot.forEach(doc => { 
       let id = doc.id;
@@ -1371,7 +1436,6 @@ function iniciarOuvintesFirebase() {
   db.collection("historico").onSnapshot(snapshot => {
     historicoVendas = [];
     snapshot.forEach(doc => {
-      // Salva o doc.id junto dos dados para permitir excluir comandas duplicadas individualmente
       historicoVendas.push({ ...doc.data(), _docId: doc.id });
     });
     historicoVendas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
@@ -1391,20 +1455,59 @@ function iniciarOuvintesFirebase() {
   }, err => {});
 }
 
+// RESTAURA AUTOMATICAMENTE O LOGIN GRAVADO NO NAVEGADOR
+firebase.auth().onAuthStateChanged((user) => {
+  if (modoCliente) return;
+  if (user && user.email) {
+    usuarioLogadoEmail = user.email;
+    concluirLogin(usuarioLogadoEmail);
+  } else {
+    usuarioLogadoEmail = "";
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+});
+
 function handleLogin(e){
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
+  const btnSubmit = document.getElementById('btn-submit-login');
   document.getElementById('login-error').style.display = 'none';
 
-  firebase.auth().signInWithEmailAndPassword(email, pass)
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Entrando...';
+  }
+
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(() => firebase.auth().signInWithEmailAndPassword(email, pass))
     .then((userCredential)=>{
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Entrar no Sistema';
+      }
       usuarioLogadoEmail = userCredential.user.email;
       concluirLogin(usuarioLogadoEmail);
     })
     .catch(()=>{
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Entrar no Sistema';
+      }
       document.getElementById('login-error').style.display = 'block';
     });
+}
+
+function sairDoSistema() {
+  if (!confirm("Deseja sair da conta atual e voltar para a tela de login?")) return;
+  firebase.auth().signOut().then(() => {
+    usuarioLogadoEmail = "";
+    sessionStorage.clear();
+    document.getElementById('login-screen').style.display = 'flex';
+    showToast("Sessão encerrada.");
+  }).catch(err => {
+    showToast("Erro ao sair: " + err.message, true);
+  });
 }
 
 function concluirLogin(email){
@@ -1507,6 +1610,16 @@ function renomearClienteAtual(){
   showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
+function repetirUltimoPedidoCliente() {
+  const ultimo = ultimoPedidoCliente[clienteAtual];
+  if (!ultimo || !ultimo.nome) {
+    showToast(`Nenhum item anterior registrado para ${clienteAtual}.`, true);
+    return;
+  }
+  alterarQtd(ultimo.nome, 1);
+  showToast(`🔄 +1 ${ultimo.nome} repetido para ${clienteAtual}!`);
+}
+
 function salvarRascunhoAutomatico(){
   if(telaAtual !== "atendimento" || !mesaSelecionada) return;
   const itens = itensTempComClientes();
@@ -1539,6 +1652,7 @@ function alterarQtd(nome, delta){
   pedidoTemp[clienteAtual][nome] = novaQtd;
 
   if(delta > 0) {
+    ultimoPedidoCliente[clienteAtual] = { nome: nome, timestamp: Date.now() };
     if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
       let itFound = comandas[mesaSelecionada].itens.find(x => x.cliente === clienteAtual && x.nome === nome);
       if(itFound) {
@@ -2166,6 +2280,7 @@ function processarTextoVoz(texto) {
 
       if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
       pedidoTemp[clienteAtual][p.nome] = (pedidoTemp[clienteAtual][p.nome] || 0) + qtd;
+      ultimoPedidoCliente[clienteAtual] = { nome: p.nome, timestamp: Date.now() };
       adicionados++;
     }
   });
@@ -2217,7 +2332,7 @@ function salvarComanda(numeroMesa) {
         salvandoPedidoEmAndamento = false;
         pedidoTemp = {}; 
         fecharModal();
-        showToast(`✅ Pedido enviado com sucesso na Mesa ${pad(numMesaStr)}!`);
+        showToast(navigator.onLine ? `✅ Pedido enviado com sucesso na Mesa ${pad(numMesaStr)}!` : `🟡 Pedido salvo offline na Mesa ${pad(numMesaStr)} (sincronizará ao voltar a rede).`);
         if(modoCliente) {
           document.getElementById("modalTitle").textContent = "✅ Pedido Enviado!";
           document.getElementById("modalBody").innerHTML = `
@@ -2567,7 +2682,6 @@ function calcularValorSelecionadoComControle(){
   document.getElementById('lblTotalSelecionado').textContent = br(totalSel);
 }
 
-// ----------------- NOVO FLUXO OBRIGATÓRIO DE ESCOLHA DE PAGAMENTO -----------------
 let formaPagamentoEscolhidaTemp = "";
 let baixasPendentesTemp = {};
 let valorPendenteTemp = 0;
@@ -2576,7 +2690,7 @@ function abrirConfirmacaoPagamento(num, tipo) {
   const c = comandas[num];
   if (!c) return;
 
-  processandoPagamento = false; // Reseta trava ao abrir tela de confirmação
+  processandoPagamento = false;
   formaPagamentoEscolhidaTemp = "";
   baixasPendentesTemp = {};
   valorPendenteTemp = 0;
@@ -2695,9 +2809,8 @@ function atualizarTrocoModal(valorAlvo) {
   lbl.textContent = br(troco);
 }
 
-// CORREÇÃO PRINCIPAL: Bloqueio imediato contra múltiplos cliques + batch atômico
 function executarPagamentoConfirmado(num, tipo) {
-  if (processandoPagamento) return; // Ignora cliques extras imediatamente
+  if (processandoPagamento) return;
   if (!formaPagamentoEscolhidaTemp) {
     showToast("Por favor, selecione a forma de pagamento!", true);
     return;
@@ -2710,7 +2823,6 @@ function executarPagamentoConfirmado(num, tipo) {
     return;
   }
 
-  // Trava o botão e a execução no exato milissegundo do primeiro toque
   processandoPagamento = true;
   const btnConfirmar = document.getElementById('btnConfirmarFinalPagamento');
   if (btnConfirmar) {
@@ -2805,7 +2917,7 @@ function executarPagamentoConfirmado(num, tipo) {
 
     batch.commit().then(() => {
       processandoPagamento = false;
-      delete comandas[numMesaStr]; // Limpa imediatamente da memória local
+      delete comandas[numMesaStr];
       fecharModal();
       showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
       renderizar();
@@ -2942,7 +3054,6 @@ function limparRelatorios(){
   }
 }
 
-// NOVA FUNÇÃO: Excluir uma venda fechada específica (ideal para remover duplicadas)
 function excluirVendaHistorico(docId, mesaNum, valorTotal, horarioStr) {
   if (!docId) {
     showToast("Não foi possível identificar este registro para exclusão.", true);
@@ -2970,7 +3081,6 @@ function excluirVendaHistorico(docId, mesaNum, valorTotal, horarioStr) {
     });
 }
 
-// EXIBE DETALHES COMPLETOS DA MESA FECHADA NO RELATÓRIO + BOTÃO DE APAGAR
 function abrirDetalhesVendaHistorico(index) {
   const venda = historicoVendas[index];
   if (!venda) return;
@@ -3452,6 +3562,8 @@ function renderAtendimento(){
     <button onclick="mudarClienteAtual('${escapeHTML(cli)}')" style="padding:6px 14px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${escapeHTML(cli)}</button>
   `).join('');
 
+  const temUltimoItem = !!(ultimoPedidoCliente[clienteAtual] && ultimoPedidoCliente[clienteAtual].nome);
+
   document.getElementById("conteudo").innerHTML = `
     <div class="topbar" style="margin-bottom:14px">
       ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
@@ -3471,6 +3583,7 @@ function renderAtendimento(){
         ${pillsPessoasHTML}
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
+        ${temUltimoItem ? `<button onclick="repetirUltimoPedidoCliente()" style="padding:6px 10px;border-radius:12px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.12);color:#10b981;font-weight:900;font-size:11px;cursor:pointer" title="Repetir último item (${escapeHTML(ultimoPedidoCliente[clienteAtual].nome)})">🔄 Repetir</button>` : ''}
         <button onclick="adicionarNovoClientePrompt()" style="padding:6px 12px;border-radius:12px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
         <button onclick="renomearClienteAtual()" style="padding:6px 12px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
       </div>
@@ -3494,6 +3607,8 @@ function renderizar(){
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('navInferior').style.display = 'none';
     document.getElementById('adminHeaderBtn').style.display = 'none';
+    const logoutBtn = document.getElementById('logoutHeaderBtn');
+    if (logoutBtn) logoutBtn.style.display = 'none';
     document.getElementById('user-role-label').textContent = 'CARDÁPIO DIGITAL — B.B CHURRASCO';
     if(mesaUrlCliente) mesaSelecionada = mesaUrlCliente;
     else mesaSelecionada = 1;
@@ -3512,7 +3627,6 @@ function renderizar(){
   else if(telaAtual === 'atendimento') renderAtendimento();
 }
 
-// Atualiza automaticamente os tempos, cronômetros da fila e alertas de mesas paradas a cada 30 segundos
 setInterval(() => {
   if (!modoCliente && ['mesas', 'comandas', 'cozinha', 'churrasco', 'bebidas'].includes(telaAtual)) {
     renderizar();
