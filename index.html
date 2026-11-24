@@ -474,7 +474,7 @@ body{padding-bottom:140px}
   text-align: center;
 }
 
-/* CORRIGIDO: Barra inferior do carrinho visível e responsiva ao anotar itens */
+/* Barra inferior do carrinho visível e responsiva ao anotar itens */
 .cartbar{
   position: fixed;
   z-index: 90;
@@ -858,6 +858,7 @@ let primeiraCargaFirebase = true;
 let ouvintesIniciados = false;
 let salvandoPedidoEmAndamento = false;
 let processandoPagamento = false;
+let timerRascunhoFirebase = null;
 
 let comandas = {};
 let historicoVendas = [];
@@ -890,6 +891,84 @@ let usuarioLogadoEmail = "";
 
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
+
+// ----------------- RASCUNHO AUTOMÁTICO DA COMANDA -----------------
+function mesclarItensComanda(existentes, novos) {
+  const mapa = new Map();
+
+  (existentes || []).forEach((it, idx) => {
+    const id = it.itemId || `legado_${idx}_${it.nome}_${it.timestampItem || 0}`;
+    const chave = `${it.cliente || 'Cliente 1'}||${it.nome}||${it.statusCozinha || ''}||${it.horario || ''}`;
+    mapa.set(chave, {
+      ...it,
+      itemId: id,
+      cliente: it.cliente || 'Cliente 1',
+      qtd: Number(it.qtd) || 0,
+      preco: Number(it.preco) || 0
+    });
+  });
+
+  (novos || []).forEach(it => {
+    const qtdAdd = Number(it.qtd) || 0;
+    if (qtdAdd <= 0) return;
+    const chave = `${it.cliente || 'Cliente 1'}||${it.nome}||${it.statusCozinha || ''}||${it.horario || ''}`;
+    if (mapa.has(chave)) {
+      const atual = mapa.get(chave);
+      atual.qtd = (Number(atual.qtd) || 0) + qtdAdd;
+      atual.preco = Number(it.preco) || atual.preco;
+      atual.timestampItem = it.timestampItem || atual.timestampItem || Date.now();
+    } else {
+      mapa.set(chave, {
+        ...it,
+        itemId: it.itemId || gerarIdUnicoItem(),
+        cliente: it.cliente || 'Cliente 1',
+        qtd: qtdAdd,
+        preco: Number(it.preco) || 0
+      });
+    }
+  });
+
+  return Array.from(mapa.values()).filter(x => (Number(x.qtd) || 0) > 0);
+}
+
+function salvarRascunhoMesa(numeroMesa, mostrarAvisoRascunho = false) {
+  if (!numeroMesa) return;
+  const numMesaStr = String(numeroMesa);
+  const itensConsolidados = mesclarItensComanda(itensMesaExistentes, novosLotesTemp);
+  const totalCalculado = itensConsolidados.reduce((s, x) => s + (Number(x.qtd) || 0) * (Number(x.preco) || 0), 0);
+  const comandaAtual = comandas[numMesaStr] || {};
+  const temAlgumItemOuPago = itensConsolidados.length > 0 || ((comandaAtual.itensPagos || []).length > 0);
+
+  if (!temAlgumItemOuPago && !garcomTemp && !comandaAtual.garcom) {
+    return;
+  }
+
+  const dadosRascunho = {
+    garcom: garcomTemp || comandaAtual.garcom || (modoCliente ? "Cliente Online" : ""),
+    itens: itensConsolidados,
+    itensPagos: comandaAtual.itensPagos || [],
+    total: totalCalculado,
+    criadoEm: comandaAtual.criadoEm || Date.now(),
+    atualizadoEm: Date.now(),
+    rascunhoAtivo: true,
+    origemPedido: modoCliente ? 'cliente' : (comandaAtual.origemPedido || 'garcom')
+  };
+
+  comandas[numMesaStr] = { ...comandaAtual, ...dadosRascunho };
+
+  clearTimeout(timerRascunhoFirebase);
+  timerRascunhoFirebase = setTimeout(() => {
+    db.collection("comandas").doc(numMesaStr).set(dadosRascunho, { merge: true })
+      .then(() => {
+        if (mostrarAvisoRascunho) {
+          showToast(`📝 Rascunho salvo na Mesa ${pad(numMesaStr)}`);
+        }
+      })
+      .catch(err => {
+        console.warn("Rascunho salvo em fila local/memória:", err);
+      });
+  }, 180);
+}
 
 // ----------------- LOG DE AUDITORIA -----------------
 function obterResponsavelAuditoria() {
@@ -1597,6 +1676,9 @@ firebase.auth().onAuthStateChanged((user) => {
 
 function mudarTela(t, num=null){
   if(t === 'relatorios' && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) return;
+  if(telaAtual === 'atendimento' && mesaSelecionada && t !== 'atendimento'){
+    salvarRascunhoMesa(mesaSelecionada, false);
+  }
   telaAtual = t;
   if(num !== null) mesaSelecionada = Number(num);
   salvarEstadoSessao();
@@ -1611,7 +1693,7 @@ function abrirMesa(num){
   clientesMesaLista = ["Cliente 1"];
   clienteAtual = "Cliente 1";
   termoBuscaProduto = "";
-  garcomTemp = "";
+  garcomTemp = garcomSessao || "";
 
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
@@ -1647,10 +1729,8 @@ function atualizarGarcom(v){
   if (roleLabel && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) {
     roleLabel.textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
   }
-  if (mesaSelecionada && comandas[mesaSelecionada]) {
-    db.collection("comandas").doc(String(mesaSelecionada)).update({
-      garcom: garcomTemp
-    }).catch(()=>{});
+  if (mesaSelecionada) {
+    salvarRascunhoMesa(mesaSelecionada, false);
   }
 }
 
@@ -1684,18 +1764,13 @@ function renomearClienteAtual(){
   clienteAtual = novoNome;
   renderAtendimento();
 
-  if(mesaSelecionada && comandas[mesaSelecionada]) {
-    const totalAtualizado = todosItensDaMesaAtual().reduce((s, x) => s + (Number(x.qtd) || 0) * (Number(x.preco) || 0), 0);
-    db.collection("comandas").doc(String(mesaSelecionada)).update({
-      itens: itensMesaExistentes,
-      total: totalAtualizado,
-      atualizadoEm: Date.now()
-    }).catch(()=>{});
+  if(mesaSelecionada) {
+    salvarRascunhoMesa(mesaSelecionada, true);
   }
   showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
-// LÓGICA DE ALTERAÇÃO DE QUANTIDADE E ATUALIZAÇÃO IMEDIATA DE PREÇO
+// LÓGICA DE ALTERAÇÃO DE QUANTIDADE COM SALVAMENTO AUTOMÁTICO EM RASCUNHO
 function alterarQtd(nome, delta){ 
   let pObj = produtosFlat().find(p => p.nome === nome);
   if(pObj && pObj.indisponivel){
@@ -1707,6 +1782,7 @@ function alterarQtd(nome, delta){
   const agora = new Date();
   const horarioAtualStr = agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   const timestampAtual = agora.getTime();
+  let houveAlteracaoLocal = false;
 
   let idxNovo = novosLotesTemp.findIndex(it => it.cliente === clienteAtual && it.nome === nome);
 
@@ -1731,12 +1807,14 @@ function alterarQtd(nome, delta){
         timestampItem: timestampAtual
       });
     }
+    houveAlteracaoLocal = true;
   } else if (delta < 0) {
     if (idxNovo !== -1) {
       novosLotesTemp[idxNovo].qtd += delta;
       if (novosLotesTemp[idxNovo].qtd <= 0) {
         novosLotesTemp.splice(idxNovo, 1);
       }
+      houveAlteracaoLocal = true;
     } else {
       for (let i = itensMesaExistentes.length - 1; i >= 0; i--) {
         if (itensMesaExistentes[i].cliente === clienteAtual && itensMesaExistentes[i].nome === nome) {
@@ -1762,19 +1840,16 @@ function alterarQtd(nome, delta){
             motivo: motivoRemocao
           });
 
-          if (mesaSelecionada && comandas[mesaSelecionada]) {
-            const totalAtualizado = todosItensDaMesaAtual().reduce((s, x) => s + (Number(x.qtd) || 0) * (Number(x.preco) || 0), 0);
-            db.collection("comandas").doc(String(mesaSelecionada)).update({
-              itens: itensMesaExistentes,
-              total: totalAtualizado,
-              atualizadoEm: Date.now()
-            }).catch(()=>{});
-          }
+          houveAlteracaoLocal = true;
           showToast(`Remoção registrada na auditoria (${qtdRemover}x ${nome}).`, true);
           break;
         }
       }
     }
+  }
+
+  if (houveAlteracaoLocal && mesaSelecionada) {
+    salvarRascunhoMesa(mesaSelecionada, false);
   }
 
   renderProdutos(); 
@@ -1800,7 +1875,7 @@ function produtosFlat(){
 }
 
 function todosItensDaMesaAtual(){
-  return [...itensMesaExistentes, ...novosLotesTemp].filter(it => (Number(it.qtd) || 0) > 0);
+  return mesclarItensComanda(itensMesaExistentes, novosLotesTemp);
 }
 
 function totalTemp(){ 
@@ -1818,7 +1893,7 @@ function atualizarBar(){
 
   if(telaAtual === "atendimento" && totalItens > 0){
     bar.classList.add("show-cart");
-    const extraNovos = novosCount > 0 ? ` (${novosCount} ${novosCount === 1 ? 'novo' : 'novos'})` : '';
+    const extraNovos = novosCount > 0 ? ` • Rascunho (${novosCount} ${novosCount === 1 ? 'novo' : 'novos'})` : ' • Rascunho salvo';
     if (countEl) countEl.textContent = `${totalItens} ${totalItens === 1 ? "item" : "itens"}${extraNovos}`;
     if (totalEl) totalEl.textContent = br(total);
   } else {
@@ -2393,10 +2468,11 @@ function adicionarNovoClientePrompt(){
   if(!clientesMesaLista.includes(nomeCli)) clientesMesaLista.push(nomeCli);
   clienteAtual = nomeCli;
   renderAtendimento();
+  if(mesaSelecionada) salvarRascunhoMesa(mesaSelecionada, false);
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-// CORRIGIDO: Salva os itens e o preço total da mesa corretamente e mantém o estado sincronizado
+// Consolida o rascunho / pedido final no Firestore
 function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
     const itens = todosItensDaMesaAtual(); 
@@ -2404,6 +2480,7 @@ function salvarComanda(numeroMesa) {
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
+    clearTimeout(timerRascunhoFirebase);
 
     const comandaAtual = comandas[numMesaStr] || {};
     const totalGeralAcumulado = totalTemp();
@@ -2415,11 +2492,11 @@ function salvarComanda(numeroMesa) {
       total: totalGeralAcumulado, 
       criadoEm: comandaAtual.criadoEm || Date.now(), 
       atualizadoEm: Date.now(), 
+      rascunhoAtivo: false,
       novoPedidoAlerta: modoCliente ? true : false,
       origemPedido: modoCliente ? 'cliente' : 'garcom'
     };
 
-    // Atualiza estado local imediatamente para evitar sumiço em caso de recarregamento rápido
     comandas[numMesaStr] = { ...comandaAtual, ...dadosMesa };
     itensMesaExistentes = itens.map(it => ({ ...it }));
     novosLotesTemp = [];
@@ -2452,6 +2529,7 @@ function salvarComanda(numeroMesa) {
 
 function fecharComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
+    clearTimeout(timerRascunhoFirebase);
     delete comandas[numMesaStr];
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
         showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
@@ -2514,6 +2592,7 @@ function alterarQtdLoteModal(itemId, delta){
     if (novosLotesTemp[idxNovo].qtd <= 0) {
       novosLotesTemp.splice(idxNovo, 1);
     }
+    if (mesaSelecionada) salvarRascunhoMesa(mesaSelecionada, false);
   } else {
     let idxAnt = itensMesaExistentes.findIndex(it => it.itemId === itemId);
     if (idxAnt !== -1) {
@@ -2545,15 +2624,8 @@ function alterarQtdLoteModal(itemId, delta){
         itemAlvo.qtd += delta;
       }
 
-      if (mesaSelecionada && comandas[mesaSelecionada]) {
-        const totalAtualizado = todosItensDaMesaAtual().reduce((s, x) => s + (Number(x.qtd) || 0) * (Number(x.preco) || 0), 0);
-        comandas[mesaSelecionada].itens = [...itensMesaExistentes];
-        comandas[mesaSelecionada].total = totalAtualizado;
-        db.collection("comandas").doc(String(mesaSelecionada)).update({
-          itens: itensMesaExistentes,
-          total: totalAtualizado,
-          atualizadoEm: Date.now()
-        }).catch(()=>{});
+      if (mesaSelecionada) {
+        salvarRascunhoMesa(mesaSelecionada, false);
       }
     }
   }
@@ -2976,6 +3048,7 @@ function executarPagamentoConfirmado(num, tipo) {
   }
 
   processandoPagamento = true;
+  clearTimeout(timerRascunhoFirebase);
   const btnConfirmar = document.getElementById('btnConfirmarFinalPagamento');
   if (btnConfirmar) {
     btnConfirmar.disabled = true;
@@ -3610,7 +3683,7 @@ function renderMesas(){
    arrayMesasHTML.push(`
      <div class="table ${statusClass} ${alertaNovo} ${alertaConta}" data-mesa="${i}" onclick="abrirMesa(${i})">
        <div class="num">Mesa ${pad(i)}</div>
-       <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
+       <div class="badge-status ${statusClass}">${busy ? (c.rascunhoAtivo ? 'Rascunho' : 'Ocupada') : 'Livre'}</div>
        ${(busy && totalCalc > 0) ? `<div class="total">${br(totalCalc)}</div>` : ''}
        ${(busy && tempoInfo) ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
        ${(busy && textoSemConsumo) ? `<div class="alerta-parada">${textoSemConsumo}</div>` : ''}
@@ -3692,7 +3765,7 @@ function renderComandas(){
         <div class="card command">
           <div class="row" style="align-items:center;margin-bottom:8px">
             <div>
-              <h3>Mesa ${pad(i)}</h3>
+              <h3>Mesa ${pad(i)} ${c.rascunhoAtivo ? '<span style="font-size:10px;background:rgba(56,189,248,0.15);color:#0284c7;padding:2px 8px;border-radius:99px;margin-left:4px;font-weight:900">Rascunho</span>' : ''}</h3>
               <small class="muted">Garçom: <b>${escapeHTML(c.garcom || 'Sem Garçom')}</b></small>
               ${textoSemConsumo ? `<div class="alerta-parada" style="display:inline-block;margin-top:4px">${textoSemConsumo}</div>` : ''}
             </div>
@@ -3745,7 +3818,7 @@ function renderAtendimento(){
       ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
       <div class="mesa-head">
         <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'} — Pedido</h2>
-        <p>Adicionando para: <b>${escapeHTML(clienteAtual)}</b></p>
+        <p>Adicionando para: <b>${escapeHTML(clienteAtual)}</b> • <i>Rascunho automático</i></p>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${modoCliente ? '' : `<button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:14px;width:40px;height:40px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>`}
