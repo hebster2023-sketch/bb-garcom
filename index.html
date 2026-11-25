@@ -699,6 +699,11 @@ function escapeHTML(str) {
   );
 }
 
+// Gera identificador único para cada lançamento/remessa de item
+function gerarLoteId() {
+  return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyBP_3bvi9PnViCPkIQqEdoF1I7BcItfHEY",
   authDomain: "bbchurrasco-app.firebaseapp.com",
@@ -1430,6 +1435,10 @@ function iniciarOuvintesFirebase() {
     comandas = novasComandas;
 
     if(["mesas", "comandas", "cozinha", "churrasco", "bebidas"].includes(telaAtual)) renderizar();
+    if(telaAtual === "atendimento") {
+      atualizarResumoEnviadosAtendimento();
+      renderProdutos();
+    }
   }, err => console.error("Erro offline/snapshot:", err));
 
   db.collection("historico").onSnapshot(snapshot => {
@@ -1536,8 +1545,12 @@ function mudarTela(t, num=null){
   telaAtual = t; if(num !== null) mesaSelecionada = Number(num); renderizar(); window.scrollTo(0,0);
 }
 
+// ----------------- ATENDIMENTO: SALVA NA HORA AO APERTAR "+" (CADA TOQUE = NOVA REMESSA) -----------------
 function abrirMesa(num){
-  mesaSelecionada = Number(num); pedidoTemp = {}; clienteAtual = "Cliente 1"; termoBuscaProduto = "";
+  mesaSelecionada = Number(num);
+  pedidoTemp = { "Cliente 1": {} };
+  clienteAtual = "Cliente 1";
+  termoBuscaProduto = "";
   garcomTemp = "";
 
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
@@ -1548,17 +1561,8 @@ function abrirMesa(num){
     }).catch(()=>{});
   }
 
-  if(comandas[num]){
-    if(comandas[num].garcom) {
-      garcomTemp = comandas[num].garcom;
-    }
-    if(comandas[num].itens){
-      comandas[num].itens.forEach(it => {
-        let cli = it.cliente || "Cliente 1";
-        if(!pedidoTemp[cli]) pedidoTemp[cli] = {};
-        pedidoTemp[cli][it.nome] = (pedidoTemp[cli][it.nome] || 0) + it.qtd;
-      });
-    }
+  if(comandas[num] && comandas[num].garcom) {
+    garcomTemp = comandas[num].garcom;
   }
 
   mudarTela("atendimento", num);
@@ -1571,11 +1575,16 @@ function atualizarGarcom(v){
   if (roleLabel && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) {
     roleLabel.textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
   }
-  salvarRascunhoAutomatico();
+  if(mesaSelecionada && comandas[mesaSelecionada]) {
+    db.collection("comandas").doc(String(mesaSelecionada)).update({
+      garcom: garcomTemp || (modoCliente ? "Cliente Online" : "")
+    }).catch(()=>{});
+  }
 }
 
 function mudarClienteAtual(novoCli){
   clienteAtual = escapeHTML(novoCli.trim()) || "Cliente 1";
+  if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
   renderAtendimento();
 }
 
@@ -1585,7 +1594,8 @@ function renomearClienteAtual(){
   novoNome = escapeHTML(novoNome.trim());
   if(novoNome === clienteAtual) return;
   
-  if(pedidoTemp[novoNome]){
+  const listaExistente = obterListaClientesMesa();
+  if(listaExistente.includes(novoNome)){
     showToast("Já existe uma pessoa com esse nome.", true);
     return;
   }
@@ -1595,36 +1605,141 @@ function renomearClienteAtual(){
   delete pedidoTemp[nomeAntigo];
   pedidoTemp[novoNome] = { ...itensCliente };
 
-  if(mesaSelecionada && comandas[mesaSelecionada]) {
-    if(Array.isArray(comandas[mesaSelecionada].itens)) {
-      comandas[mesaSelecionada].itens.forEach(it => {
-        if(it.cliente === nomeAntigo) it.cliente = novoNome;
-      });
+  if(mesaSelecionada && comandas[mesaSelecionada] && Array.isArray(comandas[mesaSelecionada].itens)) {
+    let alterou = false;
+    comandas[mesaSelecionada].itens.forEach(it => {
+      if(it.cliente === nomeAntigo) {
+        it.cliente = novoNome;
+        alterou = true;
+      }
+    });
+    if(alterou) {
+      db.collection("comandas").doc(String(mesaSelecionada)).update({
+        itens: comandas[mesaSelecionada].itens
+      }).catch(()=>{});
     }
   }
 
   clienteAtual = novoNome;
   renderAtendimento();
-  salvarRascunhoAutomatico();
   showToast(`Cliente renomeado para "${novoNome}"!`);
 }
 
-function salvarRascunhoAutomatico(){
-  if(telaAtual !== "atendimento" || !mesaSelecionada) return;
-  const itens = itensTempComClientes();
-  const total = totalTemp();
-  const comandaAtual = comandas[mesaSelecionada] || {};
+function obterListaClientesMesa() {
+  let setClientes = new Set(["Cliente 1"]);
+  Object.keys(pedidoTemp).forEach(c => setClientes.add(c));
+  if (mesaSelecionada && comandas[mesaSelecionada] && Array.isArray(comandas[mesaSelecionada].itens)) {
+    comandas[mesaSelecionada].itens.forEach(it => {
+      if (it.cliente) setClientes.add(it.cliente);
+    });
+  }
+  return Array.from(setClientes);
+}
 
-  const dadosMesa = { 
-    garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
-    itens: itens, 
-    total: total, 
-    criadoEm: comandaAtual.criadoEm || Date.now(),
-    atualizadoEm: Date.now(),
-    origemPedido: modoCliente ? 'cliente' : 'garcom'
+// Conta quantas unidades desse produto esse cliente já tem na mesa
+function obterQtdNaMesa(nomeProd, cli = clienteAtual) {
+  if (!mesaSelecionada || !comandas[mesaSelecionada] || !Array.isArray(comandas[mesaSelecionada].itens)) {
+    return 0;
+  }
+  return comandas[mesaSelecionada].itens
+    .filter(it => (it.cliente || 'Cliente 1') === cli && it.nome === nomeProd)
+    .reduce((acc, it) => acc + (Number(it.qtd) || 0), 0);
+}
+
+// Salva instantaneamente na comanda criando uma nova remessa separada a cada "+"
+function salvarAdicaoDiretaNaComanda(nomeProd, cli) {
+  if (!mesaSelecionada) return;
+  const numMesaStr = String(mesaSelecionada);
+  const pObj = produtosFlat().find(p => p.nome === nomeProd);
+  const preco = pObj ? Number(pObj.preco || 0) : 0;
+  const catDoItem = pObj ? pObj.cat : "";
+  const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS", "BEBIDAS", "REFRIGERANTES"];
+  const statusInicial = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
+
+  const agora = Date.now();
+  const horarioAtualStr = new Date(agora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+  const novoLote = {
+    loteId: gerarLoteId(),
+    cliente: cli,
+    nome: nomeProd,
+    qtd: 1,
+    preco: preco,
+    statusCozinha: statusInicial,
+    horario: horarioAtualStr,
+    timestampItem: agora
   };
 
-  db.collection("comandas").doc(String(mesaSelecionada)).set(dadosMesa, { merge: true }).catch(err => console.error(err));
+  const comandaAtual = comandas[numMesaStr] || {};
+  const itensExistentes = Array.isArray(comandaAtual.itens) ? [...comandaAtual.itens] : [];
+  itensExistentes.push(novoLote);
+
+  const totalGeral = itensExistentes.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+
+  const dadosMesa = {
+    garcom: garcomTemp || comandaAtual.garcom || "",
+    itens: itensExistentes,
+    itensPagos: comandaAtual.itensPagos || [],
+    total: totalGeral,
+    criadoEm: comandaAtual.criadoEm || agora,
+    atualizadoEm: agora,
+    origemPedido: 'garcom'
+  };
+
+  // Atualiza cache local imediatamente para resposta instantânea na UI
+  comandas[numMesaStr] = { ...comandaAtual, ...dadosMesa };
+  atualizarResumoEnviadosAtendimento();
+  renderProdutos();
+  showToast(`+1 ${nomeProd} salvo na Mesa ${pad(numMesaStr)} (${horarioAtualStr})`);
+
+  db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true }).catch(err => {
+    showToast("Erro ao salvar item: " + err.message, true);
+  });
+}
+
+// Diminui 1 unidade do último lançamento desse produto para o cliente atual na mesa
+function removerUltimaUnidadeDireta(nomeProd, cli) {
+  if (!mesaSelecionada) return;
+  const numMesaStr = String(mesaSelecionada);
+  const comandaAtual = comandas[numMesaStr];
+  if (!comandaAtual || !Array.isArray(comandaAtual.itens)) return;
+
+  let itensCopia = [...comandaAtual.itens];
+  // Procura de trás para frente pelo último lançamento desse item para esse cliente
+  let idxAlvo = -1;
+  for (let i = itensCopia.length - 1; i >= 0; i--) {
+    if ((itensCopia[i].cliente || 'Cliente 1') === cli && itensCopia[i].nome === nomeProd) {
+      idxAlvo = i;
+      break;
+    }
+  }
+  if (idxAlvo === -1) return;
+
+  if (Number(itensCopia[idxAlvo].qtd) > 1) {
+    itensCopia[idxAlvo] = { ...itensCopia[idxAlvo], qtd: Number(itensCopia[idxAlvo].qtd) - 1 };
+  } else {
+    itensCopia.splice(idxAlvo, 1);
+  }
+
+  const totalGeral = itensCopia.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+
+  if (itensCopia.length === 0 && (!comandaAtual.itensPagos || comandaAtual.itensPagos.length === 0)) {
+    delete comandas[numMesaStr];
+    atualizarResumoEnviadosAtendimento();
+    renderProdutos();
+    showToast(`Removido ${nomeProd} — Mesa ${pad(numMesaStr)} livre`);
+    db.collection("comandas").doc(numMesaStr).delete().catch(()=>{});
+  } else {
+    comandas[numMesaStr] = { ...comandaAtual, itens: itensCopia, total: totalGeral, atualizadoEm: Date.now() };
+    atualizarResumoEnviadosAtendimento();
+    renderProdutos();
+    showToast(`-1 ${nomeProd} atualizado na Mesa ${pad(numMesaStr)}`);
+    db.collection("comandas").doc(numMesaStr).update({
+      itens: itensCopia,
+      total: totalGeral,
+      atualizadoEm: Date.now()
+    }).catch(()=>{});
+  }
 }
 
 function alterarQtd(nome, delta){ 
@@ -1633,26 +1748,26 @@ function alterarQtd(nome, delta){
     showToast(`O item "${nome}" está esgotado no momento.`, true);
     return;
   }
+
+  // No modo Garçom/Admin, cada clique em "+" já salva na hora como nova remessa separada!
+  if (!modoCliente) {
+    if (delta > 0) {
+      salvarAdicaoDiretaNaComanda(nome, clienteAtual);
+    } else if (delta < 0) {
+      removerUltimaUnidadeDireta(nome, clienteAtual);
+    }
+    return;
+  }
+
+  // No modo Cliente (QR Code / Delivery), acumula no carrinho até confirmar
   if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
-  
   let qtdAntiga = pedidoTemp[clienteAtual][nome] || 0;
   let novaQtd = qtdAntiga + delta;
   if(novaQtd < 0) novaQtd = 0;
   pedidoTemp[clienteAtual][nome] = novaQtd;
 
-  if(delta > 0) {
-    if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
-      let itFound = comandas[mesaSelecionada].itens.find(x => x.cliente === clienteAtual && x.nome === nome);
-      if(itFound) {
-        itFound.timestampItem = Date.now();
-        itFound.horario = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-      }
-    }
-  }
-
   renderProdutos(); 
   atualizarBar(); 
-  salvarRascunhoAutomatico(); 
 }
 
 function produtosFlat(){ 
@@ -1673,11 +1788,11 @@ function produtosFlat(){
   return a; 
 }
 
-function itensTempComClientes(){
+// Itens pendentes no carrinho (usado principalmente no modo cliente)
+function itensNovosDoCarrinho(){
   let arr = [];
-  const horarioAtualStr = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-  const comandaAntiga = comandas[mesaSelecionada] || {};
-
+  const agora = Date.now();
+  const horarioAtualStr = new Date(agora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS", "BEBIDAS", "REFRIGERANTES"];
 
   for(const cli in pedidoTemp){
@@ -1687,41 +1802,41 @@ function itensTempComClientes(){
         let pObj = produtosFlat().find(p => p.nome === prod);
         let preco = pObj ? pObj.preco : 0;
         let catDoItem = pObj ? pObj.cat : "";
-        
-        let horarioItem = horarioAtualStr;
-        let statusExistente = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
-        let timestampItem = Date.now();
+        let statusInicial = categoriasComPreparo.includes(catDoItem) ? 'pendente' : '';
 
-        if(comandaAntiga && comandaAntiga.itens){
-          let itAnt = comandaAntiga.itens.find(x => x.cliente === cli && x.nome === prod);
-          if(itAnt){
-            if(itAnt.statusCozinha !== undefined) statusExistente = itAnt.statusCozinha;
-            if(itAnt.horario) horarioItem = itAnt.horario;
-            if(itAnt.preco) preco = Number(itAnt.preco);
-            if(itAnt.timestampItem) timestampItem = itAnt.timestampItem;
-          }
-        }
-
-        arr.push({ cliente: cli, nome: prod, qtd: qtd, preco: preco, statusCozinha: statusExistente, horario: horarioItem, timestampItem: timestampItem });
+        arr.push({
+          loteId: gerarLoteId(),
+          cliente: cli,
+          nome: prod,
+          qtd: qtd,
+          preco: preco,
+          statusCozinha: statusInicial,
+          horario: horarioAtualStr,
+          timestampItem: agora
+        });
       }
     }
   }
   return arr;
 }
 
-function totalTemp(){ 
-  let itens = itensTempComClientes();
-  return itens.reduce((s,i) => s + i.qtd * i.preco, 0);
+function totalNovosCarrinho(){ 
+  return itensNovosDoCarrinho().reduce((s,i) => s + i.qtd * i.preco, 0);
 }
 
 function atualizarBar(){
-  const itensArr = itensTempComClientes();
-  const total = totalTemp();
-  const totalItens = itensArr.reduce((a,b) => a+b.qtd, 0);
   const bar = document.getElementById("cartBar");
+  if (!bar) return;
+  if (!modoCliente) {
+    bar.classList.remove("show-cart");
+    return;
+  }
+  const itensArr = itensNovosDoCarrinho();
+  const total = totalNovosCarrinho();
+  const totalItens = itensArr.reduce((a,b) => a+b.qtd, 0);
   if(telaAtual === "atendimento" && totalItens){
     bar.classList.add("show-cart");
-    document.getElementById("cartCount").textContent = `${totalItens} ${totalItens === 1 ? "item" : "itens"}`;
+    document.getElementById("cartCount").textContent = `+${totalItens} ${totalItens === 1 ? "novo item" : "novos itens"}`;
     document.getElementById("cartTotal").textContent = br(total);
   } else {
     bar.classList.remove("show-cart");
@@ -1758,17 +1873,10 @@ function renderProdutos(){
    const icon = itemBruto[2];
    const desc = itemBruto[3] || "";
    const indisponivel = itemBruto[4] === true;
-   
-   let timestampCriacao = itemBruto[5] || 0;
-   if(comandas[mesaSelecionada] && comandas[mesaSelecionada].itens) {
-     let itMesa = comandas[mesaSelecionada].itens.find(x => x.nome === nome);
-     if(itMesa && itMesa.timestampItem) {
-       timestampCriacao = Math.max(timestampCriacao, itMesa.timestampItem);
-     }
-   }
+   const timestampCriacao = itemBruto[5] || 0;
    
    const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < tempoDestaqueLimite));
-   const q = cliMap[nome] || 0;
+   const q = modoCliente ? (cliMap[nome] || 0) : obterQtdNaMesa(nome, clienteAtual);
    
    let renderThumb = `<span style="font-size:26px">📦</span>`;
    if (icon) {
@@ -1823,13 +1931,26 @@ function formatarEsperaFila(timestamp, status) {
   return `<span class="fila-timer ${classe}">há ${diffMin} min</span>`;
 }
 
-// ----------------- MÓDULO DA COZINHA -----------------
-function atualizarStatusItemCozinha(mesaNum, clienteName, nomeItem, novoStatus){
+// ----------------- MÓDULO DA COZINHA / CHURRASCO / BEBIDAS -----------------
+function atualizarStatusItemCozinha(mesaNum, loteId, clienteName, nomeItem, timestampItem, novoStatus){
   const comanda = comandas[mesaNum];
   if(!comanda || !comanda.itens) return;
 
-  const idx = comanda.itens.findIndex(it => it.cliente === clienteName && it.nome === nomeItem);
-  if(idx === -1) return;
+  let idx = -1;
+  if (loteId) {
+    idx = comanda.itens.findIndex(it => it.loteId === loteId);
+  }
+  if (idx === -1) {
+    idx = comanda.itens.findIndex(it => 
+      (it.cliente || 'Cliente 1') === clienteName && 
+      it.nome === nomeItem && 
+      Number(it.timestampItem || 0) === Number(timestampItem || 0)
+    );
+  }
+  if (idx === -1) {
+    idx = comanda.itens.findIndex(it => (it.cliente || 'Cliente 1') === clienteName && it.nome === nomeItem);
+  }
+  if (idx === -1) return;
 
   comanda.itens[idx].statusCozinha = novoStatus;
 
@@ -1863,7 +1984,7 @@ function renderCozinha(){
     let c = comandas[i];
     if(c){
       if(c.itens && c.itens.length > 0){
-        c.itens.forEach(it => {
+        c.itens.forEach((it) => {
           let catDoItem = "";
           for(let cat in cardapio){
             if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
@@ -1874,6 +1995,7 @@ function renderCozinha(){
           if(categoriasCozinha.includes(catDoItem)){
             listaItensTimeline.push({
               mesa: i,
+              loteId: it.loteId || '',
               garcom: c.garcom || 'Sem Garçom',
               cliente: it.cliente || 'Cliente 1',
               nome: it.nome,
@@ -1942,8 +2064,8 @@ function renderCozinha(){
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
       </div>
@@ -1992,6 +2114,7 @@ function renderChurrasco(){
           if(ehChurrasco){
             listaItensTimelineChurrasco.push({
               mesa: i,
+              loteId: it.loteId || '',
               garcom: c.garcom || 'Sem Garçom',
               cliente: it.cliente || 'Cliente 1',
               nome: it.nome,
@@ -2054,8 +2177,8 @@ function renderChurrasco(){
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
       </div>
@@ -2111,6 +2234,7 @@ function renderBebidas(){
           if(categoriasBebidas.includes(catDoItem)){
             listaItensTimelineBebidas.push({
               mesa: i,
+              loteId: it.loteId || '',
               garcom: c.garcom || 'Sem Garçom',
               cliente: it.cliente || 'Cliente 1',
               nome: it.nome,
@@ -2179,8 +2303,8 @@ function renderBebidas(){
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
           <div style="display:flex;gap:4px">
-            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Separar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Separar</button>` : ''}
+            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
           </div>
         </div>
       </div>
@@ -2266,8 +2390,14 @@ function processarTextoVoz(texto) {
         }
       }
 
-      if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
-      pedidoTemp[clienteAtual][p.nome] = (pedidoTemp[clienteAtual][p.nome] || 0) + qtd;
+      if (!modoCliente) {
+        for (let k = 0; k < qtd; k++) {
+          salvarAdicaoDiretaNaComanda(p.nome, clienteAtual);
+        }
+      } else {
+        if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
+        pedidoTemp[clienteAtual][p.nome] = (pedidoTemp[clienteAtual][p.nome] || 0) + qtd;
+      }
       adicionados++;
     }
   });
@@ -2275,7 +2405,6 @@ function processarTextoVoz(texto) {
   if(adicionados > 0) {
     renderProdutos();
     atualizarBar();
-    salvarRascunhoAutomatico();
     showToast(`Itens adicionados por voz para ${clienteAtual}!`);
   } else {
     showToast("Não reconheci nenhum produto válido no áudio.", true);
@@ -2292,20 +2421,23 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
+// Usado no modo Cliente (carrinho) ou para anexar itens adicionais
 function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
-    const itens = itensTempComClientes(); 
-    if(!itens.length){ showToast("Adicione pelo menos um produto.", true); return; }
+    const novosItens = itensNovosDoCarrinho(); 
+    if(!novosItens.length){ showToast("Adicione pelo menos um produto novo.", true); return; }
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
 
     const comandaAtual = comandas[numMesaStr] || {};
-    let totalGeralAcumulado = totalTemp();
+    const itensExistentes = Array.isArray(comandaAtual.itens) ? comandaAtual.itens : [];
+    const itensCombinados = [...itensExistentes, ...novosItens];
+    const totalGeralAcumulado = itensCombinados.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
 
     const dadosMesa = { 
-      garcom: garcomTemp || (modoCliente ? "Cliente Online" : ""), 
-      itens: itens, 
+      garcom: garcomTemp || comandaAtual.garcom || (modoCliente ? "Cliente Online" : ""), 
+      itens: itensCombinados, 
       itensPagos: comandaAtual.itensPagos || [], 
       total: totalGeralAcumulado, 
       criadoEm: comandaAtual.criadoEm || Date.now(), 
@@ -2317,9 +2449,9 @@ function salvarComanda(numeroMesa) {
     db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true })
       .then(() => {
         salvandoPedidoEmAndamento = false;
-        pedidoTemp = {}; 
+        pedidoTemp = { "Cliente 1": {} }; 
         fecharModal();
-        showToast(navigator.onLine ? `✅ Pedido enviado com sucesso na Mesa ${pad(numMesaStr)}!` : `🟡 Pedido salvo offline na Mesa ${pad(numMesaStr)} (sincronizará ao voltar a rede).`);
+        showToast(navigator.onLine ? `✅ Novo pedido enviado na Mesa ${pad(numMesaStr)}!` : `🟡 Novo pedido salvo offline na Mesa ${pad(numMesaStr)}.`);
         if(modoCliente) {
           document.getElementById("modalTitle").textContent = "✅ Pedido Enviado!";
           document.getElementById("modalBody").innerHTML = `
@@ -2341,6 +2473,41 @@ function salvarComanda(numeroMesa) {
       });
 }
 
+function removerItemJaEnviado(numMesa, idxItem) {
+  const numMesaStr = String(numMesa);
+  const c = comandas[numMesaStr];
+  if (!c || !Array.isArray(c.itens) || !c.itens[idxItem]) return;
+  const item = c.itens[idxItem];
+  if (!confirm(`Remover "${item.qtd}x ${item.nome}" (${item.cliente || 'Cliente 1'}) que já estava na comanda?`)) return;
+
+  const novosItens = c.itens.filter((_, i) => i !== idxItem);
+  const novoTotal = novosItens.reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
+
+  if (novosItens.length === 0 && (!c.itensPagos || c.itensPagos.length === 0)) {
+    delete comandas[numMesaStr];
+    db.collection("comandas").doc(numMesaStr).delete().then(() => {
+      showToast("Item removido e mesa liberada!");
+      if (telaAtual === "atendimento") {
+        atualizarResumoEnviadosAtendimento();
+        renderProdutos();
+      }
+    });
+  } else {
+    comandas[numMesaStr] = { ...c, itens: novosItens, total: novoTotal, atualizadoEm: Date.now() };
+    db.collection("comandas").doc(numMesaStr).update({
+      itens: novosItens,
+      total: novoTotal,
+      atualizadoEm: Date.now()
+    }).then(() => {
+      showToast("Item removido da comanda!");
+      if (telaAtual === "atendimento") {
+        atualizarResumoEnviadosAtendimento();
+        renderProdutos();
+      }
+    });
+  }
+}
+
 function fecharComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
     db.collection("comandas").doc(numMesaStr).delete().then(() => {
@@ -2352,8 +2519,11 @@ function fecharComanda(numeroMesa) {
 }
 
 function abrirCarrinho(){
- const itens = itensTempComClientes();
- document.getElementById("modalTitle").textContent = `Mesa ${pad(mesaSelecionada)} — Meu Pedido / Carrinho`;
+ const itens = itensNovosDoCarrinho();
+ const cExistente = comandas[mesaSelecionada];
+ const itensJaNaMesa = (cExistente && Array.isArray(cExistente.itens)) ? cExistente.itens : [];
+
+ document.getElementById("modalTitle").textContent = `Mesa ${pad(mesaSelecionada)} — Novo Pedido`;
  
  let itensPorPessoa = {};
  itens.forEach(i => {
@@ -2379,11 +2549,29 @@ function abrirCarrinho(){
    `).join("");
  }
 
+ let htmlJaEnviados = "";
+ if (itensJaNaMesa.length > 0) {
+   htmlJaEnviados = `
+     <div style="margin-top:14px;padding:10px;background:var(--input-bg);border-radius:14px;border:1px solid var(--border)">
+       <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:6px">📋 Já na mesa (${br(cExistente.total || 0)}):</div>
+       <div style="max-height:110px;overflow:auto">
+         ${itensJaNaMesa.map(it => `
+           <div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:var(--muted)">
+             <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)} ${it.horario ? `(${it.horario})` : ''}</span>
+             <span>${br(it.qtd * it.preco)}</span>
+           </div>
+         `).join("")}
+       </div>
+     </div>
+   `;
+ }
+
  document.getElementById("modalBody").innerHTML = `
-   ${htmlCarrinho}
-   <div class="totalrow"><span>Total do Pedido</span><span>${br(totalTemp())}</span></div>
-   <button class="primary" onclick='salvarComanda("${mesaSelecionada}")'>${modoCliente ? '🚀 Confirmar e Enviar Pedido' : 'Salvar comanda'}</button>
-   <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>`;
+   ${htmlCarrinho || '<div class="empty">Nenhum item novo selecionado.</div>'}
+   <div class="totalrow"><span>Total deste Novo Pedido</span><span>${br(totalNovosCarrinho())}</span></div>
+   <button class="primary" onclick='salvarComanda("${mesaSelecionada}")'>${modoCliente ? '🚀 Confirmar e Enviar Pedido' : '🚀 Enviar Novo Pedido'}</button>
+   <button class="secondary" onclick="fecharModal()">Continuar adicionando</button>
+   ${htmlJaEnviados}`;
  document.getElementById("modal").classList.add("show");
 }
 
@@ -2391,7 +2579,7 @@ function alterarQtdCarrinhoModal(cli, nomeProd, delta){
   if(!pedidoTemp[cli]) pedidoTemp[cli] = {};
   pedidoTemp[cli][nomeProd] = (pedidoTemp[cli][nomeProd] || 0) + delta;
   if(pedidoTemp[cli][nomeProd] < 0) pedidoTemp[cli][nomeProd] = 0;
-  salvarRascunhoAutomatico();
+  renderProdutos();
   abrirCarrinho();
 }
 
@@ -2588,11 +2776,11 @@ function dividirContaModal(num){
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:14px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
             <div style="font-weight:900;font-size:12px"><span style="color:var(--brand)">[${escapeHTML(i.cliente ?? 'Cliente 1')}]</span> ${escapeHTML(i.nome)}</div>
-            <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un)</div>
+            <div style="font-size:10px;color:var(--muted)">Na mesa: <b>${i.qtd}x</b> (${br(i.preco)} un) ${i.horario ? `• às ${i.horario}` : ''}</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <button onclick="mudarQtdPagamento(${idx}, -1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--card);color:var(--ink);font-weight:900;font-size:16px;cursor:pointer">−</button>
-            <span id="qtd-pagar-${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${escapeHTML(i.nome)}" data-cliente="${escapeHTML(i.cliente ?? 'Cliente 1')}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
+            <span id="qtd-pagar-${idx}" data-idx="${idx}" data-max="${i.qtd}" data-preco="${i.preco}" data-nome="${escapeHTML(i.nome)}" data-cliente="${escapeHTML(i.cliente ?? 'Cliente 1')}" style="font-weight:900;width:22px;text-align:center;font-size:14px">0</span>
             <button onclick="mudarQtdPagamento(${idx}, 1,${i.qtd})" style="width:30px;height:30px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;cursor:pointer">+</button>
           </div>
         </div>
@@ -2618,7 +2806,7 @@ function abrirJanelaConsumoCliente(num){
   
   let itensPendentesHTML = (c.itens || []).length ? (c.itens || []).map(i => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
-      <span><b>[${escapeHTML(i.cliente || 'Cliente 1')}]</b> ${i.qtd}x ${escapeHTML(i.nome)}</span>
+      <span><b>[${escapeHTML(i.cliente || 'Cliente 1')}]</b> ${i.qtd}x ${escapeHTML(i.nome)} ${i.horario ? `<small class="muted">(${i.horario})</small>` : ''}</span>
       <b>${br(i.qtd * i.preco)}</b>
     </div>
   `).join('') : '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px">Nenhum consumo pendente.</div>';
@@ -2670,7 +2858,7 @@ function calcularValorSelecionadoComControle(){
 }
 
 let formaPagamentoEscolhidaTemp = "";
-let baixasPendentesTemp = {};
+let baixasPorIndiceTemp = {};
 let valorPendenteTemp = 0;
 
 function abrirConfirmacaoPagamento(num, tipo) {
@@ -2679,7 +2867,7 @@ function abrirConfirmacaoPagamento(num, tipo) {
 
   processandoPagamento = false;
   formaPagamentoEscolhidaTemp = "";
-  baixasPendentesTemp = {};
+  baixasPorIndiceTemp = {};
   valorPendenteTemp = 0;
 
   if (tipo === 'parcial') {
@@ -2688,12 +2876,10 @@ function abrirConfirmacaoPagamento(num, tipo) {
       let qtdPagar = parseInt(span.textContent) || 0;
       if (qtdPagar > 0) {
         temSelecao = true;
-        let nome = span.dataset.nome;
-        let cli = span.dataset.cliente;
+        let idx = parseInt(span.dataset.idx);
         let preco = parseFloat(span.dataset.preco);
         valorPendenteTemp += qtdPagar * preco;
-        let chave = cli + "_" + nome;
-        baixasPendentesTemp[chave] = (baixasPendentesTemp[chave] || 0) + qtdPagar;
+        baixasPorIndiceTemp[idx] = qtdPagar;
       }
     });
 
@@ -2829,21 +3015,29 @@ function executarPagamentoConfirmado(num, tipo) {
     let itensPagosParaHistorico = [];
     let novosItens = [];
     let itensPagosAcumulados = c.itensPagos ? [...c.itensPagos] : [];
-    let baixas = { ...baixasPendentesTemp };
 
-    (c.itens || []).forEach(it => {
+    (c.itens || []).forEach((it, idx) => {
       let cli = it.cliente || "Cliente 1";
-      let chave = cli + "_" + it.nome;
-      let qtdBaixada = baixas[chave] || 0;
+      let qtdBaixada = baixasPorIndiceTemp[idx] || 0;
       if (qtdBaixada > 0) {
-        baixas[chave] -= qtdBaixada;
         itensPagosParaHistorico.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem });
         let jaExiste = itensPagosAcumulados.find(ip => ip.cliente === cli && ip.nome === it.nome);
         if (jaExiste) { jaExiste.qtd += qtdBaixada; }
         else { itensPagosAcumulados.push({ cliente: cli, nome: it.nome, qtd: qtdBaixada, preco: it.preco, horario: it.horario, timestampItem: it.timestampItem }); }
       }
       let qtdRestante = it.qtd - qtdBaixada;
-      if (qtdRestante > 0) novosItens.push({ cliente: cli, nome: it.nome, qtd: qtdRestante, preco: it.preco, statusCozinha: it.statusCozinha || '', horario: it.horario, timestampItem: it.timestampItem });
+      if (qtdRestante > 0) {
+        novosItens.push({
+          loteId: it.loteId || '',
+          cliente: cli,
+          nome: it.nome,
+          qtd: qtdRestante,
+          preco: it.preco,
+          statusCozinha: it.statusCozinha || '',
+          horario: it.horario,
+          timestampItem: it.timestampItem
+        });
+      }
     });
 
     const vendaParcial = { 
@@ -3530,6 +3724,32 @@ function renderComandas(){
   `;
 }
 
+function atualizarResumoEnviadosAtendimento() {
+  const box = document.getElementById("boxItensEnviadosMesa");
+  if (!box || !mesaSelecionada) return;
+  const c = comandas[mesaSelecionada];
+  if (!c || !Array.isArray(c.itens) || c.itens.length === 0) {
+    box.innerHTML = "";
+    box.style.display = "none";
+    return;
+  }
+  box.style.display = "block";
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase">📋 Pedidos na mesa (${c.itens.reduce((a,b)=>a+b.qtd,0)} un):</span>
+      <b style="font-size:12px;color:var(--ink)">${br(c.total || 0)}</b>
+    </div>
+    <div style="max-height:115px;overflow:auto;display:flex;flex-direction:column;gap:4px">
+      ${c.itens.map((it, idx) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:4px 8px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border)">
+          <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)} ${it.horario ? `<small class="muted">(${it.horario})</small>` : ''}</span>
+          ${modoCliente ? `<b>${br(it.qtd * it.preco)}</b>` : `<button type="button" onclick="removerItemJaEnviado(${mesaSelecionada}, ${idx})" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:6px;padding:2px 6px;font-size:10px;font-weight:900;cursor:pointer" title="Remover item enviado">✕</button>`}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderAtendimento(){
   let catBtns = Object.keys(cardapio).map(cat => {
     let icoMap = { "CHURRASCOS": "🔥", "CARANGUEJO": "🦀", "BEBIDAS": "🍺", "GUARNIÇÕES": "🍚", "PETISCOS": "🍟", "REFRIGERANTES": "🥤", "SUCOS": "🧃", "DIVERSOS": "🚬" };
@@ -3541,8 +3761,7 @@ function renderAtendimento(){
     `;
   }).join('');
 
-  let listaPessoasClientes = Object.keys(pedidoTemp);
-  if(!listaPessoasClientes.length) listaPessoasClientes = ["Cliente 1"];
+  let listaPessoasClientes = obterListaClientesMesa();
   if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
 
   let pillsPessoasHTML = listaPessoasClientes.map(cli => `
@@ -3554,13 +3773,15 @@ function renderAtendimento(){
       ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
       <div class="mesa-head">
         <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'} — Pedido</h2>
-        <p>Adicionando para: <b>${escapeHTML(clienteAtual)}</b></p>
+        <p>${modoCliente ? `Adicionando para: <b>${escapeHTML(clienteAtual)}</b>` : `Toque em <b>+</b> para salvar na hora • Pessoa: <b>${escapeHTML(clienteAtual)}</b>`}</p>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${modoCliente ? '' : `<button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:14px;width:40px;height:40px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>`}
         ${modoCliente ? '' : `<input type="text" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:800;outline:none;width:115px">`}
       </div>
     </div>
+
+    <div id="boxItensEnviadosMesa" class="card" style="padding:10px 12px;margin-bottom:12px;display:none"></div>
 
     <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-x:auto">
       <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px;flex:1">
@@ -3583,6 +3804,7 @@ function renderAtendimento(){
       <div class="products-list" id="produtos"></div>
     </div>
   `;
+  atualizarResumoEnviadosAtendimento();
   renderProdutos();
 }
 
