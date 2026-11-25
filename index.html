@@ -75,7 +75,7 @@ body{padding-bottom:140px}
   letter-spacing: 0.3px;
 }
 
-/* Indicador de Status de Conexão (Contingência / Fila Local) */
+/* Indicador de Status de Conexão */
 .net-status-badge {
   display: inline-flex;
   align-items: center;
@@ -144,7 +144,7 @@ body{padding-bottom:140px}
 }
 @keyframes fadeInOut { from{opacity:0;transform:translateY(-15px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
 
-/* Navegação Inferior Flutuante (iOS Glassmorphism) */
+/* Navegação Inferior Flutuante */
 .bottom{
   position: fixed;
   z-index: 100;
@@ -183,7 +183,7 @@ body{padding-bottom:140px}
 .bottom button:active{transform:scale(0.92)}
 .bottom .ico{font-size:17px;margin-bottom:2px}
 
-/* Filtros de Mesas */
+/* Filtros */
 .filter-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .filter-tabs::-webkit-scrollbar{display:none}
 .filter-tab{
@@ -202,7 +202,7 @@ body{padding-bottom:140px}
 }
 .filter-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 6px 16px rgba(211,47,47,0.25)}
 
-/* Grid de Mesas Modernizadas */
+/* Grid de Mesas */
 .tables{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .card-mesa, .table{
   min-height: 145px;
@@ -232,8 +232,15 @@ body{padding-bottom:140px}
 .table.novo-pedido-ativo{border-color:#38bdf8 !important;box-shadow:0 0 20px rgba(56, 189, 248, 0.3) !important;animation: pulseNovo 1.5s infinite}
 @keyframes pulseNovo { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
 
-.table.pediu-conta-ativo{border-color:#f59e0b !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.4) !important;animation: pulseConta 1.2s infinite}
+.table.pediu-conta-ativo{border-color:#f59e0b !important;box-shadow:0 0 25px rgba(245, 158, 11, 0.45) !important;animation: pulseConta 1.2s infinite}
 @keyframes pulseConta { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
+
+.card-atraso-critico{
+  border: 2px solid #ef4444 !important;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.35) !important;
+  animation: pulseAtraso 1.4s infinite;
+}
+@keyframes pulseAtraso { 0%, 100%{transform:scale(1)} 50%{transform:scale(1.01)} }
 
 .table .num, .card-mesa h3{font-size:16px;font-weight:900;margin:0}
 .badge-status, .status-mesa{font-size:10px;font-weight:900;margin-top:4px;padding:3px 10px;border-radius:99px;letter-spacing:.3px}
@@ -246,13 +253,13 @@ body{padding-bottom:140px}
 .timer.tempo-amarelo{background:#fef7e0;color:#b06000}
 .timer.tempo-vermelho{background:#ffe5e5;color:#d32f2f}
 
-/* Cronômetro de Fila (Cozinha / Churrasco / Bebidas) */
+/* Cronômetro de Fila */
 .fila-timer{font-size:10px;font-weight:900;padding:2px 8px;border-radius:99px;margin-left:6px;display:inline-block}
 .fila-verde{background:#e6f4ea;color:#137333}
 .fila-amarelo{background:#fef7e0;color:#b06000}
 .fila-vermelho{background:#ffe5e5;color:#d32f2f}
 
-/* Alerta Discreto de Mesa Parada / Sem Consumo */
+/* Alerta Discreto de Mesa Parada */
 .alerta-parada{
   font-size: 8.5px;
   font-weight: 900;
@@ -289,12 +296,12 @@ body{padding-bottom:140px}
 }
 
 .card{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:24px;box-shadow:0 8px 24px rgba(0,0,0,0.03);padding:18px;margin-bottom:14px}
-.section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 12px;font-size:1.1rem;color:#ff5252;padding-bottom:5px}.section-title h2{font-size:19px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
+.section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 12px;font-size:1.1rem;color:#ff5252;padding-bottom:5px;gap:8px;flex-wrap:wrap}.section-title h2{font-size:19px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
 
-.topbar{display:flex;gap:12px;align-items:center}
-.back{border:0;background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:14px;width:40px;height:40px;font-weight:900;font-size:16px;display:grid;place-items:center;cursor:pointer;transition:transform .2s}
+.topbar{display:flex;gap:10px;align-items:center}
+.back{border:0;background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:14px;width:40px;height:40px;font-weight:900;font-size:16px;display:grid;place-items:center;cursor:pointer;transition:transform .2s;flex-shrink:0}
 .back:active{transform:scale(0.85)}
-.mesa-head{flex:1}.mesa-head h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:11px;color:var(--muted)}
+.mesa-head{flex:1;min-width:0}.mesa-head h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:11px;color:var(--muted)}
 
 .search-box{position:relative;margin-bottom:14px}
 .search-box input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:18px;font-size:13px;font-weight:700;outline:none;transition:all .2s;box-shadow:0 4px 12px rgba(0,0,0,0.02)}
@@ -359,7 +366,7 @@ body{padding-bottom:140px}
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 12px;
-  gap: 12px;
+  gap: 10px;
   box-shadow: 0 4px 14px rgba(0,0,0,0.02);
   transition: all 0.2s;
   position: relative;
@@ -373,8 +380,8 @@ body{padding-bottom:140px}
   filter: grayscale(0.4);
 }
 .prod-thumb {
-  width: 68px;
-  height: 68px;
+  width: 62px;
+  height: 62px;
   border-radius: 14px;
   background: var(--input-bg);
   display: flex;
@@ -382,7 +389,7 @@ body{padding-bottom:140px}
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  font-size: 28px;
+  font-size: 26px;
 }
 .prod-thumb img {
   width: 100%;
@@ -394,16 +401,16 @@ body{padding-bottom:140px}
   min-width: 0;
 }
 .prod-title {
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 900;
   color: var(--ink);
   line-height: 1.2;
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
 }
 .prod-desc-text {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--muted);
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
   font-weight: 600;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -411,25 +418,41 @@ body{padding-bottom:140px}
   overflow: hidden;
 }
 .prod-price {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 900;
   color: var(--brand);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 .prod-action-qty {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
+.btn-obs-quick {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.btn-obs-quick:active { transform: scale(0.88); }
+
 .btn-circle-plus {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--brand);
   color: #fff;
   border: 0;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 900;
   display: grid;
   place-items: center;
@@ -441,21 +464,21 @@ body{padding-bottom:140px}
 .qty-control-inline {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: var(--input-bg);
-  padding: 4px 8px;
+  padding: 4px 7px;
   border-radius: 99px;
   border: 1px solid var(--border);
 }
 .qty-control-inline button {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 0;
   border-radius: 50%;
   background: var(--card);
   color: var(--ink);
   font-weight: 900;
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -465,7 +488,7 @@ body{padding-bottom:140px}
 .qty-control-inline span {
   font-weight: 900;
   font-size: 13px;
-  min-width: 18px;
+  min-width: 16px;
   text-align: center;
 }
 
@@ -494,15 +517,15 @@ body{padding-bottom:140px}
 .cartbar button{border:0;background:#fff;color:#1f2937;border-radius:14px;padding:9px 16px;font-weight:900;cursor:pointer;font-size:13px;transition:transform .2s}
 .cartbar button:active{transform:scale(0.92)}
 
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center}
 .modal.show{display:flex}
 .sheet{
   background: var(--card);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   color: var(--ink);
-  width: 90%;
-  max-width: 420px;
+  width: 92%;
+  max-width: 440px;
   margin: auto;
   border-radius: 32px;
   padding: 22px;
@@ -532,12 +555,36 @@ body{padding-bottom:140px}
 .command h3{margin:0;font-size:16px;font-weight:900;color:var(--ink)}
 .tag{font-size:11px;font-weight:900;border-radius:999px;padding:4px 12px;background:rgba(211, 47, 47, 0.1);color:var(--brand);border:1px solid rgba(211,47,47,0.2)}
 
+/* Tags de Observações Rápidas */
+.obs-tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.obs-tag-btn {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all .15s;
+}
+.obs-tag-btn.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
 /* Botões de Escolha de Pagamento */
 .pay-choice-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin: 14px 0;
+  margin: 12px 0;
 }
 .pay-choice-btn {
   display: flex;
@@ -545,7 +592,7 @@ body{padding-bottom:140px}
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 16px 10px;
+  padding: 14px 10px;
   border-radius: 18px;
   border: 2px solid var(--border);
   background: var(--input-bg);
@@ -563,7 +610,7 @@ body{padding-bottom:140px}
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
 }
 
-/* Botões Rápidos de Notas (Troco Rápido) */
+/* Botões Rápidos de Notas */
 .quick-cash-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -688,10 +735,9 @@ body{padding-bottom:140px}
 </div>
 
 <script>
-// TOTAL DE MESAS DO SISTEMA
 const TOTAL_MESAS = 45;
+const SENHA_ADMIN_PADRAO = "2201";
 
-// Função utilitária para Sanitização/Escape contra ataques XSS
 function escapeHTML(str) {
   if (typeof str !== 'string') return str;
   return str.replace(/[&<>'"]/g, 
@@ -699,7 +745,6 @@ function escapeHTML(str) {
   );
 }
 
-// Gera identificador único para cada lançamento/remessa de item
 function gerarLoteId() {
   return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
@@ -716,12 +761,10 @@ const firebaseConfig = {
 if(!firebase.apps.length){firebase.initializeApp(firebaseConfig);}
 const db = firebase.firestore();
 
-// GARANTE PERSISTÊNCIA DE LOGIN NO NAVEGADOR (LOCAL)
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
   console.warn("Persistência de Auth:", err);
 });
 
-// CONFIGURAÇÃO DO ATENDENTE VIRTUAL (WHATSAPP AUTOMÁTICO)
 const NUMERO_ESTABELECIMENTO = "5585996532573";
 const URL_BOT_WEBHOOK = "https://us-central1-bbchurrasco-app.cloudfunctions.net/whatsappWebhook";
 
@@ -737,7 +780,6 @@ function enviarMensagemAutomaticamenteWhatsApp(numeroCliente, linkCardapio) {
   }).catch(err => console.error("Erro ao enviar auto-resposta WhatsApp:", err));
 }
 
-// Detecção do modo Cardápio Digital (Delivery / QR Code de Mesa)
 const urlParams = new URLSearchParams(window.location.search);
 const modoCliente = urlParams.get('modo') === 'delivery' || urlParams.has('mesa');
 const mesaUrlCliente = parseInt(urlParams.get('mesa')) || null;
@@ -748,7 +790,6 @@ if (modoCliente && telefoneCliente) {
   enviarMensagemAutomaticamenteWhatsApp(telefoneCliente, urlAtual);
 }
 
-// Ativando modo offline nativo robusto (Firestore Cache)
 db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   if (err.code == 'failed-precondition') {
     console.warn("Múltiplas abas abertas, persistência offline ativada apenas em uma.");
@@ -757,7 +798,7 @@ db.enablePersistence({synchronizeTabs: true}).catch((err) => {
   }
 });
 
-// ----------------- MODO CONTINGÊNCIA / STATUS DE CONEXÃO E FILA LOCAL -----------------
+// ----------------- MODO CONTINGÊNCIA / STATUS DE CONEXÃO -----------------
 let temPendenciasLocais = false;
 
 function atualizarIndicadorRede() {
@@ -787,13 +828,12 @@ window.addEventListener('offline', () => {
   showToast("🟡 Sem internet: Modo Contingência ativo (salvando localmente).", true);
 });
 
-// Service Worker Registration Otimizado
 let swRegistration = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     try {
       let swCode = `
-        self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v4').then(c => c.addAll(['./']))));
+        self.addEventListener('install', e => e.waitUntil(caches.open('bb-churrasco-v5').then(c => c.addAll(['./']))));
         self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));
         self.addEventListener('push', e => {
           let data = e.data ? e.data.json() : { title: '🔥 B.B CHURRASCO', body: 'Novo Pedido!' };
@@ -809,7 +849,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// NOTIFICAÇÕES PUSH NATIVAS
 function pedirPermissaoPush() {
   if (!('Notification' in window) || !Notification.requestPermission) {
     showToast("Notificações em segundo plano não suportadas neste navegador.", true);
@@ -859,19 +898,43 @@ let historicoVendas = [];
 let despesas = [];
 let cancelamentos = [];
 
-localStorage.removeItem('bb_garcom_atual');
+// Configurações dinâmicas vindas do Firebase
+let configSistema = {
+  senhasSetores: { cozinha: "1234", churrasco: "5678", bebidas: "9012" },
+  fundoTroco: 0,
+  mapaGarcons: {} // email -> nome
+};
+
 let garcomSessao = "";
 let telaAtual = "mesas", mesaSelecionada = null, pedidoTemp = {}, clienteAtual = "", garcomTemp = "", categoriaAtual = "CHURRASCOS";
 let filtroMesaAtual = "todas";
+let filtroSubCozinha = "TODOS";
+let mostrarEntreguesKDS = false;
 let termoBuscaProduto = "";
 let usuarioLogadoEmail = "";
 
 const br = v => (Number(v) || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const pad = n => String(n).padStart(2,"0");
 
-// ----------------- GESTÃO DE PERÍODO (DATA + HORA INICIAL E FINAL) & DIAS DA SEMANA -----------------
+// ----------------- IDENTIFICAÇÃO AUTOMÁTICA DO GARÇOM PELO E-MAIL -----------------
+function extrairNomeGarcomPorEmail(email) {
+  if (!email) return "";
+  const lower = email.toLowerCase().trim();
+  if (configSistema.mapaGarcons && configSistema.mapaGarcons[lower]) {
+    return configSistema.mapaGarcons[lower];
+  }
+  const prefixo = lower.split('@')[0] || "";
+  if (!prefixo || prefixo === 'admin' || prefixo === 'garcom') return "";
+  return prefixo
+    .replace(/[._-]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+}
+
+// ----------------- GESTÃO DE PERÍODO & DIAS DA SEMANA -----------------
 const DIAS_SEMANA_PT = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 function obterDiaSemanaPorTimestamp(ts) {
   if (!ts) return "";
@@ -955,12 +1018,7 @@ function registroDentroDoPeriodo(reg) {
   return ts >= tsInicio && ts <= tsFim;
 }
 
-const SENHAS_SETORES = {
-  cozinha: "1234",
-  churrasco: "5678",
-  bebidas: "9012"
-};
-
+// ----------------- ACESSO AOS SETORES (SENHAS CONFIGURÁVEIS) -----------------
 function tentarAcessarSetor(setor){
   if(usuarioLogadoEmail && usuarioLogadoEmail.toLowerCase().includes('admin')){
     mudarTela(setor);
@@ -973,11 +1031,24 @@ function tentarAcessarSetor(setor){
     return;
   }
 
-  let senhaDigitada = prompt(`🔒 Digite a senha de acesso para a tela de ${setor.toUpperCase()}:`);
-  if(senhaDigitada === null) return;
+  const senhaCorreta = (configSistema.senhasSetores && configSistema.senhasSetores[setor]) || "1234";
 
-  if(senhaDigitada === SENHAS_SETORES[setor]){
+  document.getElementById("modalTitle").textContent = `🔒 Acesso — ${setor.toUpperCase()}`;
+  document.getElementById("modalBody").innerHTML = `
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Digite a senha do setor de <b>${setor.toUpperCase()}</b>:</p>
+    <input type="password" id="inputSenhaSetorModal" inputmode="numeric" placeholder="••••" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:18px;font-weight:900;text-align:center;letter-spacing:4px;outline:none;margin-bottom:12px">
+    <button class="primary" onclick="confirmarSenhaSetor('${setor}', '${escapeHTML(senhaCorreta)}')">🔓 Liberar Acesso</button>
+    <button class="secondary" onclick="fecharModal()">Cancelar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+  setTimeout(() => document.getElementById("inputSenhaSetorModal")?.focus(), 100);
+}
+
+function confirmarSenhaSetor(setor, senhaCorreta) {
+  const digitada = document.getElementById("inputSenhaSetorModal")?.value || "";
+  if (digitada === senhaCorreta) {
     sessionStorage.setItem(`acesso_${setor}`, "true");
+    fecharModal();
     showToast(`Acesso liberado para ${setor}!`);
     mudarTela(setor);
   } else {
@@ -1116,90 +1187,91 @@ function showToast(msg, isError = false){
   }, 2500);
 }
 
-// ----------------- CARDÁPIO PADRÃO & GESTÃO DINÂMICA -----------------
+// ----------------- CARDÁPIO PADRÃO (ORDENADO POR GIRO + VINAGRETE E CIGARRO UNIDADE + ESTOQUE) -----------------
+// Estrutura de cada item: [0: nome, 1: preco, 2: icon/img, 3: desc, 4: indisponivel, 5: criadoEmItem, 6: estoqueQtd (null = ilimitado)]
 let cardapio = {
   "CHURRASCOS":[
-    ["Cupim", 10, "🍖", "", false],
-    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false],
-    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado", false],
-    ["Linguiça", 8, "🍖", "", false],
-    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado", false],
-    ["Coração de boi", 8, "🍖", "", false],
-    ["Carne", 8, "🍖", "", false],
-    ["Tripa", 8, "🍖", "", false]
-  ],
-  "CARANGUEJO":[
-    ["Caranguejo Unidade", 8, "🦀", "", false],
-    ["Combo 4 Caranguejos", 28, "🦀", "", false],
-    ["Caldo de Caranguejo", 5, "🦀", "", false]
+    ["Cupim", 10, "🍖", "", false, 0, null],
+    ["Frango", 8, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=150", "Suculento espeto de frango", false, 0, null],
+    ["Porco", 8, "https://images.unsplash.com/photo-1544025162-d76694265947?w=150", "Espeto suíno temperado", false, 0, null],
+    ["Linguiça", 8, "🍖", "", false, 0, null],
+    ["Coração de frango", 8, "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=150", "Coraçãozinho grelhado", false, 0, null],
+    ["Coração de boi", 8, "🍖", "", false, 0, null],
+    ["Carne", 8, "🍖", "", false, 0, null],
+    ["Tripa", 8, "🍖", "", false, 0, null]
   ],
   "BEBIDAS":[
-    ["Energético Baly", 15, "🥤", "", false],
-    ["Litro de dreher", 35, "🥃", "", false],
-    ["Meio litro dreher", 18, "🥃", "", false],
-    ["Terça de dreher", 8, "🥃", "", false],
-    ["Dose dreher", 4, "🥃", "", false],
-    ["Copão de gin", 20, "🍸", "Gin rocks/gelo saborizado/ energético", false],
-    ["Dose de cachaça", 3, "🥃", "", false],
-    ["Skol", 5, "🍺", "", false],
-    ["Brahma Chopp", 5, "🍺", "", false],
-    ["Brahma Puro Malte", 5, "🍺", "", false],
-    ["Império", 9, "🍺", "", false],
-    ["Heineken", 9, "🍺", "", false],
-    ["Corona Extra", 10, "🍺", "", false],
-    ["Budweiser", 8, "🍺", "", false],
-    ["Vinho", 8, "🍷", "", false],
-    ["Caipirinha", 15, "🍸", "", false],
-    ["Energético Red bull", 12, "🥤", "Lata", false],
-    ["Kit gin", 80, "🍸", "Gin rock’s / energético Baly / Gelo", false],
-    ["Stella gold", 11, "🍺", "", false],
-    ["Ice cabaré", 10, "🍺", "", false],
-    ["Balde Skol", 50, "🍺", "", false],
-    ["Balde Brahma", 50, "🍺", "", false],
-    ["Terça amarela", 7, "🍺", "", false],
-    ["Terça prata", 6, "🍺", "", false],
-    ["Meio litro amarela", 16, "🍺", "", false],
-    ["Meio litro prata", 15, "🍺", "", false],
-    ["Litro da amarela", 35, "🍺", "", false],
-    ["Litro da prata", 30, "🍺", "", false]
+    ["Skol", 5, "🍺", "", false, 0, null],
+    ["Brahma Chopp", 5, "🍺", "", false, 0, null],
+    ["Brahma Puro Malte", 5, "🍺", "", false, 0, null],
+    ["Heineken", 9, "🍺", "", false, 0, null],
+    ["Império", 9, "🍺", "", false, 0, null],
+    ["Budweiser", 8, "🍺", "", false, 0, null],
+    ["Corona Extra", 10, "🍺", "", false, 0, null],
+    ["Stella gold", 11, "🍺", "", false, 0, null],
+    ["Ice cabaré", 10, "🍺", "", false, 0, null],
+    ["Balde Skol", 50, "🍺", "", false, 0, null],
+    ["Balde Brahma", 50, "🍺", "", false, 0, null],
+    ["Copão de gin", 20, "🍸", "Gin rocks/gelo saborizado/ energético", false, 0, null],
+    ["Kit gin", 80, "🍸", "Gin rock’s / energético Baly / Gelo", false, 0, null],
+    ["Caipirinha", 15, "🍸", "", false, 0, null],
+    ["Energético Baly", 15, "🥤", "", false, 0, null],
+    ["Energético Red bull", 12, "🥤", "Lata", false, 0, null],
+    ["Dose de cachaça", 3, "🥃", "", false, 0, null],
+    ["Dose dreher", 4, "🥃", "", false, 0, null],
+    ["Terça de dreher", 8, "🥃", "", false, 0, null],
+    ["Meio litro dreher", 18, "🥃", "", false, 0, null],
+    ["Litro de dreher", 35, "🥃", "", false, 0, null],
+    ["Terça amarela", 7, "🍺", "", false, 0, null],
+    ["Terça prata", 6, "🍺", "", false, 0, null],
+    ["Meio litro amarela", 16, "🍺", "", false, 0, null],
+    ["Meio litro prata", 15, "🍺", "", false, 0, null],
+    ["Litro da amarela", 35, "🍺", "", false, 0, null],
+    ["Litro da prata", 30, "🍺", "", false, 0, null],
+    ["Vinho", 8, "🍷", "", false, 0, null]
+  ],
+  "CARANGUEJO":[
+    ["Caranguejo Unidade", 8, "🦀", "", false, 0, null],
+    ["Combo 4 Caranguejos", 28, "🦀", "", false, 0, null],
+    ["Caldo de Caranguejo", 5, "🦀", "", false, 0, null]
   ],
   "GUARNIÇÕES":[
-    ["Baião caseiro grande", 8, "🍚", "", false],
-    ["Baião caseiro pequeno", 4, "🍚", "", false],
-    ["Baião cremoso grande", 12, "🍚", "", false],
-    ["Baião cremoso pequeno", 6, "🍚", "", false],
-    ["Feijão verde", 20, "🍲", "Combo", false],
-    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false],
-    ["Vinagrete", 2, "🥗", "", false]
+    ["Baião caseiro grande", 8, "🍚", "", false, 0, null],
+    ["Baião caseiro pequeno", 4, "🍚", "", false, 0, null],
+    ["Baião cremoso grande", 12, "🍚", "", false, 0, null],
+    ["Baião cremoso pequeno", 6, "🍚", "", false, 0, null],
+    ["Vinagrete", 2, "🥗", "", false, 0, null],
+    ["Feijão verde", 20, "🍲", "Combo", false, 0, null],
+    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false, 0, null]
   ],
   "PETISCOS":[
-    ["Macaxeira", 16, "🍟", "", false],
-    ["Coxinha", 16, "🍗", "", false],
-    ["Batata frita", 15, "🍟", "", false],
-    ["Calabresa acebolada", 15, "🍢", "", false],
-    ["Camarão (porção)", 25, "🍤", "", false],
-    ["Bolinha carne do sol", 18, "🧀", "", false],
-    ["Bolinha de queijo", 15, "🧀", "", false]
+    ["Macaxeira", 16, "🍟", "", false, 0, null],
+    ["Batata frita", 15, "🍟", "", false, 0, null],
+    ["Calabresa acebolada", 15, "🍢", "", false, 0, null],
+    ["Coxinha", 16, "🍗", "", false, 0, null],
+    ["Camarão (porção)", 25, "🍤", "", false, 0, null],
+    ["Bolinha carne do sol", 18, "🧀", "", false, 0, null],
+    ["Bolinha de queijo", 15, "🧀", "", false, 0, null]
   ],
   "REFRIGERANTES":[
-    ["Coca-Cola 1L", 8, "🥤", "", false],
-    ["Guaraná 1L", 7, "🥤", "", false],
-    ["Pepsi 1L", 7, "🥤", "", false],
-    ["Coca-Cola lata", 5, "🥤", "", false],
-    ["Fanta lata", 5, "🥤", "", false],
-    ["Sprite lata", 6, "🥤", "", false],
-    ["Água", 3, "💧", "", false],
-    ["Água com gás", 4, "💧", "", false]
+    ["Coca-Cola 1L", 8, "🥤", "", false, 0, null],
+    ["Guaraná 1L", 7, "🥤", "", false, 0, null],
+    ["Pepsi 1L", 7, "🥤", "", false, 0, null],
+    ["Coca-Cola lata", 5, "🥤", "", false, 0, null],
+    ["Fanta lata", 5, "🥤", "", false, 0, null],
+    ["Sprite lata", 6, "🥤", "", false, 0, null],
+    ["Água", 3, "💧", "", false, 0, null],
+    ["Água com gás", 4, "💧", "", false, 0, null]
   ],
   "SUCOS":[
-    ["Suco Maracujá 400ml", 8, "🧃", "", false],
-    ["Suco Manga 400ml", 7, "🧃", "", false],
-    ["Suco Goiaba 400ml", 7, "🧃", "", false]
+    ["Suco Maracujá 400ml", 8, "🧃", "", false, 0, null],
+    ["Suco Manga 400ml", 7, "🧃", "", false, 0, null],
+    ["Suco Goiaba 400ml", 7, "🧃", "", false, 0, null]
   ],
   "DIVERSOS":[
-    ["Cigarro", 7, "🚬", "Carteira", false],
-    ["Unidade de cigarro", 1, "🚬", "Unidade", false],
-    ["Partilha halls", 3, "🍬", "", false]
+    ["Cigarro", 7, "🚬", "Carteira", false, 0, null],
+    ["Unidade de cigarro", 1, "🚬", "Unidade", false, 0, null],
+    ["Partilha halls", 3, "🍬", "", false, 0, null]
   ]
 };
 
@@ -1211,6 +1283,7 @@ function carregarCardapioDinamico(){
         cardapio[cat] = cardapio[cat].map(item => {
           if(item.length < 5) item[4] = false; 
           if(item.length < 6) item[5] = 0;
+          if(item.length < 7) item[6] = null;
           return item;
         });
       }
@@ -1219,13 +1292,63 @@ function carregarCardapioDinamico(){
   }).catch(()=>{});
 }
 
-function salvarCardapioDinamicoNoFirebase(){
+function carregarConfigSistema(){
+  db.collection("configuracoes").doc("sistema").onSnapshot(doc => {
+    if(doc.exists){
+      const d = doc.data();
+      if(d.senhasSetores) configSistema.senhasSetores = { ...configSistema.senhasSetores, ...d.senhasSetores };
+      if(typeof d.fundoTroco === 'number') configSistema.fundoTroco = d.fundoTroco;
+      if(d.mapaGarcons) configSistema.mapaGarcons = d.mapaGarcons;
+
+      // Atualiza o nome do garçom logado caso exista mapeamento atualizado
+      if (usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) {
+        const autoNome = extrairNomeGarcomPorEmail(usuarioLogadoEmail);
+        if (autoNome && !garcomSessao) {
+          garcomSessao = autoNome;
+          garcomTemp = autoNome;
+          const roleLabel = document.getElementById('user-role-label');
+          if (roleLabel) roleLabel.textContent = `B.B GARÇOM — ${garcomSessao}`;
+        }
+      }
+    }
+  }, ()=>{});
+}
+
+function salvarCardapioDinamicoNoFirebase(silencioso = false){
   db.collection("configuracoes").doc("cardapio").set({ dados: cardapio }).then(() => {
-    showToast("Cardápio atualizado e salvo no banco com sucesso!");
-    renderizar();
+    if(!silencioso) {
+      showToast("Cardápio atualizado e salvo no banco!");
+      renderizar();
+    }
   }).catch(err => {
     showToast("Erro ao salvar cardápio: " + err.message, true);
   });
+}
+
+// Atualiza estoque numérico do item ao lançar/remover
+function ajustarEstoqueItem(nomeProd, deltaEstoque) {
+  let alterou = false;
+  for (let cat in cardapio) {
+    for (let i = 0; i < cardapio[cat].length; i++) {
+      let item = cardapio[cat][i];
+      if (item[0] === nomeProd && item[6] !== null && item[6] !== undefined && item[6] !== "") {
+        let atual = Number(item[6]) || 0;
+        let novo = Math.max(0, atual + deltaEstoque);
+        item[6] = novo;
+        if (novo === 0) {
+          item[4] = true; // Marca esgotado automaticamente
+        } else if (deltaEstoque > 0 && novo > 0) {
+          item[4] = false; // Reativa ao devolver ao estoque
+        }
+        alterou = true;
+        break;
+      }
+    }
+    if (alterou) break;
+  }
+  if (alterou) {
+    salvarCardapioDinamicoNoFirebase(true);
+  }
 }
 
 function comprimirImagemParaBase64(file, callback) {
@@ -1255,11 +1378,22 @@ function comprimirImagemParaBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ----------------- PAINEL ADMINISTRATIVO -----------------
+// ----------------- PAINEL ADMINISTRATIVO (MODAIS SEM PROMPT + ESTOQUE + SENHAS + FUNDO TROCO) -----------------
 function abrirPainelAdmin(){
-  let senha = prompt("Digite a senha do Administrador:");
-  if(senha === null) return;
-  if(senha !== "2201"){
+  document.getElementById("modalTitle").textContent = "🔐 Acesso Administrativo";
+  document.getElementById("modalBody").innerHTML = `
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Digite a senha do Administrador para gerenciar o cardápio, estoque e caixa:</p>
+    <input type="password" id="inputSenhaAdminModal" inputmode="numeric" placeholder="••••" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:18px;font-weight:900;text-align:center;letter-spacing:4px;outline:none;margin-bottom:12px">
+    <button class="primary" onclick="verificarSenhaAdminModal()">🔓 Entrar no Painel Admin</button>
+    <button class="secondary" onclick="fecharModal()">Cancelar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+  setTimeout(() => document.getElementById("inputSenhaAdminModal")?.focus(), 100);
+}
+
+function verificarSenhaAdminModal(){
+  const senha = document.getElementById("inputSenhaAdminModal")?.value || "";
+  if(senha !== SENHA_ADMIN_PADRAO){
     showToast("Senha incorreta!", true);
     return;
   }
@@ -1271,25 +1405,29 @@ function renderizarPainelAdmin(){
     <div class="card" style="margin-bottom:14px;padding:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0;font-size:15px;font-weight:900;color:var(--brand)">📁 ${escapeHTML(cat)}</h3>
-        <button class="secondary" style="width:auto;padding:4px 10px;font-size:11px;margin:0" onclick="adicionarItemAdmin('${escapeHTML(cat)}')">+ Novo Item</button>
+        <button class="secondary" style="width:auto;padding:5px 10px;font-size:11px;margin:0" onclick="abrirFormNovoItemAdmin('${escapeHTML(cat)}')">+ Novo Item</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         ${cardapio[cat].map((item, idx) => {
           let indisponivel = item[4] === true;
+          let estoqueQtd = item[6];
+          let temEstoqueContado = estoqueQtd !== null && estoqueQtd !== undefined && estoqueQtd !== "";
           return `
           <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px;border-radius:12px;border:1px solid var(--border);font-size:12px;opacity:${indisponivel ? '0.6' : '1'}">
-            <div style="display:flex;align-items:center;gap:8px;flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
               <div style="width:36px;height:36px;border-radius:8px;background:var(--card);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
                 ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:18px">${item[2] || '📦'}</span>`}
               </div>
               <div style="min-width:0;flex:1">
                 <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(item[0])} ${indisponivel ? '<span style="color:#d32f2f">(Esgotado)</span>' : ''}</b>
-                <small style="color:var(--brand);font-weight:900">R$ ${Number(item[1]).toFixed(2)}</small>${item[3] ? `<small>• ${escapeHTML(item[3])}</small>` : ''}
+                <small style="color:var(--brand);font-weight:900">R$ ${Number(item[1]).toFixed(2)}</small>
+                ${temEstoqueContado ? `<small style="background:rgba(2,132,199,0.15);color:#0284c7;padding:1px 6px;border-radius:6px;font-weight:900;margin-left:4px">Est: ${estoqueQtd} un</small>` : ''}
+                ${item[3] ? `<small style="display:block;color:var(--muted)">${escapeHTML(item[3])}</small>` : ''}
               </div>
             </div>
-            <div style="display:flex;gap:4px">
-              <button onclick="alternarIndisponivelAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.1)'};color:${indisponivel ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Disponível' : 'Esgotar'}</button>
-              <button onclick="editarItemAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button onclick="alternarIndisponivelAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:${indisponivel ? 'rgba(16,185,129,0.2)' : 'rgba(211,47,47,0.1)'};color:${indisponivel ? '#10b981' : 'var(--brand)'};cursor:pointer;font-weight:900" title="Marcar Esgotado">${indisponivel ? 'Ativar' : 'Esgotar'}</button>
+              <button onclick="abrirFormEditarItemAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-weight:900">✏️</button>
               <button onclick="removerItemAdmin('${escapeHTML(cat)}',${idx})" style="padding:6px 8px;border-radius:8px;border:0;background:rgba(211,47,47,0.15);color:var(--brand);cursor:pointer;font-weight:900">🗑️</button>
             </div>
           </div>
@@ -1298,16 +1436,88 @@ function renderizarPainelAdmin(){
     </div>
   `).join('');
 
-  document.getElementById("modalTitle").textContent = "⚙️ Painel Administrativo — Gestão de Cardápio";
+  document.getElementById("modalTitle").textContent = "⚙️ Painel Administrativo";
   document.getElementById("modalBody").innerHTML = `
-    <div style="margin-bottom:14px">
-      <button class="primary" onclick="adicionarCategoriaAdmin()" style="font-size:12px;padding:10px">+ Criar Nova Categoria</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="primary" onclick="abrirFormNovaCategoriaAdmin()" style="font-size:11px;padding:10px">+ Nova Categoria</button>
+      <button class="secondary" onclick="abrirConfiguracoesGeraisAdmin()" style="font-size:11px;padding:10px;margin:0;border-color:#0284c7;color:#0284c7">🔐 Senhas & Troco</button>
     </div>
     ${categoriasHTML}
-    <button class="primary" onclick="salvarCardapioDinamicoNoFirebase()" style="background:#10b981;margin-top:10px">💾 Salvar Alterações no Banco</button>
+    <button class="primary" onclick="salvarCardapioDinamicoNoFirebase()" style="background:#10b981;margin-top:10px">💾 Salvar Tudo no Banco</button>
     <button class="secondary" onclick="fecharModal()">Fechar Painel</button>
   `;
   document.getElementById("modal").classList.add("show");
+}
+
+function abrirConfiguracoesGeraisAdmin(){
+  const s = configSistema.senhasSetores || { cozinha: "1234", churrasco: "5678", bebidas: "9012" };
+  const mapaTexto = Object.entries(configSistema.mapaGarcons || {}).map(([em, nm]) => `${em}=${nm}`).join('\n');
+
+  document.getElementById("modalTitle").textContent = "🔐 Senhas, Fundo de Troco & Garçons";
+  document.getElementById("modalBody").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div style="background:var(--input-bg);padding:12px;border-radius:14px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase;margin-bottom:8px">💰 Fundo de Troco Inicial da Gaveta (R$)</div>
+        <input type="number" id="cfgFundoTroco" step="0.01" value="${Number(configSistema.fundoTroco || 0)}" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:14px;font-weight:800">
+        <small style="color:var(--muted);font-size:10px">Valor inicial colocado no caixa antes de abrir (somado na conferência de gaveta).</small>
+      </div>
+
+      <div style="background:var(--input-bg);padding:12px;border-radius:14px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase;margin-bottom:8px">🔑 Senhas dos Setores (KDS)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div>
+            <label style="font-size:10px;font-weight:800;color:var(--muted)">🍳 Cozinha</label>
+            <input type="text" id="cfgSenhaCozinha" value="${escapeHTML(s.cozinha)}" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:8px;font-weight:900;text-align:center">
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:800;color:var(--muted)">🥩 Churrasco</label>
+            <input type="text" id="cfgSenhaChurrasco" value="${escapeHTML(s.churrasco)}" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:8px;font-weight:900;text-align:center">
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:800;color:var(--muted)">🍺 Bebidas</label>
+            <input type="text" id="cfgSenhaBebidas" value="${escapeHTML(s.bebidas)}" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:8px;font-weight:900;text-align:center">
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--input-bg);padding:12px;border-radius:14px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase;margin-bottom:4px">👤 Vínculo E-mail → Nome do Garçom</div>
+        <textarea id="cfgMapaGarcons" rows="3" placeholder="garcom1@bbchurrasco.com=Carlos&#10;garcom2@bbchurrasco.com=Marcos" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:12px;font-weight:700">${escapeHTML(mapaTexto)}</textarea>
+        <small style="color:var(--muted);font-size:10px">Um por linha no formato: <b>email@dominio.com=Nome</b></small>
+      </div>
+    </div>
+
+    <button class="primary" style="background:#10b981" onclick="salvarConfiguracoesGeraisAdmin()">💾 Salvar Configurações</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">← Voltar ao Painel</button>
+  `;
+}
+
+function salvarConfiguracoesGeraisAdmin(){
+  const fundoTroco = parseFloat(document.getElementById("cfgFundoTroco")?.value) || 0;
+  const cozinha = (document.getElementById("cfgSenhaCozinha")?.value || "1234").trim();
+  const churrasco = (document.getElementById("cfgSenhaChurrasco")?.value || "5678").trim();
+  const bebidas = (document.getElementById("cfgSenhaBebidas")?.value || "9012").trim();
+  const linhasMapa = (document.getElementById("cfgMapaGarcons")?.value || "").split('\n');
+
+  let mapaGarcons = {};
+  linhasMapa.forEach(l => {
+    const partes = l.split('=');
+    if (partes.length === 2 && partes[0].trim() && partes[1].trim()) {
+      mapaGarcons[partes[0].trim().toLowerCase()] = partes[1].trim();
+    }
+  });
+
+  const novosDados = {
+    fundoTroco,
+    senhasSetores: { cozinha, churrasco, bebidas },
+    mapaGarcons
+  };
+
+  db.collection("configuracoes").doc("sistema").set(novosDados, { merge: true }).then(() => {
+    configSistema = { ...configSistema, ...novosDados };
+    showToast("Configurações salvas com sucesso!");
+    renderizarPainelAdmin();
+  }).catch(err => showToast("Erro ao salvar: " + err.message, true));
 }
 
 function alternarIndisponivelAdmin(cat, idx){
@@ -1316,90 +1526,150 @@ function alternarIndisponivelAdmin(cat, idx){
   renderizarPainelAdmin();
 }
 
-function adicionarCategoriaAdmin(){
-  let novaCat = prompt("Nome da nova categoria (ex: SOBREMESAS):");
-  if(!novaCat || !novaCat.trim()) return;
+function abrirFormNovaCategoriaAdmin(){
+  document.getElementById("modalTitle").textContent = "📁 Criar Nova Categoria";
+  document.getElementById("modalBody").innerHTML = `
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Nome da Categoria</label>
+      <input type="text" id="inputNovaCatNome" placeholder="Ex: SOBREMESAS" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:14px;font-weight:800;outline:none">
+    </div>
+    <button class="primary" onclick="confirmarNovaCategoriaAdmin()">✅ Criar Categoria</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">← Voltar</button>
+  `;
+}
+
+function confirmarNovaCategoriaAdmin(){
+  let novaCat = document.getElementById("inputNovaCatNome")?.value || "";
+  if(!novaCat.trim()){ showToast("Digite o nome da categoria.", true); return; }
   novaCat = escapeHTML(novaCat.trim().toUpperCase());
   if(cardapio[novaCat]){
     showToast("Categoria já existe.", true);
     return;
   }
   cardapio[novaCat] = [];
+  salvarCardapioDinamicoNoFirebase(true);
   renderizarPainelAdmin();
-  showToast(`Categoria ${novaCat} criada! Clique em Salvar Alterações no Banco.`);
+  showToast(`Categoria ${novaCat} criada!`);
 }
 
-function adicionarItemAdmin(cat){
-  let nome = prompt("Nome do produto:");
-  if(!nome) return;
-  let precoStr = prompt("Preço (ex: 12.50):", "10");
-  if(!precoStr) return;
-  let preco = parseFloat(precoStr.replace(",", "."));
-  if(isNaN(preco)) preco = 0;
-  let desc = prompt("Descrição curta ou detalhe (opcional):", "") || "";
-
-  document.getElementById("modalTitle").textContent = "📷 Enviar foto do novo prato";
+function abrirFormNovoItemAdmin(cat){
+  document.getElementById("modalTitle").textContent = `➕ Novo Item em ${cat}`;
   document.getElementById("modalBody").innerHTML = `
-    <div style="text-align:center;padding:15px">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Selecione uma foto da galeria do seu celular para <b>${escapeHTML(nome)}</b>:</p>
-      <input type="file" id="inputFotoNovoItem" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;width:100%">
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Nome do Produto *</label>
+        <input type="text" id="novoItemNome" placeholder="Ex: Picanha na Brasa" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:800">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Preço (R$) *</label>
+          <input type="number" id="novoItemPreco" step="0.01" placeholder="15.00" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:800">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Estoque (Opcional)</label>
+          <input type="number" id="novoItemEstoque" placeholder="Ilimitado" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:800">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Descrição Curta (Opcional)</label>
+        <input type="text" id="novoItemDesc" placeholder="Ex: Acompanha farofa" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:700">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Foto da Galeria (Opcional)</label>
+        <input type="file" id="inputFotoNovoItem" accept="image/*" style="padding:8px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;width:100%;font-size:12px">
+      </div>
     </div>
-    <button class="primary" onclick="confirmarAdicaoItemAdmin('${escapeHTML(cat)}', '${escapeHTML(nome)}', ${preco}, '${escapeHTML(desc)}')">✅ Adicionar Item</button>
-    <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
+    <button class="primary" onclick="confirmarAdicaoItemAdmin('${escapeHTML(cat)}')">✅ Adicionar Item</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">← Voltar</button>
   `;
 }
 
-function confirmarAdicaoItemAdmin(cat, nome, preco, desc){
+function confirmarAdicaoItemAdmin(cat){
+  const nome = (document.getElementById('novoItemNome')?.value || "").trim();
+  const preco = parseFloat(document.getElementById('novoItemPreco')?.value);
+  const estoqueRaw = document.getElementById('novoItemEstoque')?.value;
+  const estoque = (estoqueRaw !== "" && estoqueRaw !== null && !isNaN(parseInt(estoqueRaw))) ? Math.max(0, parseInt(estoqueRaw)) : null;
+  const desc = (document.getElementById('novoItemDesc')?.value || "").trim();
   const fileInput = document.getElementById('inputFotoNovoItem');
+
+  if(!nome){ showToast("Informe o nome do produto.", true); return; }
+  if(isNaN(preco) || preco < 0){ showToast("Informe um preço válido.", true); return; }
+
+  const esgotado = estoque === 0;
+
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat].unshift([nome, preco, base64, desc, false, Date.now()]);
+      cardapio[cat].unshift([escapeHTML(nome), preco, base64, escapeHTML(desc), esgotado, Date.now(), estoque]);
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat].unshift([nome, preco, "🍖", desc, false, Date.now()]);
+    cardapio[cat].unshift([escapeHTML(nome), preco, "🍖", escapeHTML(desc), esgotado, Date.now(), estoque]);
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
 }
 
-function editarItemAdmin(cat, idx){
+function abrirFormEditarItemAdmin(cat, idx){
   let item = cardapio[cat][idx];
-  let nome = prompt("Editar nome:", item[0]);
-  if(!nome) return;
-  let preco = parseFloat(prompt("Editar preço:", item[1]).replace(",", ".")) || item[1];
-  let desc = prompt("Editar descrição:", item[3] || "") || "";
+  let estoqueAtual = (item[6] !== null && item[6] !== undefined) ? item[6] : "";
 
-  document.getElementById("modalTitle").textContent = "📷 Alterar Foto do Prato";
+  document.getElementById("modalTitle").textContent = "✏️ Editar Produto";
   document.getElementById("modalBody").innerHTML = `
-    <div style="text-align:center;padding:15px">
-      <div style="margin-bottom:10px">
-        <span style="font-size:12px;color:var(--muted)">Foto Atual:</span><br>
-        <div style="width:70px;height:70px;margin:8px auto;border-radius:14px;overflow:hidden;background:var(--input-bg);border:1px solid var(--border)">
-          ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:32px;display:grid;place-items:center;height:100%">${item[2] || '📦'}</span>`}
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div style="text-align:center">
+        <div style="width:64px;height:64px;margin:0 auto;border-radius:14px;overflow:hidden;background:var(--input-bg);border:1px solid var(--border)">
+          ${item[2] && (item[2].startsWith('data:') || item[2].startsWith('http')) ? `<img src="${item[2]}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:30px;display:grid;place-items:center;height:100%">${item[2] || '📦'}</span>`}
         </div>
       </div>
-      <p style="font-size:12px;color:var(--muted)">Escolha uma nova foto direto da galeria (opcional):</p>
-      <input type="file" id="inputFotoItemAdmin" accept="image/*" style="margin:10px 0;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;width:100%">
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Nome do Produto *</label>
+        <input type="text" id="editItemNome" value="${escapeHTML(item[0])}" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:800">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Preço (R$) *</label>
+          <input type="number" id="editItemPreco" step="0.01" value="${Number(item[1])}" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:800">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Estoque (Vazio = Ilimitado)</label>
+          <input type="number" id="editItemEstoque" value="${estoqueAtual}" placeholder="Ilimitado" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:800">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Descrição Curta</label>
+        <input type="text" id="editItemDesc" value="${escapeHTML(item[3] || '')}" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-weight:700">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">Nova Foto (Opcional)</label>
+        <input type="file" id="inputFotoItemAdmin" accept="image/*" style="padding:8px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;width:100%;font-size:12px">
+      </div>
     </div>
-    <button class="primary" onclick="confirmarEdicaoItemAdmin('${escapeHTML(cat)}', ${idx}, '${escapeHTML(nome)}', ${preco}, '${escapeHTML(desc)}')">💾 Salvar Alterações</button>
-    <button class="secondary" onclick="renderizarPainelAdmin()">Voltar</button>
+    <button class="primary" onclick="confirmarEdicaoItemAdmin('${escapeHTML(cat)}', ${idx})">💾 Salvar Alterações</button>
+    <button class="secondary" onclick="renderizarPainelAdmin()">← Voltar</button>
   `;
 }
 
-function confirmarEdicaoItemAdmin(cat, idx, nome, preco, desc){
+function confirmarEdicaoItemAdmin(cat, idx){
   const itemAntigo = cardapio[cat][idx];
+  const nome = (document.getElementById('editItemNome')?.value || "").trim() || itemAntigo[0];
+  const preco = parseFloat(document.getElementById('editItemPreco')?.value);
+  const precoFinal = isNaN(preco) ? itemAntigo[1] : preco;
+  const estoqueRaw = document.getElementById('editItemEstoque')?.value;
+  const estoque = (estoqueRaw !== "" && estoqueRaw !== null && !isNaN(parseInt(estoqueRaw))) ? Math.max(0, parseInt(estoqueRaw)) : null;
+  const desc = (document.getElementById('editItemDesc')?.value || "").trim();
   const fileInput = document.getElementById('inputFotoItemAdmin');
-  
+
+  const esgotado = estoque === 0 ? true : (estoque !== null && estoque > 0 ? false : (itemAntigo[4] || false));
+
   if(fileInput && fileInput.files && fileInput.files[0]){
     comprimirImagemParaBase64(fileInput.files[0], (base64) => {
-      cardapio[cat][idx] = [nome, preco, base64, desc, itemAntigo[4] || false, itemAntigo[5] || Date.now()];
+      cardapio[cat][idx] = [escapeHTML(nome), precoFinal, base64, escapeHTML(desc), esgotado, itemAntigo[5] || Date.now(), estoque];
       salvarCardapioDinamicoNoFirebase();
       renderizarPainelAdmin();
     });
   } else {
-    cardapio[cat][idx] = [nome, preco, itemAntigo[2], desc, itemAntigo[4] || false, itemAntigo[5] || Date.now()];
+    cardapio[cat][idx] = [escapeHTML(nome), precoFinal, itemAntigo[2], escapeHTML(desc), esgotado, itemAntigo[5] || Date.now(), estoque];
     salvarCardapioDinamicoNoFirebase();
     renderizarPainelAdmin();
   }
@@ -1417,6 +1687,7 @@ function iniciarOuvintesFirebase() {
   if (ouvintesFirebaseIniciados) return;
   ouvintesFirebaseIniciados = true;
   carregarCardapioDinamico();
+  carregarConfigSistema();
 
   db.collection("comandas").onSnapshot({ includeMetadataChanges: true }, snapshot => {
     temPendenciasLocais = snapshot.metadata.hasPendingWrites;
@@ -1465,7 +1736,6 @@ function iniciarOuvintesFirebase() {
   }, err => {});
 }
 
-// RESTAURA AUTOMATICAMENTE O LOGIN GRAVADO NO NAVEGADOR
 firebase.auth().onAuthStateChanged((user) => {
   if (modoCliente) return;
   if (user && user.email) {
@@ -1512,6 +1782,8 @@ function sairDoSistema() {
   if (!confirm("Deseja sair da conta atual e voltar para a tela de login?")) return;
   firebase.auth().signOut().then(() => {
     usuarioLogadoEmail = "";
+    garcomSessao = "";
+    garcomTemp = "";
     sessionStorage.clear();
     document.getElementById('login-screen').style.display = 'flex';
     showToast("Sessão encerrada.");
@@ -1524,14 +1796,14 @@ function concluirLogin(email){
   document.getElementById('login-screen').style.display = 'none';
   const isAdmin = email.toLowerCase().includes('admin');
   
-  garcomSessao = "";
-  garcomTemp = "";
-  localStorage.removeItem('bb_garcom_atual');
+  const autoNome = extrairNomeGarcomPorEmail(email);
+  garcomSessao = autoNome || "";
+  garcomTemp = garcomSessao;
 
   if(!isAdmin){
     document.getElementById('navRelatorios').style.display = 'none';
     document.querySelector('.bottom').style.gridTemplateColumns = 'repeat(5,1fr)';
-    document.getElementById('user-role-label').textContent = 'B.B GARÇOM — Atendimento por Cliente';
+    document.getElementById('user-role-label').textContent = garcomSessao ? `B.B GARÇOM — ${garcomSessao}` : 'B.B GARÇOM — Atendimento por Cliente';
     if(telaAtual === 'relatorios') telaAtual = 'mesas';
   } else {
     document.getElementById('navRelatorios').style.display = 'flex';
@@ -1547,24 +1819,24 @@ function mudarTela(t, num=null){
   telaAtual = t; if(num !== null) mesaSelecionada = Number(num); renderizar(); window.scrollTo(0,0);
 }
 
-// ----------------- ATENDIMENTO: SALVA NA HORA AO APERTAR "+" (CADA TOQUE = NOVA REMESSA) -----------------
+// ----------------- ATENDIMENTO: SALVA NA HORA + OBSERVAÇÃO RÁPIDA + REPETIR RODADA + PEDIR CONTA -----------------
 function abrirMesa(num){
   mesaSelecionada = Number(num);
   pedidoTemp = { "Cliente 1": {} };
   clienteAtual = "Cliente 1";
   termoBuscaProduto = "";
-  garcomTemp = "";
 
   if(comandas[num] && (comandas[num].novoPedidoAlerta || comandas[num].pediuContaAlerta)){
     db.collection("comandas").doc(String(num)).update({
       novoPedidoAlerta: false,
-      pediuContaAlerta: false,
       origemPedido: null
     }).catch(()=>{});
   }
 
   if(comandas[num] && comandas[num].garcom) {
     garcomTemp = comandas[num].garcom;
+  } else {
+    garcomTemp = garcomSessao || extrairNomeGarcomPorEmail(usuarioLogadoEmail) || "";
   }
 
   mudarTela("atendimento", num);
@@ -1582,6 +1854,27 @@ function atualizarGarcom(v){
       garcom: garcomTemp || (modoCliente ? "Cliente Online" : "")
     }).catch(()=>{});
   }
+}
+
+function marcarPediuContaMesa(numMesa) {
+  const c = comandas[numMesa];
+  if (!c) {
+    showToast("A mesa precisa ter pedidos abertos.", true);
+    return;
+  }
+  const novoEstado = !c.pediuContaAlerta;
+  db.collection("comandas").doc(String(numMesa)).update({
+    pediuContaAlerta: novoEstado,
+    atualizadoEm: Date.now()
+  }).then(() => {
+    if (novoEstado) {
+      showToast(`🔔 Mesa ${pad(numMesa)} marcada como PEDINDO A CONTA!`);
+      iniciarAlertaPersistente(`Atenção caixa, mesa ${numMesa} pediu a conta.`);
+    } else {
+      showToast(`Alerta de conta removido da Mesa ${pad(numMesa)}.`);
+    }
+    if (telaAtual === "atendimento") renderAtendimento();
+  }).catch(err => showToast("Erro: " + err.message, true));
 }
 
 function mudarClienteAtual(novoCli){
@@ -1638,7 +1931,6 @@ function obterListaClientesMesa() {
   return Array.from(setClientes);
 }
 
-// Conta quantas unidades desse produto esse cliente já tem na mesa
 function obterQtdNaMesa(nomeProd, cli = clienteAtual) {
   if (!mesaSelecionada || !comandas[mesaSelecionada] || !Array.isArray(comandas[mesaSelecionada].itens)) {
     return 0;
@@ -1648,11 +1940,82 @@ function obterQtdNaMesa(nomeProd, cli = clienteAtual) {
     .reduce((acc, it) => acc + (Number(it.qtd) || 0), 0);
 }
 
+// Modal de Observação Rápida / Ponto da Carne (Sugestão 1)
+let obsSelecionadasTemp = [];
+
+function abrirModalObservacaoRapida(nomeProd) {
+  let pObj = produtosFlat().find(p => p.nome === nomeProd);
+  if (pObj && pObj.indisponivel) {
+    showToast(`O item "${nomeProd}" está esgotado.`, true);
+    return;
+  }
+
+  obsSelecionadasTemp = [];
+  const tagsPorCategoria = {
+    "CHURRASCOS": ["Mal passada", "Ao ponto", "Bem passada", "Sem sal", "Com farofa"],
+    "BEBIDAS": ["Bem gelada", "Copo com gelo", "Gelo e limão", "Sem gelo"],
+    "REFRIGERANTES": ["Copo com gelo", "Gelo e limão", "Sem gelo"],
+    "SUCOS": ["Com açúcar", "Sem açúcar", "Com gelo", "Sem gelo"],
+    "PETISCOS": ["Sem cebola", "Bem frita", "Molho à parte"],
+    "GUARNIÇÕES": ["Sem cebola", "Quente", "Para viagem"]
+  };
+  const tagsSugeridas = tagsPorCategoria[pObj?.cat] || ["Sem cebola", "Ao ponto", "Bem passada", "Gelo e limão", "Para viagem"];
+
+  document.getElementById("modalTitle").textContent = `💬 ${nomeProd}`;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Toque nas observações rápidas para <b>${escapeHTML(clienteAtual)}</b>:</div>
+    <div class="obs-tags-grid">
+      ${tagsSugeridas.map(tag => `
+        <button type="button" class="obs-tag-btn" onclick="alternarTagObs(this, '${escapeHTML(tag)}')">${escapeHTML(tag)}</button>
+      `).join('')}
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Observação Livre (Opcional)</label>
+      <input type="text" id="inputObsLivreModal" placeholder="Ex: Cortar em 4 pedaços" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
+    </div>
+    <button class="primary" onclick="confirmarItemComObservacao('${escapeHTML(nomeProd)}')">✅ Lançar 1x com Observação</button>
+    <button class="secondary" onclick="fecharModal()">Cancelar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+function alternarTagObs(btn, tag) {
+  if (obsSelecionadasTemp.includes(tag)) {
+    obsSelecionadasTemp = obsSelecionadasTemp.filter(t => t !== tag);
+    btn.classList.remove("active");
+  } else {
+    obsSelecionadasTemp.push(tag);
+    btn.classList.add("active");
+  }
+}
+
+function confirmarItemComObservacao(nomeProd) {
+  const livre = (document.getElementById("inputObsLivreModal")?.value || "").trim();
+  let listaFinal = [...obsSelecionadasTemp];
+  if (livre) listaFinal.push(escapeHTML(livre));
+  const obsFinal = listaFinal.join(" • ");
+
+  fecharModal();
+  if (!modoCliente) {
+    salvarAdicaoDiretaNaComanda(nomeProd, clienteAtual, obsFinal);
+  } else {
+    if (!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
+    pedidoTemp[clienteAtual][nomeProd] = (pedidoTemp[clienteAtual][nomeProd] || 0) + 1;
+    renderProdutos();
+    atualizarBar();
+  }
+}
+
 // Salva instantaneamente na comanda criando uma nova remessa separada a cada "+"
-function salvarAdicaoDiretaNaComanda(nomeProd, cli) {
+function salvarAdicaoDiretaNaComanda(nomeProd, cli, obs = "") {
   if (!mesaSelecionada) return;
   const numMesaStr = String(mesaSelecionada);
   const pObj = produtosFlat().find(p => p.nome === nomeProd);
+  if (pObj && pObj.indisponivel) {
+    showToast(`O item "${nomeProd}" está esgotado.`, true);
+    return;
+  }
+
   const preco = pObj ? Number(pObj.preco || 0) : 0;
   const catDoItem = pObj ? pObj.cat : "";
   const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS", "BEBIDAS", "REFRIGERANTES"];
@@ -1667,6 +2030,7 @@ function salvarAdicaoDiretaNaComanda(nomeProd, cli) {
     nome: nomeProd,
     qtd: 1,
     preco: preco,
+    obs: obs,
     statusCozinha: statusInicial,
     horario: horarioAtualStr,
     timestampItem: agora
@@ -1688,18 +2052,92 @@ function salvarAdicaoDiretaNaComanda(nomeProd, cli) {
     origemPedido: 'garcom'
   };
 
-  // Atualiza cache local imediatamente para resposta instantânea na UI
+  // Desconta 1 do estoque se o produto tiver controle numérico
+  ajustarEstoqueItem(nomeProd, -1);
+
   comandas[numMesaStr] = { ...comandaAtual, ...dadosMesa };
   atualizarResumoEnviadosAtendimento();
   renderProdutos();
-  showToast(`+1 ${nomeProd} salvo na Mesa ${pad(numMesaStr)} (${horarioAtualStr})`);
+  showToast(`+1 ${nomeProd}${obs ? ` (${obs})` : ''} salvo na Mesa ${pad(numMesaStr)}`);
 
   db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true }).catch(err => {
     showToast("Erro ao salvar item: " + err.message, true);
   });
 }
 
-// Diminui 1 unidade do último lançamento desse produto para o cliente atual na mesa
+// Repetir Última Rodada (Sugestão 2)
+function repetirUltimaRodadaMesa() {
+  if (!mesaSelecionada) return;
+  const numMesaStr = String(mesaSelecionada);
+  const comandaAtual = comandas[numMesaStr];
+  if (!comandaAtual || !Array.isArray(comandaAtual.itens) || comandaAtual.itens.length === 0) {
+    showToast("Nenhum pedido anterior nesta mesa para repetir.", true);
+    return;
+  }
+
+  // Encontra o timestamp mais recente da mesa (ou do cliente atual se houver)
+  const itensDoCliente = comandaAtual.itens.filter(it => (it.cliente || 'Cliente 1') === clienteAtual);
+  const baseItens = itensDoCliente.length > 0 ? itensDoCliente : comandaAtual.itens;
+  const ultimoTs = Math.max(...baseItens.map(it => Number(it.timestampItem || 0)));
+
+  // Pega itens lançados naquela mesma rodada (janela de 60 segundos)
+  const itensRodada = baseItens.filter(it => Math.abs(Number(it.timestampItem || 0) - ultimoTs) <= 60000);
+  if (!itensRodada.length) return;
+
+  const resumoNomes = itensRodada.map(i => `${i.qtd}x ${i.nome}`).join(", ");
+  if (!confirm(`🔁 Repetir última rodada para ${clienteAtual}?\n\nItens: ${resumoNomes}`)) return;
+
+  const agora = Date.now();
+  const horarioAtualStr = new Date(agora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const categoriasComPreparo = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES", "SUCOS", "CHURRASCOS", "BEBIDAS", "REFRIGERANTES"];
+
+  let novosLotes = [];
+  itensRodada.forEach(it => {
+    const pObj = produtosFlat().find(p => p.nome === it.nome);
+    if (pObj && pObj.indisponivel) {
+      showToast(`"${it.nome}" está esgotado e foi pulado.`, true);
+      return;
+    }
+    const statusInicial = (pObj && categoriasComPreparo.includes(pObj.cat)) ? 'pendente' : '';
+    ajustarEstoqueItem(it.nome, -Number(it.qtd || 1));
+
+    novosLotes.push({
+      loteId: gerarLoteId(),
+      cliente: clienteAtual,
+      nome: it.nome,
+      qtd: Number(it.qtd || 1),
+      preco: Number(it.preco || 0),
+      obs: it.obs || "",
+      statusCozinha: statusInicial,
+      horario: horarioAtualStr,
+      timestampItem: agora
+    });
+  });
+
+  if (!novosLotes.length) return;
+
+  const itensAtualizados = [...comandaAtual.itens, ...novosLotes];
+  const totalGeral = itensAtualizados.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+
+  comandas[numMesaStr] = {
+    ...comandaAtual,
+    itens: itensAtualizados,
+    total: totalGeral,
+    atualizadoEm: agora
+  };
+
+  atualizarResumoEnviadosAtendimento();
+  renderProdutos();
+  showToast(`🔁 Rodada repetida (${novosLotes.length} ${novosLotes.length === 1 ? 'item' : 'itens'})!`);
+
+  db.collection("comandas").doc(numMesaStr).update({
+    itens: itensAtualizados,
+    total: totalGeral,
+    atualizadoEm: agora
+  }).catch(err => showToast("Erro ao repetir rodada: " + err.message, true));
+}
+
+// Diminui 1 unidade do último lançamento desse produto para o cliente atual na mesa (com proteção de preparo - Sugestão 13)
 function removerUltimaUnidadeDireta(nomeProd, cli) {
   if (!mesaSelecionada) return;
   const numMesaStr = String(mesaSelecionada);
@@ -1707,7 +2145,6 @@ function removerUltimaUnidadeDireta(nomeProd, cli) {
   if (!comandaAtual || !Array.isArray(comandaAtual.itens)) return;
 
   let itensCopia = [...comandaAtual.itens];
-  // Procura de trás para frente pelo último lançamento desse item para esse cliente
   let idxAlvo = -1;
   for (let i = itensCopia.length - 1; i >= 0; i--) {
     if ((itensCopia[i].cliente || 'Cliente 1') === cli && itensCopia[i].nome === nomeProd) {
@@ -1717,8 +2154,88 @@ function removerUltimaUnidadeDireta(nomeProd, cli) {
   }
   if (idxAlvo === -1) return;
 
-  if (Number(itensCopia[idxAlvo].qtd) > 1) {
-    itensCopia[idxAlvo] = { ...itensCopia[idxAlvo], qtd: Number(itensCopia[idxAlvo].qtd) - 1 };
+  const itemAlvo = itensCopia[idxAlvo];
+  // Bloqueio se já estiver preparando ou pronto (Sugestão 13)
+  if (itemAlvo.statusCozinha === 'preparando' || itemAlvo.statusCozinha === 'pronto') {
+    abrirModalCancelamentoItemProtegido(numMesaStr, idxAlvo, true);
+    return;
+  }
+
+  executarRemocaoUnidadeConfirmada(numMesaStr, idxAlvo, true, null);
+}
+
+// Modal de Autorização para cancelar item já em preparo/pronto (Sugestão 13)
+function abrirModalCancelamentoItemProtegido(numMesaStr, idxItem, apenasUmaUnidade) {
+  const c = comandas[numMesaStr];
+  if (!c || !c.itens || !c.itens[idxItem]) return;
+  const item = c.itens[idxItem];
+  const stTexto = item.statusCozinha === 'pronto' ? 'PRONTO' : 'EM PREPARO';
+
+  document.getElementById("modalTitle").textContent = "🛡️ Item Já em Produção";
+  document.getElementById("modalBody").innerHTML = `
+    <div style="background:rgba(211,47,47,0.1);border:1px solid var(--brand);padding:12px;border-radius:14px;margin-bottom:12px;font-size:12px">
+      <b>⚠️ Atenção:</b> O item <b>${item.qtd}x ${escapeHTML(item.nome)}</b> já consta como <b>${stTexto}</b> na cozinha/bar.
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Motivo do Cancelamento *</label>
+      <input type="text" id="inputMotivoCancelItem" placeholder="Ex: Cliente desistiu / Erro de lançamento" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700">
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">Senha do Administrador *</label>
+      <input type="password" id="inputSenhaCancelItem" inputmode="numeric" placeholder="••••" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:16px;font-weight:900;text-align:center;letter-spacing:4px">
+    </div>
+    <button class="primary" onclick="confirmarCancelamentoItemProtegido('${numMesaStr}', ${idxItem}, ${apenasUmaUnidade})">🗑️ Autorizar Cancelamento</button>
+    <button class="secondary" onclick="fecharModal()">Voltar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+function confirmarCancelamentoItemProtegido(numMesaStr, idxItem, apenasUmaUnidade) {
+  const motivo = (document.getElementById("inputMotivoCancelItem")?.value || "").trim();
+  const senha = document.getElementById("inputSenhaCancelItem")?.value || "";
+
+  if (!motivo) {
+    showToast("Informe o motivo do cancelamento.", true);
+    return;
+  }
+  if (senha !== SENHA_ADMIN_PADRAO) {
+    showToast("Senha de administrador incorreta!", true);
+    return;
+  }
+
+  fecharModal();
+  executarRemocaoUnidadeConfirmada(numMesaStr, idxItem, apenasUmaUnidade, motivo);
+}
+
+function executarRemocaoUnidadeConfirmada(numMesaStr, idxAlvo, apenasUmaUnidade, motivoAuditoria) {
+  const comandaAtual = comandas[numMesaStr];
+  if (!comandaAtual || !Array.isArray(comandaAtual.itens) || !comandaAtual.itens[idxAlvo]) return;
+
+  let itensCopia = [...comandaAtual.itens];
+  const itemAlvo = itensCopia[idxAlvo];
+  const qtdRemovida = apenasUmaUnidade ? 1 : Number(itemAlvo.qtd || 1);
+
+  // Devolve ao estoque numérico se houver controle
+  ajustarEstoqueItem(itemAlvo.nome, qtdRemovida);
+
+  // Registra auditoria se houve motivo (item em preparo/pronto)
+  if (motivoAuditoria) {
+    const agora = new Date();
+    db.collection("cancelamentos").add({
+      mesa: Number(numMesaStr),
+      garcom: comandaAtual.garcom || garcomTemp || "Garçom",
+      totalCancelado: qtdRemovida * Number(itemAlvo.preco || 0),
+      motivo: `[Item ${itemAlvo.statusCozinha}] ${qtdRemovida}x ${itemAlvo.nome} — ${escapeHTML(motivoAuditoria)}`,
+      horario: agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      data: agora.toLocaleDateString('pt-BR'),
+      diaSemana: DIAS_SEMANA_PT[agora.getDay()],
+      timestamp: agora.getTime(),
+      itens: [{ ...itemAlvo, qtd: qtdRemovida }]
+    }).catch(()=>{});
+  }
+
+  if (apenasUmaUnidade && Number(itemAlvo.qtd) > 1) {
+    itensCopia[idxAlvo] = { ...itemAlvo, qtd: Number(itemAlvo.qtd) - 1 };
   } else {
     itensCopia.splice(idxAlvo, 1);
   }
@@ -1729,13 +2246,13 @@ function removerUltimaUnidadeDireta(nomeProd, cli) {
     delete comandas[numMesaStr];
     atualizarResumoEnviadosAtendimento();
     renderProdutos();
-    showToast(`Removido ${nomeProd} — Mesa ${pad(numMesaStr)} livre`);
+    showToast(`Removido ${itemAlvo.nome} — Mesa ${pad(numMesaStr)} livre`);
     db.collection("comandas").doc(numMesaStr).delete().catch(()=>{});
   } else {
     comandas[numMesaStr] = { ...comandaAtual, itens: itensCopia, total: totalGeral, atualizadoEm: Date.now() };
     atualizarResumoEnviadosAtendimento();
     renderProdutos();
-    showToast(`-1 ${nomeProd} atualizado na Mesa ${pad(numMesaStr)}`);
+    showToast(`-${qtdRemovida} ${itemAlvo.nome} atualizado na Mesa ${pad(numMesaStr)}`);
     db.collection("comandas").doc(numMesaStr).update({
       itens: itensCopia,
       total: totalGeral,
@@ -1746,22 +2263,20 @@ function removerUltimaUnidadeDireta(nomeProd, cli) {
 
 function alterarQtd(nome, delta){ 
   let pObj = produtosFlat().find(p => p.nome === nome);
-  if(pObj && pObj.indisponivel){
+  if(delta > 0 && pObj && pObj.indisponivel){
     showToast(`O item "${nome}" está esgotado no momento.`, true);
     return;
   }
 
-  // No modo Garçom/Admin, cada clique em "+" já salva na hora como nova remessa separada!
   if (!modoCliente) {
     if (delta > 0) {
-      salvarAdicaoDiretaNaComanda(nome, clienteAtual);
+      salvarAdicaoDiretaNaComanda(nome, clienteAtual, "");
     } else if (delta < 0) {
       removerUltimaUnidadeDireta(nome, clienteAtual);
     }
     return;
   }
 
-  // No modo Cliente (QR Code / Delivery), acumula no carrinho até confirmar
   if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
   let qtdAntiga = pedidoTemp[clienteAtual][nome] || 0;
   let novaQtd = qtdAntiga + delta;
@@ -1783,6 +2298,7 @@ function produtosFlat(){
         desc: p[3] || "", 
         indisponivel: p[4] === true, 
         criadoEmItem: p[5] || 0,
+        estoque: (p[6] !== undefined) ? p[6] : null,
         cat
       });
     });
@@ -1790,7 +2306,6 @@ function produtosFlat(){
   return a; 
 }
 
-// Itens pendentes no carrinho (usado principalmente no modo cliente)
 function itensNovosDoCarrinho(){
   let arr = [];
   const agora = Date.now();
@@ -1812,6 +2327,7 @@ function itensNovosDoCarrinho(){
           nome: prod,
           qtd: qtd,
           preco: preco,
+          obs: "",
           statusCozinha: statusInicial,
           horario: horarioAtualStr,
           timestampItem: agora
@@ -1863,7 +2379,7 @@ function renderProdutos(){
  if(termoBuscaProduto){
    let listaFlat = produtosFlat();
    listaFlat.sort((a, b) => b.criadoEmItem - a.criadoEmItem);
-   listaProd = listaFlat.filter(p => p.nome.toLowerCase().includes(termoBuscaProduto)).map(p => [p.nome, p.preco, p.icon, p.desc, p.indisponivel, p.criadoEmItem]);
+   listaProd = listaFlat.filter(p => p.nome.toLowerCase().includes(termoBuscaProduto)).map(p => [p.nome, p.preco, p.icon, p.desc, p.indisponivel, p.criadoEmItem, p.estoque]);
  }
 
  const agora = Date.now();
@@ -1876,6 +2392,8 @@ function renderProdutos(){
    const desc = itemBruto[3] || "";
    const indisponivel = itemBruto[4] === true;
    const timestampCriacao = itemBruto[5] || 0;
+   const estoque = itemBruto[6];
+   const temEstoque = estoque !== null && estoque !== undefined && estoque !== "";
    
    const ehNovoDestaque = (timestampCriacao > 0 && (agora - timestampCriacao < tempoDestaqueLimite));
    const q = modoCliente ? (cliMap[nome] || 0) : obterQtdNaMesa(nome, clienteAtual);
@@ -1898,18 +2416,24 @@ function renderProdutos(){
          ${indisponivel ? '<span style="font-size:10px;background:#d32f2f;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px">ESGOTADO</span>' : ''}
        </div>
        ${desc ? `<div class="prod-desc-text">${escapeHTML(desc)}</div>` : ''}
-       <div class="prod-price">R$ ${Number(preco).toFixed(2)}</div>
+       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+         <span class="prod-price">R$ ${Number(preco).toFixed(2)}</span>
+         ${(temEstoque && !indisponivel) ? `<span style="font-size:10px;background:rgba(2,132,199,0.12);color:#0284c7;padding:1px 6px;border-radius:6px;font-weight:900">Restam ${estoque}</span>` : ''}
+       </div>
      </div>
      <div class="prod-action-qty">
-       ${indisponivel ? `<span style="font-size:11px;color:#d32f2f;font-weight:900">Indisponível</span>` : (q === 0 ? `
-         <button class="btn-circle-plus" onclick="alterarQtd('${escapeHTML(nome)}',1)">+</button>
-       ` : `
-         <div class="qty-control-inline">
-           <button onclick="alterarQtd('${escapeHTML(nome)}',-1)">−</button>
-           <span>${q}</span>
-           <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${escapeHTML(nome)}',1)">+</button>
-         </div>
-       `)}
+       ${indisponivel ? `<span style="font-size:11px;color:#d32f2f;font-weight:900">Indisponível</span>` : `
+         <button class="btn-obs-quick" onclick="abrirModalObservacaoRapida('${escapeHTML(nome)}')" title="Adicionar com observação / ponto da carne">💬</button>
+         ${q === 0 ? `
+           <button class="btn-circle-plus" onclick="alterarQtd('${escapeHTML(nome)}',1)">+</button>
+         ` : `
+           <div class="qty-control-inline">
+             <button onclick="alterarQtd('${escapeHTML(nome)}',-1)">−</button>
+             <span>${q}</span>
+             <button style="background:var(--brand);color:#fff" onclick="alterarQtd('${escapeHTML(nome)}',1)">+</button>
+           </div>
+         `}
+       `}
      </div>
    </div>`;
  }).join("");
@@ -1920,20 +2444,27 @@ function renderProdutos(){
  atualizarBar();
 }
 
-// Helper: Cronômetro de Espera na Fila (Cozinha, Churrasco, Bebidas)
-function formatarEsperaFila(timestamp, status) {
-  if (!timestamp) return '';
+// Helper: Cronômetro de Espera na Fila + Alerta Crítico (> 20 min)
+function obterInfoFila(timestamp, status) {
+  if (!timestamp) return { badge: '', critico: false };
   const diffMin = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
-  if (status === 'pronto') {
-    return `<span class="fila-timer fila-verde">há ${diffMin} min</span>`;
+  if (status === 'pronto' || status === 'entregue') {
+    return { badge: `<span class="fila-timer fila-verde">há ${diffMin} min</span>`, critico: false };
   }
   let classe = 'fila-verde';
+  let critico = false;
   if (diffMin >= 10 && diffMin < 20) classe = 'fila-amarelo';
-  else if (diffMin >= 20) classe = 'fila-vermelho';
-  return `<span class="fila-timer ${classe}">há ${diffMin} min</span>`;
+  else if (diffMin >= 20) {
+    classe = 'fila-vermelho';
+    critico = true;
+  }
+  return {
+    badge: `<span class="fila-timer ${classe}">${critico ? '🚨 ' : ''}há ${diffMin} min</span>`,
+    critico
+  };
 }
 
-// ----------------- MÓDULO DA COZINHA / CHURRASCO / BEBIDAS -----------------
+// ----------------- MÓDULOS KDS: COZINHA / CHURRASCO / BEBIDAS (COM 4º ESTÁGIO "ENTREGUE") -----------------
 function atualizarStatusItemCozinha(mesaNum, loteId, clienteName, nomeItem, timestampItem, novoStatus){
   const comanda = comandas[mesaNum];
   if(!comanda || !comanda.itens) return;
@@ -1975,6 +2506,16 @@ function atualizarStatusItemCozinha(mesaNum, loteId, clienteName, nomeItem, time
   });
 }
 
+function alternarMostrarEntreguesKDS() {
+  mostrarEntreguesKDS = !mostrarEntreguesKDS;
+  renderizar();
+}
+
+function mudarSubFiltroCozinha(sub) {
+  filtroSubCozinha = sub;
+  renderCozinha();
+}
+
 function renderCozinha(){
   const categoriasCozinha = ["CARANGUEJO", "PETISCOS", "GUARNIÇÕES"];
   let listaItensTimeline = [];
@@ -1984,32 +2525,37 @@ function renderCozinha(){
 
   for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
-    if(c){
-      if(c.itens && c.itens.length > 0){
-        c.itens.forEach((it) => {
-          let catDoItem = "";
-          for(let cat in cardapio){
-            if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
-              catDoItem = cat;
-              break;
-            }
+    if(c && c.itens && c.itens.length > 0){
+      c.itens.forEach((it) => {
+        let catDoItem = "";
+        for(let cat in cardapio){
+          if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+            catDoItem = cat;
+            break;
           }
-          if(categoriasCozinha.includes(catDoItem)){
-            listaItensTimeline.push({
-              mesa: i,
-              loteId: it.loteId || '',
-              garcom: c.garcom || 'Sem Garçom',
-              cliente: it.cliente || 'Cliente 1',
-              nome: it.nome,
-              qtd: it.qtd,
-              preco: it.preco,
-              status: it.statusCozinha || 'pendente',
-              horario: it.horario || '--:--',
-              timestamp: it.timestampItem || c.criadoEm || 0
-            });
-          }
-        });
-      }
+        }
+        if(categoriasCozinha.includes(catDoItem)){
+          if (filtroSubCozinha === 'CARANGUEJO' && catDoItem !== 'CARANGUEJO') return;
+          if (filtroSubCozinha === 'PETISCOS_GUARNICOES' && catDoItem === 'CARANGUEJO') return;
+
+          const statusAtual = it.statusCozinha || 'pendente';
+          if (!mostrarEntreguesKDS && statusAtual === 'entregue') return;
+
+          listaItensTimeline.push({
+            mesa: i,
+            loteId: it.loteId || '',
+            garcom: c.garcom || 'Sem Garçom',
+            cliente: it.cliente || 'Cliente 1',
+            nome: it.nome,
+            obs: it.obs || '',
+            qtd: it.qtd,
+            preco: it.preco,
+            status: statusAtual,
+            horario: it.horario || '--:--',
+            timestamp: it.timestampItem || c.criadoEm || 0
+          });
+        }
+      });
     }
   }
 
@@ -2033,6 +2579,7 @@ function renderCozinha(){
     }
   });
 
+  // Ordena priorizando atrasos críticos (>20m) não prontos, depois ordem de chegada
   listaItensTimeline.sort((a, b) => a.timestamp - b.timestamp);
 
   let listaResumoProdutosHTML = Object.keys(contagemProdutosCozinha).sort((a,b) => contagemProdutosCozinha[b] - contagemProdutosCozinha[a]).map(nome => `
@@ -2042,20 +2589,20 @@ function renderCozinha(){
   `).join('');
 
   let cardsTimelineHTML = listaItensTimeline.map(item => {
-    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
-    let labelStatus = item.status === 'preparando' ? '🔥 Preparando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
-    let badgeCronometro = formatarEsperaFila(item.timestamp, item.status);
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : (item.status === 'entregue' ? '#6b7280' : 'var(--brand)'));
+    let labelStatus = item.status === 'preparando' ? '🔥 Preparando' : (item.status === 'pronto' ? '✅ Pronto (Aguardando retirada)' : (item.status === 'entregue' ? '🍽️ Entregue na mesa' : '⏳ Pendente'));
+    let filaInfo = obterInfoFila(item.timestamp, item.status);
     
     return `
-      <div class="card command" style="border-left: 4px solid var(--brand); margin-bottom:8px; padding:12px">
+      <div class="card command ${filaInfo.critico ? 'card-atraso-critico' : ''}" style="border-left: 4px solid ${corStatus}; margin-bottom:8px; padding:12px; opacity:${item.status === 'entregue' ? '0.65' : '1'}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
             <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
           <div style="display:flex;align-items:center">
-            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
-            ${badgeCronometro}
+            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 ${item.horario}</span>
+            ${filaInfo.badge}
           </div>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -2063,11 +2610,13 @@ function renderCozinha(){
             <div style="font-size:13px;font-weight:900">
               <span style="color:var(--brand)">[${escapeHTML(item.cliente)}]</span> ${item.qtd}x ${escapeHTML(item.nome)}
             </div>
+            ${item.obs ? `<div style="font-size:11px;font-weight:900;color:#d97706;margin-top:2px">💬 Obs: ${escapeHTML(item.obs)}</div>` : ''}
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
-          <div style="display:flex;gap:4px">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
             ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Preparar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${(item.status === 'pendente' || item.status === 'preparando') ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : ''}
+            ${item.status === 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'entregue')" style="background:#0284c7;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">🍽️ Entregue</button>` : ''}
           </div>
         </div>
       </div>
@@ -2079,7 +2628,16 @@ function renderCozinha(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Módulo Cozinha</h2><span class="muted">Linha do tempo (Ordem de chegada)</span></div>
-      <button onclick="sessionStorage.removeItem('acesso_cozinha'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear Cozinha</button>
+      <div style="display:flex;gap:6px">
+        <button onclick="alternarMostrarEntreguesKDS()" style="border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">${mostrarEntreguesKDS ? '👁️ Ocultar Entregues' : '👁️ Ver Entregues'}</button>
+        <button onclick="sessionStorage.removeItem('acesso_cozinha'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear</button>
+      </div>
+    </div>
+
+    <div class="filter-tabs">
+      <button class="filter-tab ${filtroSubCozinha === 'TODOS' ? 'active' : ''}" onclick="mudarSubFiltroCozinha('TODOS')">Todos Cozinha</button>
+      <button class="filter-tab ${filtroSubCozinha === 'CARANGUEJO' ? 'active' : ''}" onclick="mudarSubFiltroCozinha('CARANGUEJO')">🦀 Só Caranguejo</button>
+      <button class="filter-tab ${filtroSubCozinha === 'PETISCOS_GUARNICOES' ? 'active' : ''}" onclick="mudarSubFiltroCozinha('PETISCOS_GUARNICOES')">🍟 Petiscos & Guarnições</button>
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
@@ -2100,35 +2658,44 @@ function renderCozinha(){
   `;
 }
 
-// ----------------- MÓDULO DO CHURRASCO -----------------
+// ----------------- MÓDULO DO CHURRASCO (COM PAINEL AGRUPADO "NA BRASA AGORA") -----------------
 function renderChurrasco(){
   let listaItensTimelineChurrasco = [];
   let totalQtdChurrasco = 0;
   let totalValorChurrasco = 0;
   let contagemProdutosChurrasco = {};
+  let naBrasaAgora = {}; // Agrupamento de espetos pendentes/assando (Sugestão 6)
 
   for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
-    if(c){
-      if(c.itens && c.itens.length > 0){
-        c.itens.forEach(it => {
-          let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
-          if(ehChurrasco){
-            listaItensTimelineChurrasco.push({
-              mesa: i,
-              loteId: it.loteId || '',
-              garcom: c.garcom || 'Sem Garçom',
-              cliente: it.cliente || 'Cliente 1',
-              nome: it.nome,
-              qtd: it.qtd,
-              preco: it.preco,
-              status: it.statusCozinha || 'pendente',
-              horario: it.horario || '--:--',
-              timestamp: it.timestampItem || c.criadoEm || 0
-            });
+    if(c && c.itens && c.itens.length > 0){
+      c.itens.forEach(it => {
+        let ehChurrasco = (cardapio["CHURRASCOS"] || []).some(p => p[0].toLowerCase() === it.nome.toLowerCase());
+        if(ehChurrasco){
+          const statusAtual = it.statusCozinha || 'pendente';
+
+          // Soma no painel "Na Brasa Agora" tudo que ainda não ficou pronto
+          if (statusAtual === 'pendente' || statusAtual === 'preparando') {
+            naBrasaAgora[it.nome] = (naBrasaAgora[it.nome] || 0) + Number(it.qtd || 1);
           }
-        });
-      }
+
+          if (!mostrarEntreguesKDS && statusAtual === 'entregue') return;
+
+          listaItensTimelineChurrasco.push({
+            mesa: i,
+            loteId: it.loteId || '',
+            garcom: c.garcom || 'Sem Garçom',
+            cliente: it.cliente || 'Cliente 1',
+            nome: it.nome,
+            obs: it.obs || '',
+            qtd: it.qtd,
+            preco: it.preco,
+            status: statusAtual,
+            horario: it.horario || '--:--',
+            timestamp: it.timestampItem || c.criadoEm || 0
+          });
+        }
+      });
     }
   }
 
@@ -2148,6 +2715,12 @@ function renderChurrasco(){
 
   listaItensTimelineChurrasco.sort((a, b) => a.timestamp - b.timestamp);
 
+  let badgesNaBrasaHTML = Object.keys(naBrasaAgora).sort((a,b) => naBrasaAgora[b] - naBrasaAgora[a]).map(nome => `
+    <span style="background:var(--brand);color:#fff;padding:5px 10px;border-radius:10px;font-size:12px;font-weight:900;display:inline-flex;align-items:center;gap:4px">
+      🔥 ${naBrasaAgora[nome]}x ${escapeHTML(nome)}
+    </span>
+  `).join('');
+
   let listaResumoChurrascoHTML = Object.keys(contagemProdutosChurrasco).sort((a,b) => contagemProdutosChurrasco[b] - contagemProdutosChurrasco[a]).map(nome => `
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
       <span><b>${contagemProdutosChurrasco[nome]}x</b> ${escapeHTML(nome)}</span>
@@ -2155,20 +2728,20 @@ function renderChurrasco(){
   `).join('');
 
   let cardsChurrascoHTML = listaItensTimelineChurrasco.map(item => {
-    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
-    let labelStatus = item.status === 'preparando' ? '🔥 Assando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Na Fila');
-    let badgeCronometro = formatarEsperaFila(item.timestamp, item.status);
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : (item.status === 'entregue' ? '#6b7280' : 'var(--brand)'));
+    let labelStatus = item.status === 'preparando' ? '🔥 Assando' : (item.status === 'pronto' ? '✅ Pronto (Aguardando retirada)' : (item.status === 'entregue' ? '🍽️ Entregue na mesa' : '⏳ Na Fila'));
+    let filaInfo = obterInfoFila(item.timestamp, item.status);
 
     return `
-      <div class="card command" style="border-left: 4px solid #d32f2f; margin-bottom:8px; padding:12px">
+      <div class="card command ${filaInfo.critico ? 'card-atraso-critico' : ''}" style="border-left: 4px solid ${corStatus}; margin-bottom:8px; padding:12px; opacity:${item.status === 'entregue' ? '0.65' : '1'}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
             <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
           <div style="display:flex;align-items:center">
-            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
-            ${badgeCronometro}
+            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 ${item.horario}</span>
+            ${filaInfo.badge}
           </div>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -2176,11 +2749,13 @@ function renderChurrasco(){
             <div style="font-size:13px;font-weight:900">
               <span style="color:var(--brand)">[${escapeHTML(item.cliente)}]</span> ${item.qtd}x ${escapeHTML(item.nome)}
             </div>
+            ${item.obs ? `<div style="font-size:11px;font-weight:900;color:#d97706;margin-top:2px">💬 Ponto/Obs: ${escapeHTML(item.obs)}</div>` : ''}
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
-          <div style="display:flex;gap:4px">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
             ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Assar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${(item.status === 'pendente' || item.status === 'preparando') ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : ''}
+            ${item.status === 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'entregue')" style="background:#0284c7;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">🍽️ Entregue</button>` : ''}
           </div>
         </div>
       </div>
@@ -2192,8 +2767,20 @@ function renderChurrasco(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Módulo Churrasco</h2><span class="muted">Linha do tempo de espetos (Ordem de chegada)</span></div>
-      <button onclick="sessionStorage.removeItem('acesso_churrasco'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear Churrasco</button>
+      <div style="display:flex;gap:6px">
+        <button onclick="alternarMostrarEntreguesKDS()" style="border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">${mostrarEntreguesKDS ? '👁️ Ocultar Entregues' : '👁️ Ver Entregues'}</button>
+        <button onclick="sessionStorage.removeItem('acesso_churrasco'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear</button>
+      </div>
     </div>
+
+    ${badgesNaBrasaHTML ? `
+      <div class="card" style="padding:14px;margin-bottom:14px;border:2px solid var(--brand);background:rgba(211,47,47,0.06)">
+        <div style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase;margin-bottom:8px">🔥 Total Consolidado na Brasa Agora (Fila + Assando):</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${badgesNaBrasaHTML}
+        </div>
+      </div>
+    ` : ''}
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
       <h3 style="margin:0 0 8px 0;font-size:13px;font-weight:900;color:var(--brand)">📊 Resumo de Vendas no Churrasco (${labelResumoSetor})</h3>
@@ -2223,32 +2810,34 @@ function renderBebidas(){
 
   for(let i=1; i<=TOTAL_MESAS; i++){
     let c = comandas[i];
-    if(c){
-      if(c.itens && c.itens.length > 0){
-        c.itens.forEach(it => {
-          let catDoItem = "";
-          for(let cat in cardapio){
-            if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
-              catDoItem = cat;
-              break;
-            }
+    if(c && c.itens && c.itens.length > 0){
+      c.itens.forEach(it => {
+        let catDoItem = "";
+        for(let cat in cardapio){
+          if(cardapio[cat].some(p => p[0].toLowerCase() === it.nome.toLowerCase())){
+            catDoItem = cat;
+            break;
           }
-          if(categoriasBebidas.includes(catDoItem)){
-            listaItensTimelineBebidas.push({
-              mesa: i,
-              loteId: it.loteId || '',
-              garcom: c.garcom || 'Sem Garçom',
-              cliente: it.cliente || 'Cliente 1',
-              nome: it.nome,
-              qtd: it.qtd,
-              preco: it.preco,
-              status: it.statusCozinha || 'pendente',
-              horario: it.horario || '--:--',
-              timestamp: it.timestampItem || c.criadoEm || 0
-            });
-          }
-        });
-      }
+        }
+        if(categoriasBebidas.includes(catDoItem)){
+          const statusAtual = it.statusCozinha || 'pendente';
+          if (!mostrarEntreguesKDS && statusAtual === 'entregue') return;
+
+          listaItensTimelineBebidas.push({
+            mesa: i,
+            loteId: it.loteId || '',
+            garcom: c.garcom || 'Sem Garçom',
+            cliente: it.cliente || 'Cliente 1',
+            nome: it.nome,
+            obs: it.obs || '',
+            qtd: it.qtd,
+            preco: it.preco,
+            status: statusAtual,
+            horario: it.horario || '--:--',
+            timestamp: it.timestampItem || c.criadoEm || 0
+          });
+        }
+      });
     }
   }
 
@@ -2281,20 +2870,20 @@ function renderBebidas(){
   `).join('');
 
   let cardsBebidasHTML = listaItensTimelineBebidas.map(item => {
-    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : 'var(--brand)');
-    let labelStatus = item.status === 'preparando' ? '🧊 Separando' : (item.status === 'pronto' ? '✅ Pronto' : '⏳ Pendente');
-    let badgeCronometro = formatarEsperaFila(item.timestamp, item.status);
+    let corStatus = item.status === 'preparando' ? '#f59e0b' : (item.status === 'pronto' ? '#10b981' : (item.status === 'entregue' ? '#6b7280' : 'var(--brand)'));
+    let labelStatus = item.status === 'preparando' ? '🧊 Separando' : (item.status === 'pronto' ? '✅ Pronto (Aguardando retirada)' : (item.status === 'entregue' ? '🍽️ Entregue na mesa' : '⏳ Pendente'));
+    let filaInfo = obterInfoFila(item.timestamp, item.status);
     
     return `
-      <div class="card command" style="border-left: 4px solid #0284c7; margin-bottom:8px; padding:12px">
+      <div class="card command ${filaInfo.critico ? 'card-atraso-critico' : ''}" style="border-left: 4px solid #0284c7; margin-bottom:8px; padding:12px; opacity:${item.status === 'entregue' ? '0.65' : '1'}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
           <div>
             <span class="tag">Mesa ${pad(item.mesa)}</span>
             <small class="muted" style="margin-left:6px">Garçom: <b>${escapeHTML(item.garcom)}</b></small>
           </div>
           <div style="display:flex;align-items:center">
-            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 Pedido às ${item.horario}</span>
-            ${badgeCronometro}
+            <span style="font-size:11px;font-weight:900;color:var(--muted)">🕒 ${item.horario}</span>
+            ${filaInfo.badge}
           </div>
         </div>
         <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -2302,11 +2891,13 @@ function renderBebidas(){
             <div style="font-size:13px;font-weight:900">
               <span style="color:var(--brand)">[${escapeHTML(item.cliente)}]</span> ${item.qtd}x ${escapeHTML(item.nome)}
             </div>
+            ${item.obs ? `<div style="font-size:11px;font-weight:900;color:#d97706;margin-top:2px">💬 Obs: ${escapeHTML(item.obs)}</div>` : ''}
             <small style="color:${corStatus};font-weight:900">${labelStatus}</small>
           </div>
-          <div style="display:flex;gap:4px">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
             ${item.status === 'pendente' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'preparando')" style="background:#f59e0b;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Separar</button>` : ''}
-            ${item.status !== 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : `<span style="font-size:11px;color:#10b981;font-weight:900">Pronto</span>`}
+            ${(item.status === 'pendente' || item.status === 'preparando') ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'pronto')" style="background:#10b981;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">Pronto</button>` : ''}
+            ${item.status === 'pronto' ? `<button onclick="atualizarStatusItemCozinha(${item.mesa}, '${escapeHTML(item.loteId)}', '${escapeHTML(item.cliente)}', '${escapeHTML(item.nome)}', ${item.timestamp}, 'entregue')" style="background:#0284c7;color:#fff;border:0;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer">🍽️ Entregue</button>` : ''}
           </div>
         </div>
       </div>
@@ -2318,7 +2909,10 @@ function renderBebidas(){
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Módulo Bebidas</h2><span class="muted">Linha do tempo de bebidas (Ordem de chegada)</span></div>
-      <button onclick="sessionStorage.removeItem('acesso_bebidas'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear Bebidas</button>
+      <div style="display:flex;gap:6px">
+        <button onclick="alternarMostrarEntreguesKDS()" style="border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">${mostrarEntreguesKDS ? '👁️ Ocultar Entregues' : '👁️ Ver Entregues'}</button>
+        <button onclick="sessionStorage.removeItem('acesso_bebidas'); mudarTela('mesas');" style="border:0;background:var(--input-bg);color:var(--ink);border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">🔒 Bloquear</button>
+      </div>
     </div>
     
     <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card));border-color:rgba(211,47,47,0.2)">
@@ -2394,7 +2988,7 @@ function processarTextoVoz(texto) {
 
       if (!modoCliente) {
         for (let k = 0; k < qtd; k++) {
-          salvarAdicaoDiretaNaComanda(p.nome, clienteAtual);
+          salvarAdicaoDiretaNaComanda(p.nome, clienteAtual, "");
         }
       } else {
         if(!pedidoTemp[clienteAtual]) pedidoTemp[clienteAtual] = {};
@@ -2423,7 +3017,6 @@ function adicionarNovoClientePrompt(){
   showToast(`Nova pessoa "${nomeCli}" adicionada!`);
 }
 
-// Usado no modo Cliente (carrinho) ou para anexar itens adicionais
 function salvarComanda(numeroMesa) {
     const numMesaStr = String(numeroMesa);
     const novosItens = itensNovosDoCarrinho(); 
@@ -2431,6 +3024,8 @@ function salvarComanda(numeroMesa) {
     
     if(salvandoPedidoEmAndamento) return;
     salvandoPedidoEmAndamento = true;
+
+    novosItens.forEach(it => ajustarEstoqueItem(it.nome, -Number(it.qtd || 1)));
 
     const comandaAtual = comandas[numMesaStr] || {};
     const itensExistentes = Array.isArray(comandaAtual.itens) ? comandaAtual.itens : [];
@@ -2480,34 +3075,15 @@ function removerItemJaEnviado(numMesa, idxItem) {
   const c = comandas[numMesaStr];
   if (!c || !Array.isArray(c.itens) || !c.itens[idxItem]) return;
   const item = c.itens[idxItem];
-  if (!confirm(`Remover "${item.qtd}x ${item.nome}" (${item.cliente || 'Cliente 1'}) que já estava na comanda?`)) return;
 
-  const novosItens = c.itens.filter((_, i) => i !== idxItem);
-  const novoTotal = novosItens.reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
-
-  if (novosItens.length === 0 && (!c.itensPagos || c.itensPagos.length === 0)) {
-    delete comandas[numMesaStr];
-    db.collection("comandas").doc(numMesaStr).delete().then(() => {
-      showToast("Item removido e mesa liberada!");
-      if (telaAtual === "atendimento") {
-        atualizarResumoEnviadosAtendimento();
-        renderProdutos();
-      }
-    });
-  } else {
-    comandas[numMesaStr] = { ...c, itens: novosItens, total: novoTotal, atualizadoEm: Date.now() };
-    db.collection("comandas").doc(numMesaStr).update({
-      itens: novosItens,
-      total: novoTotal,
-      atualizadoEm: Date.now()
-    }).then(() => {
-      showToast("Item removido da comanda!");
-      if (telaAtual === "atendimento") {
-        atualizarResumoEnviadosAtendimento();
-        renderProdutos();
-      }
-    });
+  // Proteção se o item já estiver preparando ou pronto (Sugestão 13)
+  if (item.statusCozinha === 'preparando' || item.statusCozinha === 'pronto') {
+    abrirModalCancelamentoItemProtegido(numMesaStr, idxItem, false);
+    return;
   }
+
+  if (!confirm(`Remover "${item.qtd}x ${item.nome}" (${item.cliente || 'Cliente 1'}) que já estava na comanda?`)) return;
+  executarRemocaoUnidadeConfirmada(numMesaStr, idxItem, false, null);
 }
 
 function fecharComanda(numeroMesa) {
@@ -2742,6 +3318,19 @@ function enviarContaWhatsApp(num) {
   window.open(url, '_blank');
 }
 
+// ----------------- PAGAMENTO: 1 CLIQUE POR PESSOA + DESCONTO + PAGAMENTO MISTO (SEM 10%) -----------------
+function selecionarTudoClientePagamento(nomeCliente) {
+  document.querySelectorAll('[id^="qtd-pagar-"]').forEach(span => {
+    if (span.dataset.cliente === nomeCliente) {
+      span.textContent = span.dataset.max;
+    } else {
+      span.textContent = "0";
+    }
+  });
+  calcularValorSelecionadoComControle();
+  showToast(`Itens de "${nomeCliente}" selecionados!`);
+}
+
 function dividirContaModal(num){
  const c = comandas[num]; if(!c) return;
  mesaSelecionada = num;
@@ -2749,6 +3338,19 @@ function dividirContaModal(num){
 
  const totalJaPago = (c.itensPagos || []).reduce((acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
  const saldoRestante = Math.max(0, Number(c.total) || 0);
+
+ // Lista de clientes distintos com itens na mesa para botões de 1 clique
+ const clientesNaMesa = Array.from(new Set((c.itens || []).map(i => i.cliente || 'Cliente 1')));
+ const botoesClientesHTML = clientesNaMesa.length > 1 ? `
+   <div style="margin-bottom:8px">
+     <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px">⚡ Selecionar tudo de uma pessoa:</div>
+     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+       ${clientesNaMesa.map(cli => `
+         <button type="button" onclick="selecionarTudoClientePagamento('${escapeHTML(cli)}')" style="padding:5px 10px;border-radius:10px;border:1px solid var(--brand);background:rgba(211,47,47,0.08);color:var(--brand);font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap">👤 ${escapeHTML(cli)}</button>
+       `).join('')}
+     </div>
+   </div>
+ ` : '';
  
  document.getElementById("modalBody").innerHTML = `
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
@@ -2762,9 +3364,9 @@ function dividirContaModal(num){
     </div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:14px">
+  <div style="display:flex;gap:8px;margin-bottom:12px">
     <button class="secondary" style="margin:0;font-size:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:#25d366;color:#fff;border:0" onclick="enviarContaWhatsApp(${num})">
-      <span>💬</span> Enviar WhatsApp
+      <span>💬</span> WhatsApp
     </button>
     <button class="secondary" style="margin:0;font-size:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="abrirJanelaConsumoCliente(${num})">
       <span>🧾</span> Ver Consumo
@@ -2773,7 +3375,8 @@ function dividirContaModal(num){
 
   <div class="card" style="padding:14px;margin-bottom:12px">
     <div style="font-weight:900;margin-bottom:6px;font-size:13px">🎯 Baixar / Pagar Itens Específicos:</div>
-    <div style="max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px">
+    ${botoesClientesHTML}
+    <div style="max-height:170px;overflow:auto;display:flex;flex-direction:column;gap:6px">
       ${(c.itens || []).map((i, idx) => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);padding:8px 10px;border-radius:14px;border:1px solid var(--border)">
           <div style="flex:1;padding-right:6px">
@@ -2788,7 +3391,7 @@ function dividirContaModal(num){
         </div>
       `).join("")}
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:13px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:13px">
       <span style="font-weight:700">Total Selecionado:</span>
       <b id="lblTotalSelecionado" style="color:var(--brand);font-size:16px">R$ 0,00</b>
     </div>
@@ -2861,7 +3464,13 @@ function calcularValorSelecionadoComControle(){
 
 let formaPagamentoEscolhidaTemp = "";
 let baixasPorIndiceTemp = {};
-let valorPendenteTemp = 0;
+let valorBrutoPendenteTemp = 0;
+let descontoAplicadoTemp = 0;
+let modoPagamentoMisto = false;
+
+function obterValorLiquidoPagar() {
+  return Math.max(0, valorBrutoPendenteTemp - descontoAplicadoTemp);
+}
 
 function abrirConfirmacaoPagamento(num, tipo) {
   const c = comandas[num];
@@ -2870,7 +3479,9 @@ function abrirConfirmacaoPagamento(num, tipo) {
   processandoPagamento = false;
   formaPagamentoEscolhidaTemp = "";
   baixasPorIndiceTemp = {};
-  valorPendenteTemp = 0;
+  valorBrutoPendenteTemp = 0;
+  descontoAplicadoTemp = 0;
+  modoPagamentoMisto = false;
 
   if (tipo === 'parcial') {
     let temSelecao = false;
@@ -2880,7 +3491,7 @@ function abrirConfirmacaoPagamento(num, tipo) {
         temSelecao = true;
         let idx = parseInt(span.dataset.idx);
         let preco = parseFloat(span.dataset.preco);
-        valorPendenteTemp += qtdPagar * preco;
+        valorBrutoPendenteTemp += qtdPagar * preco;
         baixasPorIndiceTemp[idx] = qtdPagar;
       }
     });
@@ -2890,53 +3501,86 @@ function abrirConfirmacaoPagamento(num, tipo) {
       return;
     }
   } else {
-    valorPendenteTemp = Math.max(0, Number(c.total || 0));
+    valorBrutoPendenteTemp = Math.max(0, Number(c.total || 0));
   }
 
   const tituloAcao = tipo === 'parcial' ? 'Baixa Parcial (Manter Mesa)' : 'Fechar Mesa Completa';
   document.getElementById("modalTitle").textContent = `💳 Forma de Pagamento`;
   document.getElementById("modalBody").innerHTML = `
-    <div style="text-align:center;background:var(--input-bg);padding:14px;border-radius:18px;border:1px solid var(--border);margin-bottom:14px">
+    <div style="text-align:center;background:var(--input-bg);padding:12px;border-radius:18px;border:1px solid var(--border);margin-bottom:12px">
       <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase">${tituloAcao} — Mesa ${pad(num)}</div>
-      <div style="font-size:24px;font-weight:900;color:var(--brand);margin-top:4px">${br(valorPendenteTemp)}</div>
+      <div id="lblValorFinalPagamento" style="font-size:24px;font-weight:900;color:var(--brand);margin-top:4px">${br(valorBrutoPendenteTemp)}</div>
+      <div id="lblResumoDesconto" style="font-size:11px;color:#10b981;font-weight:800;display:none"></div>
     </div>
 
-    <div style="font-size:12px;font-weight:900;color:var(--ink);margin-bottom:6px;text-align:center">👇 Toque na forma de pagamento utilizada:</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border);margin-bottom:12px">
+      <label style="font-size:11px;font-weight:900;color:var(--ink)">🏷️ Desconto (R$):</label>
+      <input type="number" id="inputDescontoPagamento" step="0.01" min="0" max="${valorBrutoPendenteTemp}" placeholder="0,00" oninput="atualizarDescontoPagamento()" style="width:110px;padding:7px 10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:13px;font-weight:900;text-align:right;outline:none">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:900;color:var(--ink)">👇 Forma de pagamento:</span>
+      <button type="button" id="btnToggleMisto" onclick="alternarModoPagamentoMisto()" style="padding:5px 10px;border-radius:10px;border:1px solid #0284c7;background:rgba(2,132,199,0.1);color:#0284c7;font-size:11px;font-weight:900;cursor:pointer">🔀 Dividir em 2 Formas</button>
+    </div>
     
-    <div class="pay-choice-grid">
-      <button type="button" class="pay-choice-btn" id="btnPay-Pix" onclick="selecionarMetodoPagamento('Pix')">
-        <span style="font-size:24px">💠</span>
-        <span>Pix</span>
-      </button>
-      <button type="button" class="pay-choice-btn" id="btnPay-Cartão de Crédito" onclick="selecionarMetodoPagamento('Cartão de Crédito')">
-        <span style="font-size:24px">💳</span>
-        <span>Crédito</span>
-      </button>
-      <button type="button" class="pay-choice-btn" id="btnPay-Cartão de Débito" onclick="selecionarMetodoPagamento('Cartão de Débito')">
-        <span style="font-size:24px">🏧</span>
-        <span>Débito</span>
-      </button>
-      <button type="button" class="pay-choice-btn" id="btnPay-Dinheiro" onclick="selecionarMetodoPagamento('Dinheiro')">
-        <span style="font-size:24px">💵</span>
-        <span>Dinheiro</span>
-      </button>
+    <div id="boxPagamentoUnico">
+      <div class="pay-choice-grid">
+        <button type="button" class="pay-choice-btn" id="btnPay-Pix" onclick="selecionarMetodoPagamento('Pix')">
+          <span style="font-size:22px">💠</span>
+          <span>Pix</span>
+        </button>
+        <button type="button" class="pay-choice-btn" id="btnPay-Cartão de Crédito" onclick="selecionarMetodoPagamento('Cartão de Crédito')">
+          <span style="font-size:22px">💳</span>
+          <span>Crédito</span>
+        </button>
+        <button type="button" class="pay-choice-btn" id="btnPay-Cartão de Débito" onclick="selecionarMetodoPagamento('Cartão de Débito')">
+          <span style="font-size:22px">🏧</span>
+          <span>Débito</span>
+        </button>
+        <button type="button" class="pay-choice-btn" id="btnPay-Dinheiro" onclick="selecionarMetodoPagamento('Dinheiro')">
+          <span style="font-size:22px">💵</span>
+          <span>Dinheiro</span>
+        </button>
+      </div>
+
+      <div id="boxTrocoModalConfirmacao" style="display:none;background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px">
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💵 Valor Entregue pelo Cliente (R$)</label>
+        <input type="number" id="inputTrocoModal" step="0.01" placeholder="ex: 100.00" oninput="atualizarTrocoModal()" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;font-weight:800;font-size:15px;outline:none">
+        
+        <div class="quick-cash-grid">
+          <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(20)">R$ 20</button>
+          <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(50)">R$ 50</button>
+          <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(100)">R$ 100</button>
+          <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(200)">R$ 200</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:13px;font-weight:900">
+          <span>💰 Troco a Devolver:</span>
+          <span id="lblTrocoModal" style="color:#10b981;font-size:16px">R$ 0,00</span>
+        </div>
+      </div>
     </div>
 
-    <div id="boxTrocoModalConfirmacao" style="display:none;background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:14px">
-      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">💵 Valor Entregue pelo Cliente (R$)</label>
-      <input type="number" id="inputTrocoModal" step="0.01" placeholder="ex: 100.00" oninput="atualizarTrocoModal(${valorPendenteTemp})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:12px;font-weight:800;font-size:15px;outline:none">
-      
-      <div class="quick-cash-grid">
-        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(20, ${valorPendenteTemp})">R$ 20</button>
-        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(50, ${valorPendenteTemp})">R$ 50</button>
-        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(100, ${valorPendenteTemp})">R$ 100</button>
-        <button type="button" class="quick-cash-btn" onclick="definirNotaRapida(200, ${valorPendenteTemp})">R$ 200</button>
+    <div id="boxPagamentoMisto" style="display:none;background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr 110px;gap:6px;margin-bottom:8px">
+        <select id="mistoMetodo1" style="padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-weight:800;font-size:12px">
+          <option value="Pix">💠 Pix</option>
+          <option value="Cartão de Crédito">💳 Crédito</option>
+          <option value="Cartão de Débito">🏧 Débito</option>
+          <option value="Dinheiro">💵 Dinheiro</option>
+        </select>
+        <input type="number" id="mistoValor1" step="0.01" placeholder="Valor 1" oninput="atualizarCalculoMisto(1)" style="padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-weight:900;font-size:13px;text-align:right">
       </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:13px;font-weight:900">
-        <span>💰 Troco a Devolver:</span>
-        <span id="lblTrocoModal" style="color:#10b981;font-size:16px">R$ 0,00</span>
+      <div style="display:grid;grid-template-columns:1fr 110px;gap:6px">
+        <select id="mistoMetodo2" style="padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-weight:800;font-size:12px">
+          <option value="Dinheiro">💵 Dinheiro</option>
+          <option value="Pix">💠 Pix</option>
+          <option value="Cartão de Crédito">💳 Crédito</option>
+          <option value="Cartão de Débito">🏧 Débito</option>
+        </select>
+        <input type="number" id="mistoValor2" step="0.01" placeholder="Valor 2" oninput="atualizarCalculoMisto(2)" style="padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-weight:900;font-size:13px;text-align:right">
       </div>
+      <div id="lblStatusMisto" style="font-size:11px;font-weight:900;margin-top:8px;text-align:right;color:var(--muted)">Preencha os dois valores acima.</div>
     </div>
 
     <button id="btnConfirmarFinalPagamento" class="primary" onclick="executarPagamentoConfirmado(${num}, '${tipo}')" style="opacity:0.45;pointer-events:none;background:#10b981;font-size:14px;padding:15px">
@@ -2946,11 +3590,103 @@ function abrirConfirmacaoPagamento(num, tipo) {
   `;
 }
 
-function definirNotaRapida(valorNota, valorAlvo) {
+function atualizarDescontoPagamento() {
+  const inputDesc = document.getElementById("inputDescontoPagamento");
+  let desc = parseFloat(inputDesc?.value) || 0;
+  if (desc < 0) desc = 0;
+  if (desc > valorBrutoPendenteTemp) desc = valorBrutoPendenteTemp;
+  descontoAplicadoTemp = desc;
+
+  const liquido = obterValorLiquidoPagar();
+  const lblValor = document.getElementById("lblValorFinalPagamento");
+  const lblResumo = document.getElementById("lblResumoDesconto");
+  if (lblValor) lblValor.textContent = br(liquido);
+  if (lblResumo) {
+    if (desc > 0) {
+      lblResumo.style.display = "block";
+      lblResumo.textContent = `Bruto: ${br(valorBrutoPendenteTemp)} − Desconto: ${br(desc)}`;
+    } else {
+      lblResumo.style.display = "none";
+    }
+  }
+  atualizarTrocoModal();
+  if (modoPagamentoMisto) atualizarCalculoMisto(1);
+}
+
+function alternarModoPagamentoMisto() {
+  modoPagamentoMisto = !modoPagamentoMisto;
+  const boxUnico = document.getElementById("boxPagamentoUnico");
+  const boxMisto = document.getElementById("boxPagamentoMisto");
+  const btnToggle = document.getElementById("btnToggleMisto");
+  const btnConfirmar = document.getElementById("btnConfirmarFinalPagamento");
+
+  if (modoPagamentoMisto) {
+    boxUnico.style.display = "none";
+    boxMisto.style.display = "block";
+    btnToggle.textContent = "1️⃣ Pagamento Único";
+    const metade = (obterValorLiquidoPagar() / 2).toFixed(2);
+    const v1 = document.getElementById("mistoValor1");
+    const v2 = document.getElementById("mistoValor2");
+    if (v1 && v2) {
+      v1.value = metade;
+      v2.value = (obterValorLiquidoPagar() - parseFloat(metade)).toFixed(2);
+      atualizarCalculoMisto(1);
+    }
+  } else {
+    boxUnico.style.display = "block";
+    boxMisto.style.display = "none";
+    btnToggle.textContent = "🔀 Dividir em 2 Formas";
+    if (!formaPagamentoEscolhidaTemp && btnConfirmar) {
+      btnConfirmar.style.opacity = "0.45";
+      btnConfirmar.style.pointerEvents = "none";
+      btnConfirmar.textContent = "Selecione uma opção acima";
+    }
+  }
+}
+
+function atualizarCalculoMisto(campoAlterado) {
+  const liquido = obterValorLiquidoPagar();
+  const v1El = document.getElementById("mistoValor1");
+  const v2El = document.getElementById("mistoValor2");
+  const lbl = document.getElementById("lblStatusMisto");
+  const btnConfirmar = document.getElementById("btnConfirmarFinalPagamento");
+  if (!v1El || !v2El) return;
+
+  let val1 = parseFloat(v1El.value) || 0;
+  let val2 = parseFloat(v2El.value) || 0;
+
+  if (campoAlterado === 1 && val1 >= 0 && val1 <= liquido) {
+    val2 = Math.max(0, Number((liquido - val1).toFixed(2)));
+    v2El.value = val2.toFixed(2);
+  }
+
+  const soma = Number((val1 + val2).toFixed(2));
+  const diff = Number((liquido - soma).toFixed(2));
+
+  if (Math.abs(diff) <= 0.02 && val1 > 0 && val2 > 0) {
+    lbl.style.color = "#10b981";
+    lbl.textContent = `✅ Soma fechada: ${br(soma)}`;
+    if (btnConfirmar) {
+      btnConfirmar.style.opacity = "1";
+      btnConfirmar.style.pointerEvents = "auto";
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = `✅ Confirmar Pagamento Misto`;
+    }
+  } else {
+    lbl.style.color = "#d32f2f";
+    lbl.textContent = diff > 0 ? `Falta distribuir: ${br(diff)}` : `Excedeu em: ${br(Math.abs(diff))}`;
+    if (btnConfirmar) {
+      btnConfirmar.style.opacity = "0.45";
+      btnConfirmar.style.pointerEvents = "none";
+    }
+  }
+}
+
+function definirNotaRapida(valorNota) {
   const input = document.getElementById('inputTrocoModal');
   if (!input) return;
   input.value = valorNota;
-  atualizarTrocoModal(valorAlvo);
+  atualizarTrocoModal();
 }
 
 function selecionarMetodoPagamento(metodo) {
@@ -2975,18 +3711,19 @@ function selecionarMetodoPagamento(metodo) {
   }
 }
 
-function atualizarTrocoModal(valorAlvo) {
+function atualizarTrocoModal() {
   const input = document.getElementById('inputTrocoModal');
   const lbl = document.getElementById('lblTrocoModal');
   if (!input || !lbl) return;
   const entregue = parseFloat(input.value.replace(',', '.')) || 0;
-  const troco = Math.max(0, entregue - valorAlvo);
+  const liquido = obterValorLiquidoPagar();
+  const troco = Math.max(0, entregue - liquido);
   lbl.textContent = br(troco);
 }
 
 function executarPagamentoConfirmado(num, tipo) {
   if (processandoPagamento) return;
-  if (!formaPagamentoEscolhidaTemp) {
+  if (!modoPagamentoMisto && !formaPagamentoEscolhidaTemp) {
     showToast("Por favor, selecione a forma de pagamento!", true);
     return;
   }
@@ -2998,20 +3735,38 @@ function executarPagamentoConfirmado(num, tipo) {
     return;
   }
 
+  const liquidoTotal = obterValorLiquidoPagar();
+  let parcelasPagamento = [];
+
+  if (modoPagamentoMisto) {
+    const m1 = document.getElementById("mistoMetodo1")?.value || "Pix";
+    const v1 = parseFloat(document.getElementById("mistoValor1")?.value) || 0;
+    const m2 = document.getElementById("mistoMetodo2")?.value || "Dinheiro";
+    const v2 = parseFloat(document.getElementById("mistoValor2")?.value) || 0;
+    if (v1 <= 0 || v2 <= 0) {
+      showToast("Preencha valores válidos para as duas formas.", true);
+      return;
+    }
+    parcelasPagamento.push({ metodo: m1, valor: v1 });
+    parcelasPagamento.push({ metodo: m2, valor: v2 });
+  } else {
+    parcelasPagamento.push({ metodo: formaPagamentoEscolhidaTemp, valor: liquidoTotal });
+  }
+
   processandoPagamento = true;
   const btnConfirmar = document.getElementById('btnConfirmarFinalPagamento');
   if (btnConfirmar) {
     btnConfirmar.disabled = true;
     btnConfirmar.style.opacity = '0.6';
     btnConfirmar.style.pointerEvents = 'none';
-    btnConfirmar.textContent = '⏳ Fechando mesa...';
+    btnConfirmar.textContent = '⏳ Registrando...';
   }
 
-  const formaPagamento = formaPagamentoEscolhidaTemp;
   const agora = new Date();
   const numMesaStr = String(num);
   const batch = db.batch();
   const refMesa = db.collection("comandas").doc(numMesaStr);
+  const labelResumoPag = parcelasPagamento.map(p => p.metodo).join(" + ");
 
   if (tipo === 'parcial') {
     let itensPagosParaHistorico = [];
@@ -3035,6 +3790,7 @@ function executarPagamentoConfirmado(num, tipo) {
           nome: it.nome,
           qtd: qtdRestante,
           preco: it.preco,
+          obs: it.obs || '',
           statusCozinha: it.statusCozinha || '',
           horario: it.horario,
           timestampItem: it.timestampItem
@@ -3042,37 +3798,33 @@ function executarPagamentoConfirmado(num, tipo) {
       }
     });
 
-    const vendaParcial = { 
+    parcelasPagamento.forEach((parc, pIdx) => {
+      const vendaParcial = { 
         mesa: num, 
-        total: valorPendenteTemp, 
-        pagamento: formaPagamento, 
+        total: parc.valor, 
+        desconto: pIdx === 0 ? descontoAplicadoTemp : 0,
+        pagamento: parc.metodo, 
         garcom: c.garcom || "Sem Garçom", 
-        itens: itensPagosParaHistorico, 
+        itens: pIdx === 0 ? itensPagosParaHistorico : [], 
         horario: agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
         data: agora.toLocaleDateString('pt-BR'),
         diaSemana: DIAS_SEMANA_PT[agora.getDay()],
-        timestamp: agora.getTime()
-    };
+        timestamp: agora.getTime() + pIdx
+      };
+      const refHist = db.collection("historico").doc();
+      batch.set(refHist, vendaParcial);
+    });
     
-    let novoTotal = Math.max(0, Number(c.total) - valorPendenteTemp);
-
-    const refHist = db.collection("historico").doc();
-    batch.set(refHist, vendaParcial);
+    let novoTotal = Math.max(0, Number(c.total) - valorBrutoPendenteTemp);
     batch.update(refMesa, { total: novoTotal, itens: novosItens, itensPagos: itensPagosAcumulados, atualizadoEm: Date.now() });
 
     batch.commit().then(() => {
       processandoPagamento = false;
       fecharModal(); 
-      showToast(`Baixa de ${br(valorPendenteTemp)} (${formaPagamento}) realizada!`); 
+      showToast(`Baixa de ${br(liquidoTotal)} (${labelResumoPag}) realizada!`); 
       renderizar();
     }).catch(err => {
       processandoPagamento = false;
-      if (btnConfirmar) {
-        btnConfirmar.disabled = false;
-        btnConfirmar.style.opacity = '1';
-        btnConfirmar.style.pointerEvents = 'auto';
-        btnConfirmar.textContent = `✅ Confirmar Pagamento via ${formaPagamento}`;
-      }
       showToast("Erro ao registrar pagamento: " + err.message, true);
     });
 
@@ -3080,21 +3832,23 @@ function executarPagamentoConfirmado(num, tipo) {
     let todos = [...(c.itens || [])];
     if (c.itensPagos) c.itensPagos.forEach(ip => todos.push({ cliente: ip.cliente, nome: ip.nome, qtd: ip.qtd, preco: ip.preco, horario: ip.horario, timestampItem: ip.timestampItem }));
 
-    let novaVenda = { 
-        mesa: num, 
-        total: Math.max(0, Number(c.total) || 0), 
-        pagamento: formaPagamento, 
-        garcom: c.garcom || "Sem Garçom", 
-        itens: todos, 
-        horario: agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
-        data: agora.toLocaleDateString('pt-BR'),
-        diaSemana: DIAS_SEMANA_PT[agora.getDay()],
-        timestamp: agora.getTime()
-    };
-
-    if (novaVenda.total > 0 && todos.length) {
-      const refHist = db.collection("historico").doc();
-      batch.set(refHist, novaVenda);
+    if (liquidoTotal > 0 && todos.length) {
+      parcelasPagamento.forEach((parc, pIdx) => {
+        let novaVenda = { 
+          mesa: num, 
+          total: parc.valor, 
+          desconto: pIdx === 0 ? descontoAplicadoTemp : 0,
+          pagamento: parc.metodo, 
+          garcom: c.garcom || "Sem Garçom", 
+          itens: pIdx === 0 ? todos : [], 
+          horario: agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+          data: agora.toLocaleDateString('pt-BR'),
+          diaSemana: DIAS_SEMANA_PT[agora.getDay()],
+          timestamp: agora.getTime() + pIdx
+        };
+        const refHist = db.collection("historico").doc();
+        batch.set(refHist, novaVenda);
+      });
     }
     batch.delete(refMesa);
 
@@ -3102,16 +3856,10 @@ function executarPagamentoConfirmado(num, tipo) {
       processandoPagamento = false;
       delete comandas[numMesaStr];
       fecharModal();
-      showToast(`Mesa ${pad(numMesaStr)} fechada e liberada!`);
+      showToast(`Mesa ${pad(numMesaStr)} fechada (${labelResumoPag})!`);
       renderizar();
     }).catch(err => {
       processandoPagamento = false;
-      if (btnConfirmar) {
-        btnConfirmar.disabled = false;
-        btnConfirmar.style.opacity = '1';
-        btnConfirmar.style.pointerEvents = 'auto';
-        btnConfirmar.textContent = `✅ Confirmar Pagamento via ${formaPagamento}`;
-      }
       showToast("Erro ao fechar mesa: " + err.message, true);
     });
   }
@@ -3122,6 +3870,9 @@ function cancelarComandaModal(num){
   let motivo = prompt(`Motivo do cancelamento da Mesa ${pad(num)}:`, "Desistência do cliente / Erro no pedido");
   if(motivo === null) return;
   const agora = new Date();
+
+  // Devolve itens ao estoque caso algum tenha controle numérico
+  (c.itens || []).forEach(it => ajustarEstoqueItem(it.nome, Number(it.qtd || 1)));
   
   let registroCancelamento = {
     mesa: num,
@@ -3286,7 +4037,7 @@ function abrirDetalhesVendaHistorico(index) {
       </div>
       <strong style="font-size:14px">${br(i.qtd * Number(i.preco || 0))}</strong>
     </div>
-  `).join("") : '<div class="empty">Nenhum detalhe de produto gravado nesta venda.</div>';
+  `).join("") : '<div class="empty">Nenhum detalhe de produto gravado nesta venda (ou parcela complementar).</div>';
 
   document.getElementById("modalTitle").textContent = `🧾 Detalhes — Mesa ${mesaNum}`;
   document.getElementById("modalBody").innerHTML = `
@@ -3317,12 +4068,78 @@ function abrirDetalhesVendaHistorico(index) {
 
     ${venda._docId ? `
       <button class="secondary" onclick="excluirVendaHistorico('${escapeHTML(venda._docId)}', ${Number(venda.mesa || 0)}, ${Number(venda.total || 0)}, '${escapeHTML(horarioExato)}')" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-bottom:6px">
-        🗑️ Apagar Esta Comanda Fechada (Duplicada)
+        🗑️ Apagar Esta Comanda Fechada
       </button>
     ` : ''}
     <button class="secondary" onclick="fecharModal()">Fechar</button>
   `;
   document.getElementById("modal").classList.add("show");
+}
+
+// ----------------- FECHAMENTO DE CAIXA CEGO (CONFERÊNCIA DE TURNO - SUGESTÃO 15) -----------------
+function abrirModalFechamentoCaixaCego(esperadoDinheiroComTroco, esperadoDigital, totalDespesasPeriodo) {
+  document.getElementById("modalTitle").textContent = "🔐 Conferência / Fechamento de Caixa";
+  document.getElementById("modalBody").innerHTML = `
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Informe os valores contados na gaveta e nos comprovantes para conferir o turno:</p>
+    
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border)">
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">💵 Dinheiro Contado na Gaveta (R$)</label>
+        <input type="number" id="inputConfDinheiro" step="0.01" placeholder="0,00" oninput="calcularConferenciaCaixa(${esperadoDinheiroComTroco}, ${esperadoDigital})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:15px;font-weight:900">
+        <small style="color:var(--muted);font-size:10px">Inclui Fundo de Troco inicial (${br(configSistema.fundoTroco || 0)}) − Despesas (${br(totalDespesasPeriodo)})</small>
+      </div>
+
+      <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border)">
+        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">💳 Pix + Cartões Conferidos (R$)</label>
+        <input type="number" id="inputConfDigital" step="0.01" placeholder="0,00" oninput="calcularConferenciaCaixa(${esperadoDinheiroComTroco}, ${esperadoDigital})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:15px;font-weight:900">
+      </div>
+    </div>
+
+    <div id="resultadoConferenciaBox" style="background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;font-size:12px">
+      <div style="text-align:center;color:var(--muted);font-weight:800">Digite os valores contados acima para ver a diferença.</div>
+    </div>
+
+    <button class="secondary" onclick="fecharModal()">Fechar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+function calcularConferenciaCaixa(espDinheiro, espDigital) {
+  const infDin = parseFloat(document.getElementById("inputConfDinheiro")?.value);
+  const infDig = parseFloat(document.getElementById("inputConfDigital")?.value);
+  const box = document.getElementById("resultadoConferenciaBox");
+  if (!box) return;
+
+  const dinVal = isNaN(infDin) ? 0 : infDin;
+  const digVal = isNaN(infDig) ? 0 : infDig;
+
+  const diffDin = dinVal - espDinheiro;
+  const diffDig = digVal - espDigital;
+  const diffTotal = diffDin + diffDig;
+
+  const formatarDiff = (v) => {
+    if (Math.abs(v) < 0.01) return `<b style="color:#10b981">✅ Batendo exato (R$ 0,00)</b>`;
+    if (v > 0) return `<b style="color:#0284c7">➕ Sobra de ${br(v)}</b>`;
+    return `<b style="color:#d32f2f">➖ Falta de ${br(Math.abs(v))}</b>`;
+  };
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span>Esperado Gaveta (c/ troco):</span> <b>${br(espDinheiro)}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0 8px;border-bottom:1px dashed var(--border)">
+      <span>Resultado Gaveta:</span> ${formatarDiff(diffDin)}
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0 4px;border-bottom:1px solid var(--border)">
+      <span>Esperado Pix + Cartões:</span> <b>${br(espDigital)}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0 8px;border-bottom:1px dashed var(--border)">
+      <span>Resultado Pix/Cartões:</span> ${formatarDiff(diffDig)}
+    </div>
+    <div style="display:flex;justify-content:space-between;padding-top:8px;font-size:13px">
+      <span><b>Balanço Geral:</b></span> ${formatarDiff(diffTotal)}
+    </div>
+  `;
 }
 
 function alterarPeriodoInicioRelatorio(val) {
@@ -3359,6 +4176,7 @@ function renderRelatorios(){
   const cancelamentosFiltrados = cancelamentos.filter(c => registroDentroDoPeriodo(c));
 
   let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
+  let vendasPorGarcom = {}; // Resumo agrupado por garçom (sem 10%)
   
   vendasFiltradas.forEach(v => {
     let t = Number(v.total) || 0;
@@ -3367,10 +4185,18 @@ function renderRelatorios(){
     else if(v.pagamento === 'Cartão de Crédito') totalCredito += t;
     else if(v.pagamento === 'Cartão de Débito') totalDebito += t;
     else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
+
+    const gNome = (v.garcom || "Sem Garçom").trim() || "Sem Garçom";
+    if (!vendasPorGarcom[gNome]) vendasPorGarcom[gNome] = { total: 0, atendimentos: 0 };
+    vendasPorGarcom[gNome].total += t;
+    vendasPorGarcom[gNome].atendimentos += 1;
   });
 
   let totalDespesas = despesasFiltradas.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
   let saldoLiquido = totalGeral - totalDespesas;
+  let fundoTrocoAtual = Number(configSistema.fundoTroco || 0);
+  let esperadoDinheiroGaveta = Math.max(0, fundoTrocoAtual + totalDinheiro - totalDespesas);
+  let esperadoDigitalTotal = totalPix + totalCredito + totalDebito;
 
   const urlBase = window.location.origin + window.location.pathname;
   const linkMesaPadrao = `${urlBase}?mesa=1`;
@@ -3383,11 +4209,24 @@ function renderRelatorios(){
     ? 'Histórico Acumulado (Todas as Datas)'
     : `De ${textoInicioFormatado} até ${textoFimFormatado}`;
 
+  const rankingGarconsHTML = Object.keys(vendasPorGarcom)
+    .sort((a, b) => vendasPorGarcom[b].total - vendasPorGarcom[a].total)
+    .map(gNome => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <div>
+          <b>👤 ${escapeHTML(gNome)}</b>
+          <small style="display:block;color:var(--muted)">${vendasPorGarcom[gNome].atendimentos} ${vendasPorGarcom[gNome].atendimentos === 1 ? 'fechamento' : 'fechamentos'}</small>
+        </div>
+        <b style="color:#10b981;font-size:14px">${br(vendasPorGarcom[gNome].total)}</b>
+      </div>
+    `).join('');
+
   document.getElementById("conteudo").innerHTML = `
     <div class="section-title">
       <div><h2>Relatórios Financeiros</h2><span class="muted">${subtituloPeriodo}</span></div>
-      <div style="display:flex;gap:6px">
-        <button onclick="exportarRelatoriosCSV()" style="border:0;background:#10b981;color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">📥 Exportar CSV</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="abrirModalFechamentoCaixaCego(${esperadoDinheiroGaveta}, ${esperadoDigitalTotal}, ${totalDespesas})" style="border:0;background:#0284c7;color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">🔐 Conferir Caixa</button>
+        <button onclick="exportarRelatoriosCSV()" style="border:0;background:#10b981;color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">📥 CSV</button>
         <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">+ Gasto</button>
       </div>
     </div>
@@ -3445,409 +4284,424 @@ function renderRelatorios(){
         <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalGeral)}</div>
       </div>
       <div class="card" style="margin:0;padding:14px;text-align:center">
-        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Despesas</span>
+        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Gastos</span>
         <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
       </div>
-    </div>
-
-    <div class="card" style="padding:16px;margin-bottom:14px;text-align:center;background:linear-gradient(135deg, rgba(16,185,129,0.05), var(--card)); border-color:rgba(16,185,129,0.3)">
-      <span style="font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido (${ehTodas ? 'Acumulado' : 'No Período Selecionado'})</span>
-      <div style="font-size:26px;font-weight:900;color:${saldoLiquido >= 0 ? '#10b981' : '#d32f2f'};margin-top:4px">${br(saldoLiquido)}</div>
-      ${!ehTodas ? `<div style="font-size:11px;color:var(--muted);font-weight:800;margin-top:4px">${textoInicioFormatado} → ${textoFimFormatado}</div>` : ''}
-    </div>
-
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Entradas por Forma de Pagamento</h3>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Pix:</span> <b>${br(totalPix)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Crédito:</span> <b>${br(totalCredito)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>Cartão de Débito:</span> <b>${br(totalDebito)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px"><span>Dinheiro:</span> <b>${br(totalDinheiro)}</b></div>
-    </div>
-
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <h3 style="margin:0;font-size:14px;font-weight:900;color:var(--brand)">👤 Relatório Detalhado dos Garçons (${vendasFiltradas.length})</h3>
-        <span style="font-size:10px;color:var(--muted);font-weight:800">Toque para detalhes/apagar</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-      ${(function(){
-         let htmlGarcons = "";
-         if(!vendasFiltradas.length) return '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhuma operação registrada neste período.</div>';
-
-         vendasFiltradas.forEach((v) => {
-           const idxOriginal = historicoVendas.indexOf(v);
-           let garcomNome = escapeHTML(v.garcom || "Sem Garçom");
-           let mesaNum = pad(v.mesa || 0);
-           let horarioExato = v.horario || "--:--";
-           let dataExata = v.data || "";
-           let diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
-           let valorGerado = Number(v.total || 0);
-           let formaPag = v.pagamento || "Pix";
-           let qtdItens = (v.itens || []).reduce((acc, item) => acc + (Number(item.qtd) || 0), 0);
-
-           htmlGarcons += `
-             <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${idxOriginal})">
-               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:wrap">
-                 <b style="color:var(--brand)">👤 Garçom: ${garcomNome}</b>
-                 <span style="font-size:11px;color:var(--muted);font-weight:800">📅 ${diaSem ? `<span style="color:var(--ink)">${diaSem}</span> • ` : ''}${dataExata} às ${horarioExato}</span>
-               </div>
-               <div style="display:flex;justify-content:space-between;align-items:center">
-                 <span>🪑 Mesa atendida/fechada: <b>Mesa ${mesaNum}</b> (${formaPag})</span>
-                 <b style="color:#10b981;font-size:13px">${br(valorGerado)}</b>
-               </div>
-               <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);font-weight:800">
-                 <span>📦 ${qtdItens} ${qtdItens === 1 ? 'item consumido' : 'itens consumidos'}</span>
-                 <div style="display:flex;align-items:center;gap:8px">
-                   ${v._docId ? `<button type="button" onclick="event.stopPropagation(); excluirVendaHistorico('${escapeHTML(v._docId)}', ${Number(v.mesa || 0)}, ${valorGerado}, '${escapeHTML(horarioExato)}')" style="border:1px solid rgba(211,47,47,0.3);background:rgba(211,47,47,0.1);color:var(--brand);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:900;cursor:pointer">🗑️ Apagar</button>` : ''}
-                   <span style="color:var(--brand)">Ver detalhes →</span>
-                 </div>
-               </div>
-             </div>
-           `;
-         });
-         return htmlGarcons;
-      })()}
-      </div>
-    </div>
-    
-    ${despesasFiltradas.length ? `
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">🔻 Gastos e Despesas Registradas</h3>
-      ${despesasFiltradas.map(d => {
-        let diaSemD = d.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(d));
-        return `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span>${escapeHTML(d.desc)} <small class="muted">(${diaSemD ? diaSemD + ', ' : ''}${d.data}${d.horario ? ' às ' + d.horario : ''})</small></span> <b>${br(Number(d.valor))}</b></div>`;
-      }).join('')}
-    </div>` : ''}
-
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">🛒 Total de Produtos Vendidos (${ehTodas ? 'Acumulado' : 'No Período'})</h3>
-      <div style="max-height:250px;overflow-y:auto;padding-right:5px">
-      ${(function(){
-         let prodVendidos = {};
-         vendasFiltradas.forEach(v => {
-            (v.itens || []).forEach(it => {
-               if(!prodVendidos[it.nome]) prodVendidos[it.nome] = { qtd: 0, total: 0 };
-               prodVendidos[it.nome].qtd += it.qtd;
-               prodVendidos[it.nome].total += (it.qtd * Number(it.preco || 0));
-            });
-         });
-         let html = Object.keys(prodVendidos).sort((a,b) => prodVendidos[b].qtd - prodVendidos[a].qtd).map(nome => `
-            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)">
-              <span><b>${prodVendidos[nome].qtd}x</b> ${escapeHTML(nome)}</span>
-              <b>${br(prodVendidos[nome].total)}</b>
-            </div>
-         `).join('');
-         return html || '<div style="color:var(--muted);font-size:12px;text-align:center">Nenhum produto vendido registrado neste período.</div>';
-      })()}
+      <div class="card" style="margin:0;padding:14px;text-align:center;grid-column:span 2;background:linear-gradient(135deg, rgba(16, 185, 129, 0.08), var(--card));border-color:rgba(16, 185, 129, 0.3)">
+        <span style="font-size:10px;color:#10b981;font-weight:900;text-transform:uppercase">Saldo Líquido do Período</span>
+        <div style="font-size:24px;font-weight:900;color:#10b981;margin-top:4px">${br(saldoLiquido)}</div>
+        ${fundoTrocoAtual > 0 ? `<div style="font-size:11px;color:var(--muted);font-weight:800;margin-top:4px">Fundo de Troco Inicial: ${br(fundoTrocoAtual)} • Esperado na Gaveta: <b>${br(esperadoDinheiroGaveta)}</b></div>` : ''}
       </div>
     </div>
 
-    ${cancelamentosFiltrados.length ? `
-    <div class="card" style="padding:16px;margin-bottom:14px;border-color:#f59e0b;background:rgba(245,158,11,0.05)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#f59e0b">⚠️ Comandas Canceladas Registradas</h3>
-      ${cancelamentosFiltrados.map(c => {
-        let diaSemC = c.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(c));
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Resumo por Forma de Pagamento</h3>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>💠 Pix</span><b>${br(totalPix)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>💳 Cartão de Crédito</span><b>${br(totalCredito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>🏧 Cartão de Débito</span><b>${br(totalDebito)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span>💵 Dinheiro</span><b>${br(totalDinheiro)}</b></div>
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <h3 style="margin:0 0 8px 0;font-size:14px;font-weight:900">🏆 Vendas por Garçom (Turno)</h3>
+      ${rankingGarconsHTML || '<div class="empty" style="padding:12px">Nenhuma venda registrada por garçom neste período.</div>'}
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <h3 style="margin:0 0 4px 0;font-size:14px;font-weight:900">📜 Comandas Fechadas (${vendasFiltradas.length})</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Toque em qualquer registro para ver os itens consumidos ou apagar o registro:</div>
+      ${vendasFiltradas.length ? `<div style="display:flex;flex-direction:column;gap:8px">${vendasFiltradas.map((v) => {
+        const idxGlobal = historicoVendas.indexOf(v);
+        const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
         return `
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(245,158,11,0.2)">
-          <div style="display:flex;justify-content:space-between;font-size:13px"><b>Mesa ${pad(c.mesa)} (${diaSemC ? diaSemC + ', ' : ''}${c.data}${c.horario ? ' às ' + c.horario : ''})</b> <b>${br(c.totalCancelado)}</b></div>
-          <div style="font-size:11px;color:var(--muted)">Motivo: ${escapeHTML(c.motivo)}</div>
+        <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${idxGlobal})">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b>Mesa ${pad(v.mesa)} <small class="muted">(${escapeHTML(v.garcom || 'Sem Garçom')})</small></b>
+            <b style="color:#10b981;font-size:13px">${br(v.total)}</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-top:4px;gap:6px">
+            <span>${diaSem ? `<b>${diaSem}</b> • ` : ''}${v.data || ''} às ${v.horario || ''} • <b>${escapeHTML(v.pagamento || 'Pix')}</b></span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="color:var(--brand);font-weight:800">Ver itens →</span>
+              ${v._docId ? `<button type="button" onclick="event.stopPropagation(); excluirVendaHistorico('${escapeHTML(v._docId)}', ${Number(v.mesa || 0)}, ${Number(v.total || 0)}, '${escapeHTML(v.horario || '')}')" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:8px;padding:4px 7px;font-size:11px;font-weight:900;cursor:pointer" title="Apagar esta comanda fechada">🗑️</button>` : ''}
+            </div>
+          </div>
         </div>
-      `}).join('')}
-    </div>` : ''}
+      `}).join('')}</div>` : '<div class="empty">Nenhuma venda registrada neste período.</div>'}
+    </div>
 
-    <button class="secondary" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-top:10px" onclick="limparRelatorios()">🗑️ Limpar Banco de Relatórios (Histórico)</button>
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💸 Gastos / Saídas (${despesasFiltradas.length})</h3>
+      ${despesasFiltradas.length ? `<div style="display:flex;flex-direction:column;gap:8px">${despesasFiltradas.map(d => {
+        const diaSem = d.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(d));
+        return `
+        <div style="background:var(--input-bg);padding:10px;border-radius:14px;border:1px solid var(--border);font-size:12px">
+          <div style="display:flex;justify-content:space-between"><b>${escapeHTML(d.desc)}</b><b style="color:#d32f2f">- ${br(d.valor)}</b></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">${diaSem ? `${diaSem} • ` : ''}${d.data || ''} às ${d.horario || ''}</div>
+        </div>
+      `}).join('')}</div>` : '<div class="empty">Nenhum gasto registrado neste período.</div>'}
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:14px;border-color:rgba(211,47,47,0.3)">
+      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">⚠️ Auditoria de Cancelamentos (${cancelamentosFiltrados.length})</h3>
+      ${cancelamentosFiltrados.length ? `<div style="display:flex;flex-direction:column;gap:8px">${cancelamentosFiltrados.map(can => {
+        const diaSem = can.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(can));
+        return `
+        <div style="background:rgba(211,47,47,0.05);padding:10px;border-radius:14px;border:1px solid rgba(211,47,47,0.2);font-size:12px">
+          <div style="display:flex;justify-content:space-between"><b>Mesa ${pad(can.mesa)} (${escapeHTML(can.garcom)})</b><b style="color:var(--brand)">${br(can.totalCancelado)}</b></div>
+          <div style="font-size:11px;color:var(--ink);margin-top:4px"><b>Motivo:</b> ${escapeHTML(can.motivo)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${diaSem ? `${diaSem} • ` : ''}${can.data || ''} às ${can.horario || ''}</div>
+        </div>
+      `}).join('')}</div>` : '<div class="empty">Nenhum cancelamento registrado neste período.</div>'}
+    </div>
+
+    <button class="secondary" onclick="limparRelatorios()" style="color:#d32f2f;border-color:#d32f2f">🗑️ Zerar Todo Banco de Dados</button>
   `;
 }
 
-function mudarFiltroMesa(f){
-  filtroMesaAtual = f;
-  renderMesas();
-}
+function mudarFiltroMesa(f){ filtroMesaAtual = f; renderMesas(); }
 
-function calcularTempoDecorrido(timestampCriacao){
-  if(!timestampCriacao) return { texto: "Aberto agora", classe: "tempo-verde" };
-  let diffMinutos = Math.floor((Date.now() - timestampCriacao) / 60000);
+function calcularStatusTempo(criadoEm){
+  if(!criadoEm) return { texto: "", classe: "" };
+  const diffMin = Math.floor((Date.now() - criadoEm) / 60000);
+  if(diffMin < 1) return { texto: "Agora", classe: "tempo-verde" };
   let classe = "tempo-verde";
-  if(diffMinutos >= 30 && diffMinutos < 60) classe = "tempo-amarelo";
-  else if(diffMinutos >= 60) classe = "tempo-vermelho";
-
-  if(diffMinutos < 1) return { texto: "Há instantes", classe };
-  if(diffMinutos < 60) return { texto: `Há ${diffMinutos} min`, classe };
-  let horas = Math.floor(diffMinutos / 60);
-  let mins = diffMinutos % 60;
-  return { texto: `Há ${horas}h ${mins > 0 ? mins + 'm' : ''}`, classe };
-}
-
-function calcularTempoSemConsumo(c){
-  if(!c) return null;
-  let refTempo = c.atualizadoEm || c.criadoEm;
-  if(!refTempo) return null;
-  let diffMin = Math.floor((Date.now() - refTempo) / 60000);
-  if(diffMin < 15) return null;
-  if(diffMin < 60) return `⏳ Sem pedido há ${diffMin} min`;
+  if(diffMin >= 20 && diffMin < 45) classe = "tempo-amarelo";
+  else if(diffMin >= 45) classe = "tempo-vermelho";
+  
   let horas = Math.floor(diffMin / 60);
   let mins = diffMin % 60;
-  return `⏳ Sem pedido há ${horas}h${mins > 0 ? ' ' + mins + 'm' : ''}`;
+  let txt = horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
+  return { texto: txt, classe };
+}
+
+function obterTimestampUltimoPedido(c) {
+  if (!c) return 0;
+  let ultimo = 0;
+  if (Array.isArray(c.itens) && c.itens.length > 0) {
+    c.itens.forEach(it => {
+      const ts = Number(it.timestampItem || 0);
+      if (ts > ultimo) ultimo = ts;
+    });
+  }
+  if (!ultimo) {
+    ultimo = Number(c.atualizadoEm || c.criadoEm || 0);
+  }
+  return ultimo;
 }
 
 function renderMesas(){
- let totalAbertas = 0;
- let minhasAtendidas = 0;
- let arrayMesasHTML = [];
- const nomeFiltroGarcom = (garcomSessao || garcomTemp || "").toLowerCase().trim();
+ let html = "", ocupadasCount = 0;
+ const termoGarcomAtivo = (garcomSessao || garcomTemp || "").trim().toLowerCase();
 
- for(let i=1; i<=TOTAL_MESAS; i++){
-   let c = comandas[i];
-   let busy = !!(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || Number(c.total || 0) > 0));
-   if(busy) totalAbertas++;
+ for(let i=1;i<=TOTAL_MESAS;i++){
+  const c = comandas[i];
+  const ocup = Boolean(c);
+  if(ocup) ocupadasCount++;
+  
+  if(filtroMesaAtual === "livres" && ocup) continue;
+  if(filtroMesaAtual === "ocupadas" && !ocup) continue;
+  if(filtroMesaAtual === "minhas"){
+    if(!ocup) continue;
+    if(!termoGarcomAtivo) continue;
+    const garcomMesa = (c.garcom || "").trim().toLowerCase();
+    if(!garcomMesa.includes(termoGarcomAtivo)) continue;
+  }
+  
+  const tempoInfo = ocup ? calcularStatusTempo(c.criadoEm) : { texto: "", classe: "" };
+  const novoPedidoClasse = (ocup && c.novoPedidoAlerta) ? "novo-pedido-ativo" : "";
+  const pediuContaClasse = (ocup && c.pediuContaAlerta) ? "pediu-conta-ativo" : "";
+  const ehPedidoCliente = (ocup && c.origemPedido === 'cliente');
 
-   let ehMinhaMesa = busy && c.garcom && nomeFiltroGarcom && c.garcom.toLowerCase().trim() === nomeFiltroGarcom;
-   if(ehMinhaMesa) minhasAtendidas++;
-
-   if(filtroMesaAtual === 'livres' && busy) continue;
-   if(filtroMesaAtual === 'ocupadas' && !busy) continue;
-   if(filtroMesaAtual === 'minhas' && !ehMinhaMesa) continue;
-
-   let tempoInfo = busy ? calcularTempoDecorrido(c.criadoEm) : null;
-   let textoSemConsumo = busy ? calcularTempoSemConsumo(c) : null;
-   let statusClass = busy ? 'ocupada' : 'livre';
-   
-   let alertaNovo = (c && c.novoPedidoAlerta && c.origemPedido === 'cliente') ? 'novo-pedido-ativo' : '';
-   let alertaConta = c && c.pediuContaAlerta ? 'pediu-conta-ativo' : '';
-
-   arrayMesasHTML.push(`
-     <div class="table ${statusClass} ${alertaNovo} ${alertaConta}" data-mesa="${i}" onclick="abrirMesa(${i})">
-       <div class="num">Mesa ${pad(i)}</div>
-       <div class="badge-status ${statusClass}">${busy ? 'Ocupada' : 'Livre'}</div>
-       ${(busy && c.total > 0) ? `<div class="total">${br(c.total)}</div>` : ''}
-       ${(busy && tempoInfo) ? `<div class="timer ${tempoInfo.classe}">${tempoInfo.texto}</div>` : ''}
-       ${(busy && textoSemConsumo) ? `<div class="alerta-parada">${textoSemConsumo}</div>` : ''}
-       ${(busy && c.garcom) ? `<div class="garcom-tag">👤 ${escapeHTML(c.garcom)}</div>` : ''}
-     </div>
-   `);
- }
-
- document.getElementById("conteudo").innerHTML = `
-   <div class="filter-tabs">
-     <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="mudarFiltroMesa('todas')">Todas (${TOTAL_MESAS})</button>
-     <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${totalAbertas})</button>
-     <button class="filter-tab ${filtroMesaAtual === 'minhas' ? 'active' : ''}" onclick="mudarFiltroMesa('minhas')">👤 Minhas (${minhasAtendidas})</button>
-     <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="mudarFiltroMesa('livres')">Livres (${TOTAL_MESAS - totalAbertas})</button>
-   </div>
-   <div class="tables">
-     ${arrayMesasHTML.join('')}
-   </div>
- `;
-}
-
-function renderComandas(){
-  let comandasHTML = [];
-
-  for(let i=1; i<=TOTAL_MESAS; i++){
-    let c = comandas[i];
-    if(c && ((c.itens && c.itens.length > 0) || (c.itensPagos && c.itensPagos.length > 0) || c.total > 0)){
-      let textoSemConsumo = calcularTempoSemConsumo(c);
-      let produtosListaHTML = "";
-      if(c.itens && c.itens.length > 0){
-        produtosListaHTML = `
-          <div class="comanda-produtos-box">
-            ${c.itens.map(it => {
-              let statusCoz = it.statusCozinha || '';
-              let badgeHtml = '';
-              if (statusCoz === 'pronto') {
-                badgeHtml = '<div style="font-size:9px;font-weight:900;color:#10b981">✅ Pronto</div>';
-              } else if (statusCoz === 'preparando') {
-                badgeHtml = '<div style="font-size:9px;font-weight:900;color:#f59e0b">🔥 Preparando</div>';
-              } else if (statusCoz === 'pendente') {
-                badgeHtml = '<div style="font-size:9px;font-weight:900;color:var(--brand)">⏳ Pendente</div>';
-              }
-              let horaItem = it.horario ? ` às ${it.horario}` : '';
-              return `
-                <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
-                  <div>
-                    <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)}</span><br>
-                    <small style="color:var(--muted)">🕒 Pedido${horaItem}</small>${badgeHtml}
-                  </div>
-                  <b style="color:var(--ink)">${br(it.qtd * it.preco)}</b>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `;
+  let alertaMesaParadaHTML = "";
+  if (ocup && !c.pediuContaAlerta) {
+    const ultimoTs = obterTimestampUltimoPedido(c);
+    if (ultimoTs > 0) {
+      const minsParada = Math.floor((Date.now() - ultimoTs) / 60000);
+      if (minsParada >= 25) {
+        const horasP = Math.floor(minsParada / 60);
+        const minsResto = minsParada % 60;
+        const tempoParadaTxt = horasP > 0 ? `${horasP}h ${minsResto}m` : `${minsParada}m`;
+        alertaMesaParadaHTML = `<div class="alerta-parada">⏳ Sem pedir há ${tempoParadaTxt}</div>`;
       }
-
-      let itensPagosHTML = "";
-      if(c.itensPagos && c.itensPagos.length > 0){
-        itensPagosHTML = `
-          <div style="margin-top:8px;padding:8px 10px;background:rgba(16, 185, 129, 0.08);border:1px solid rgba(16, 185, 129, 0.25);border-radius:14px">
-            <div style="font-size:11px;font-weight:900;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:4px">
-              <span>✅</span> ITENS JÁ PAGOS
-            </div>
-            ${c.itensPagos.map(it => `
-              <div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)">
-                <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)}</span>
-                <span>${br(it.qtd * it.preco)}</span>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      }
-
-      comandasHTML.push(`
-        <div class="card command">
-          <div class="row" style="align-items:center;margin-bottom:8px">
-            <div>
-              <h3>Mesa ${pad(i)}</h3>
-              <small class="muted">Garçom: <b>${escapeHTML(c.garcom || 'Sem Garçom')}</b></small>
-              ${textoSemConsumo ? `<div class="alerta-parada" style="display:inline-block;margin-top:4px">${textoSemConsumo}</div>` : ''}
-            </div>
-            <div style="text-align:right">
-              <span class="tag">${br(c.total)}</span>
-            </div>
-          </div>
-          ${produtosListaHTML}
-          ${itensPagosHTML}
-          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:var(--input-bg);flex:1" onclick="abrirModalTransferencia(${i})" title="Transferir Mesa">🔄 Transferir</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(211,47,47,0.08);color:var(--brand);border-color:rgba(211,47,47,0.2);flex:1" onclick="unirMesas(${i})" title="Juntar Mesas">🔗 Juntar</button>
-            <button class="secondary" style="padding:10px;font-size:12px;margin:0;background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3);flex:1" onclick="dividirContaModal(${i})">💳 Pagar / Baixa</button>
-            <button class="primary" style="padding:10px;font-size:12px;width:100%" onclick="abrirMesa(${i})">➕ Adicionar Itens</button>
-          </div>
-        </div>
-      `);
     }
   }
 
-  document.getElementById("conteudo").innerHTML = `
-    <div class="section-title">
-      <div><h2>Comandas Abertas</h2><span class="muted">Controle geral de mesas ativas</span></div>
-    </div>
-    ${comandasHTML.length ? comandasHTML.join('') : '<div class="empty">Nenhuma comanda ativa no momento.</div>'}
-  `;
+  html += `<div class="table card-mesa ${ocup?"ocupada busy":"livre"} ${novoPedidoClasse} ${pediuContaClasse}" onclick="abrirMesa(${i})">
+    ${ehPedidoCliente ? '<div style="font-size:10px;background:#38bdf8;color:#fff;padding:2px 6px;border-radius:6px;font-weight:900;margin-bottom:3px">📱 CLIENTE</div>' : ''}
+    ${(ocup && c.pediuContaAlerta) ? '<div style="font-size:10px;background:#f59e0b;color:#fff;padding:2px 6px;border-radius:6px;font-weight:900;margin-bottom:3px">💰 PEDIU CONTA</div>' : ''}
+    <div class="num">Mesa ${pad(i)}</div>
+    <span class="badge-status ${ocup?"ocupada":"livre"}">${ocup ? "Ocupada" : "Livre"}</span>
+    <div class="total">${ocup ? br(c.total) : "R$ 0,00"}</div>
+    ${ocup ? `
+      ${c.garcom ? `<span class="garcom-tag">👤 ${escapeHTML(c.garcom)}</span>` : ""}
+      ${tempoInfo.texto ? `<span class="timer ${tempoInfo.classe}">⏱️ ${tempoInfo.texto}</span>` : ""}
+      ${alertaMesaParadaHTML}
+    ` : ""}
+  </div>`;
+ }
+ document.getElementById("conteudo").innerHTML = `
+  <div class="section-title"><h2>Salão — 45 Mesas</h2><span class="muted">${ocupadasCount} ocupadas</span></div>
+  <div class="filter-tabs">
+    <button class="filter-tab ${filtroMesaAtual==="todas"?"active":""}" onclick="mudarFiltroMesa('todas')">Todas (45)</button>
+    <button class="filter-tab ${filtroMesaAtual==="livres"?"active":""}" onclick="mudarFiltroMesa('livres')">Livres (${TOTAL_MESAS - ocupadasCount})</button>
+    <button class="filter-tab ${filtroMesaAtual==="ocupadas"?"active":""}" onclick="mudarFiltroMesa('ocupadas')">Ocupadas (${ocupadasCount})</button>
+    <button class="filter-tab ${filtroMesaAtual==="minhas"?"active":""}" onclick="mudarFiltroMesa('minhas')">👤 Minhas Mesas${termoGarcomAtivo ? ` (${escapeHTML(garcomSessao || garcomTemp)})` : ''}</button>
+  </div>
+  <div class="tables">${html || `<div class="empty" style="grid-column:span 3">${filtroMesaAtual === 'minhas' && !termoGarcomAtivo ? 'Abra uma mesa e digite seu nome no campo "Garçom" para filtrar suas mesas.' : 'Nenhuma mesa encontrada neste filtro.'}</div>`}</div>`;
 }
 
 function atualizarResumoEnviadosAtendimento() {
-  const box = document.getElementById("boxItensEnviadosMesa");
+  const box = document.getElementById("resumoEnviadosMesaBox");
   if (!box || !mesaSelecionada) return;
-  const c = comandas[mesaSelecionada];
-  if (!c || !Array.isArray(c.itens) || c.itens.length === 0) {
+  const cExistente = comandas[mesaSelecionada];
+  const itensJaEnviados = (cExistente && Array.isArray(cExistente.itens)) ? cExistente.itens : [];
+  const itensJaPagos = (cExistente && Array.isArray(cExistente.itensPagos)) ? cExistente.itensPagos : [];
+  const totalJaNaMesa = cExistente ? Number(cExistente.total || 0) : 0;
+
+  if (itensJaEnviados.length === 0 && itensJaPagos.length === 0) {
     box.innerHTML = "";
-    box.style.display = "none";
     return;
   }
-  box.style.display = "block";
-  box.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <span style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase">📋 Pedidos na mesa (${c.itens.reduce((a,b)=>a+b.qtd,0)} un):</span>
-      <b style="font-size:12px;color:var(--ink)">${br(c.total || 0)}</b>
-    </div>
-    <div style="max-height:115px;overflow:auto;display:flex;flex-direction:column;gap:4px">
-      ${c.itens.map((it, idx) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:4px 8px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border)">
-          <span><b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)} ${it.horario ? `<small class="muted">(${it.horario})</small>` : ''}</span>
-          ${modoCliente ? `<b>${br(it.qtd * it.preco)}</b>` : `<button type="button" onclick="removerItemJaEnviado(${mesaSelecionada}, ${idx})" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:6px;padding:2px 6px;font-size:10px;font-weight:900;cursor:pointer" title="Remover item enviado">✕</button>`}
+
+  let itensEnviadosPorPessoa = {};
+  itensJaEnviados.forEach((it, idxOriginal) => {
+    const cli = it.cliente || "Cliente 1";
+    if (!itensEnviadosPorPessoa[cli]) itensEnviadosPorPessoa[cli] = [];
+    itensEnviadosPorPessoa[cli].push({ ...it, idxOriginal });
+  });
+
+  let blocosPorClienteHTML = "";
+  for (const cli in itensEnviadosPorPessoa) {
+    const subCliente = itensEnviadosPorPessoa[cli].reduce((acc, i) => acc + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+    blocosPorClienteHTML += `
+      <div style="margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:900;color:var(--brand);margin-bottom:4px">
+          <span>👤 ${escapeHTML(cli)}</span>
+          <span>${br(subCliente)}</span>
         </div>
-      `).join('')}
+        ${itensEnviadosPorPessoa[cli].map(it => {
+          const stBadge = it.statusCozinha === 'pronto'
+            ? '<span style="font-size:9px;background:rgba(16,185,129,0.18);color:#10b981;padding:1px 6px;border-radius:6px;font-weight:900;margin-left:4px">✅ Pronto</span>'
+            : (it.statusCozinha === 'preparando'
+              ? '<span style="font-size:9px;background:rgba(245,158,11,0.18);color:#f59e0b;padding:1px 6px;border-radius:6px;font-weight:900;margin-left:4px">🔥 Preparando</span>'
+              : (it.statusCozinha === 'entregue'
+                ? '<span style="font-size:9px;background:rgba(2,132,199,0.15);color:#0284c7;padding:1px 6px;border-radius:6px;font-weight:900;margin-left:4px">🍽️ Entregue</span>'
+                : ''));
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;gap:6px">
+              <div style="flex:1;min-width:0">
+                <span><b>${it.qtd}x</b> ${escapeHTML(it.nome)} ${it.horario ? `<small class="muted">(${it.horario})</small>` : ''}${stBadge}</span>
+                ${it.obs ? `<div style="font-size:10px;color:#d97706;font-weight:800">💬 ${escapeHTML(it.obs)}</div>` : ''}
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                <b>${br(it.qtd * it.preco)}</b>
+                ${!modoCliente ? `<button type="button" onclick="removerItemJaEnviado(${mesaSelecionada}, ${it.idxOriginal})" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:6px;padding:2px 6px;font-size:10px;font-weight:900;cursor:pointer" title="Remover item">✕</button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  let pagosHTML = "";
+  if (itensJaPagos.length > 0) {
+    const totalJaPago = itensJaPagos.reduce((acc, i) => acc + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+    pagosHTML = `
+      <div style="font-size:11px;color:#10b981;font-weight:800;margin-top:4px">
+        ✅ Já pago anteriormente na mesa: ${br(totalJaPago)}
+      </div>
+    `;
+  }
+
+  box.innerHTML = `
+    <div class="card" style="padding:12px 14px;margin-bottom:14px;border:1px solid rgba(16, 185, 129, 0.35);background:linear-gradient(135deg, rgba(16, 185, 129, 0.05), var(--card))">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:900;color:#10b981;text-transform:uppercase">📋 Comanda Aberta (${itensJaEnviados.length} ${itensJaEnviados.length === 1 ? 'lançamento' : 'lançamentos'})</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:14px;font-weight:900;color:var(--brand)">${br(totalJaNaMesa)}</span>
+          ${(!modoCliente && itensJaEnviados.length > 0) ? `
+            <button type="button" onclick="repetirUltimaRodadaMesa()" style="background:#0284c7;color:#fff;border:0;border-radius:10px;padding:5px 9px;font-size:10px;font-weight:900;cursor:pointer" title="Repetir últimos itens lançados">🔁 Rodada</button>
+            <button type="button" onclick="dividirContaModal(${mesaSelecionada})" style="background:#10b981;color:#fff;border:0;border-radius:10px;padding:5px 9px;font-size:10px;font-weight:900;cursor:pointer">💳 Receber</button>
+          ` : ''}
+        </div>
+      </div>
+      <div style="max-height:175px;overflow:auto;padding-right:2px">
+        ${blocosPorClienteHTML}
+      </div>
+      ${pagosHTML}
     </div>
   `;
 }
 
 function renderAtendimento(){
-  let catBtns = Object.keys(cardapio).map(cat => {
-    let icoMap = { "CHURRASCOS": "🔥", "CARANGUEJO": "🦀", "BEBIDAS": "🍺", "GUARNIÇÕES": "🍚", "PETISCOS": "🍟", "REFRIGERANTES": "🥤", "SUCOS": "🧃", "DIVERSOS": "🚬" };
-    return `
-      <div class="side-cat ${categoriaAtual === cat ? 'active' : ''}" data-cat="${escapeHTML(cat)}" onclick="setCategoria('${escapeHTML(cat)}')">
-        <span class="cat-ico">${icoMap[cat] || '🍽️'}</span>
-        <span>${escapeHTML(cat)}</span>
-      </div>
-    `;
-  }).join('');
+ let listaClientes = obterListaClientesMesa();
+ const cExistente = comandas[mesaSelecionada];
+ const pediuConta = Boolean(cExistente && cExistente.pediuContaAlerta);
 
-  let listaPessoasClientes = obterListaClientesMesa();
-  if(!listaPessoasClientes.includes(clienteAtual)) clienteAtual = listaPessoasClientes[0];
+ const catIcons = {
+   "CHURRASCOS": "🥩",
+   "BEBIDAS": "🍺",
+   "CARANGUEJO": "🦀",
+   "GUARNIÇÕES": "🍚",
+   "PETISCOS": "🍟",
+   "REFRIGERANTES": "🥤",
+   "SUCOS": "🧃",
+   "DIVERSOS": "📦"
+ };
 
-  let pillsPessoasHTML = listaPessoasClientes.map(cli => `
-    <button onclick="mudarClienteAtual('${escapeHTML(cli)}')" style="padding:6px 14px;border-radius:99px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">${escapeHTML(cli)}</button>
-  `).join('');
+ document.getElementById("conteudo").innerHTML = `
+  <div class="topbar">
+    ${!modoCliente ? `<button class="back" onclick="mudarTela('mesas')">←</button>` : ''}
+    <div class="mesa-head">
+      <h2>Mesa ${pad(mesaSelecionada)}</h2>
+      <p>${modoCliente ? 'Selecione os itens e envie seu pedido' : 'Toque em + para salvar na hora • 💬 para ponto/obs'}</p>
+    </div>
+    ${(!modoCliente && cExistente) ? `
+      <button onclick="marcarPediuContaMesa(${mesaSelecionada})" style="border:1px solid ${pediuConta ? '#f59e0b' : 'var(--border)'};background:${pediuConta ? '#f59e0b' : 'var(--card)'};color:${pediuConta ? '#fff' : 'var(--ink)'};border-radius:14px;padding:8px 10px;font-weight:900;font-size:11px;cursor:pointer;flex-shrink:0" title="Avisar caixa que a mesa pediu a conta">🔔 Conta</button>
+    ` : ''}
+    <button onclick="anotarPedidoPorVoz()" style="border:0;background:var(--brand);color:#fff;border-radius:14px;width:40px;height:40px;font-size:18px;display:grid;place-items:center;cursor:pointer;flex-shrink:0" title="Anotar pedido por voz">🎙️</button>
+  </div>
+  
+  <div class="card" style="margin-top:12px;padding:12px 14px">
+    ${!modoCliente ? `
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Garçom Responsável</label>
+      <input type="text" placeholder="Seu nome (ex: João)" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none;margin-bottom:12px">
+    ` : ''}
 
-  document.getElementById("conteudo").innerHTML = `
-    <div class="topbar" style="margin-bottom:14px">
-      ${modoCliente ? '' : `<button class="back" onclick="mudarTela('mesas')">←</button>`}
-      <div class="mesa-head">
-        <h2>${mesaSelecionada ? `Mesa ${pad(mesaSelecionada)}` : 'Cardápio Digital'} — Pedido</h2>
-        <p>${modoCliente ? `Adicionando para: <b>${escapeHTML(clienteAtual)}</b>` : `Toque em <b>+</b> para salvar na hora • Pessoa: <b>${escapeHTML(clienteAtual)}</b>`}</p>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        ${modoCliente ? '' : `<button onclick="anotarPedidoPorVoz()" style="background:#10b981;border:0;color:#fff;border-radius:14px;width:40px;height:40px;font-size:16px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,185,129,0.3)" title="Anotar pedido com a voz">🎙️</button>`}
-        ${modoCliente ? '' : `<input type="text" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="padding:8px 10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:12px;font-weight:800;outline:none;width:115px">`}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">Pessoa da Mesa (${clienteAtual})</label>
+      <div style="display:flex;gap:6px">
+        <button onclick="renomearClienteAtual()" style="border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer">✏️ Renomear</button>
+        <button onclick="adicionarNovoClientePrompt()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer">+ Nova Pessoa</button>
       </div>
     </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">
+      ${listaClientes.map(cli => `
+        <button onclick="mudarClienteAtual('${escapeHTML(cli)}')" style="padding:6px 12px;border-radius:12px;border:1px solid ${cli===clienteAtual?'var(--brand)':'var(--border)'};background:${cli===clienteAtual?'var(--brand)':'var(--input-bg)'};color:${cli===clienteAtual?'#fff':'var(--ink)'};font-size:11px;font-weight:900;white-space:nowrap;cursor:pointer">
+          👤 ${escapeHTML(cli)}
+        </button>
+      `).join('')}
+    </div>
+  </div>
 
-    <div id="boxItensEnviadosMesa" class="card" style="padding:10px 12px;margin-bottom:12px;display:none"></div>
+  <div id="resumoEnviadosMesaBox"></div>
 
-    <div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-x:auto">
-      <div style="display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px;flex:1">
-        <span style="font-size:11px;font-weight:900;color:var(--muted);white-space:nowrap">Pessoas:</span>
-        ${pillsPessoasHTML}
+  <div class="search-box">
+    <span>🔍</span>
+    <input type="text" placeholder="Buscar produto no cardápio..." value="${escapeHTML(termoBuscaProduto)}" oninput="filtrarProdutosInput(this.value)">
+  </div>
+
+  <div class="atendimento-layout">
+    <div class="side-cats" id="categorias">
+      ${Object.keys(cardapio).map(c => `
+        <div class="side-cat ${c === categoriaAtual ? 'active' : ''}" data-cat="${escapeHTML(c)}" onclick="setCategoria('${escapeHTML(c)}')">
+          <span class="cat-ico">${catIcons[c] || '🍴'}</span>
+          <span>${escapeHTML(c)}</span>
+        </div>
+      `).join("")}
+    </div>
+    
+    <div class="products-list" id="produtos"></div>
+  </div>`;
+ atualizarResumoEnviadosAtendimento();
+ renderProdutos();
+}
+
+function renderComandas(){
+ const ativas = [];
+ for(let i=1; i<=TOTAL_MESAS; i++){ if(comandas[i]) ativas.push([String(i), comandas[i]]); }
+
+ document.getElementById("conteudo").innerHTML = `<div class="section-title"><h2>Comandas Ativas</h2><span class="muted">${ativas.length} abertas</span></div>` +
+ (ativas.length ? ativas.map(([num, c]) => {
+   let itensPorPessoa = {};
+   (c.itens || []).forEach(it => {
+     let cli = it.cliente || "Cliente 1";
+     if(!itensPorPessoa[cli]) itensPorPessoa[cli] = [];
+     itensPorPessoa[cli].push(it);
+   });
+
+   let htmlPessoas = "";
+   for(const cli in itensPorPessoa){
+     let subCliente = itensPorPessoa[cli].reduce((s,i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+     htmlPessoas += `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">
+       <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:900;color:var(--brand)">
+         <span>👤 ${escapeHTML(cli)}</span>
+         <span>${br(subCliente)}</span>
+       </div>
+       <div style="font-size:11px;color:var(--muted);margin-top:2px">
+         ${itensPorPessoa[cli].map(i => `${i.qtd}x ${escapeHTML(i.nome)}${i.obs ? ` (${escapeHTML(i.obs)})` : ''} ${i.horario ? `[${i.horario}]` : ''}`).join(" • ")}
+       </div>
+     </div>`;
+   }
+
+   const tempoInfo = calcularStatusTempo(c.criadoEm);
+
+   return `<div class="card command ${c.pediuContaAlerta ? 'pediu-conta-ativo' : ''}">
+    <div class="row">
+      <div>
+        <h3>Mesa ${pad(num)} ${c.pediuContaAlerta ? '<span style="font-size:10px;background:#f59e0b;color:#fff;padding:2px 6px;border-radius:6px;margin-left:4px">💰 PEDIU CONTA</span>' : ''}</h3>
+        <div class="muted">👤 Garçom: <b>${escapeHTML(c.garcom || "Não informado")}</b></div>
+        ${tempoInfo.texto ? `<span class="timer ${tempoInfo.classe}" style="display:inline-block;margin-top:4px">⏱️ ${tempoInfo.texto}</span>` : ""}
       </div>
-      <div style="display:flex;gap:4px;flex-shrink:0">
-        <button onclick="adicionarNovoClientePrompt()" style="padding:6px 12px;border-radius:12px;border:1px dashed var(--brand);background:rgba(211,47,47,0.05);color:var(--brand);font-weight:900;font-size:11px;cursor:pointer" title="Adicionar nova pessoa">+ Pessoa</button>
-        <button onclick="renomearClienteAtual()" style="padding:6px 12px;border-radius:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer" title="Renomear pessoa atual">✏️</button>
-      </div>
+      <span class="tag">${br(c.total)}</span>
     </div>
-
-    <div class="search-box">
-      <span>🔍</span>
-      <input type="text" placeholder="Pesquisar qualquer produto no cardápio..." oninput="filtrarProdutosInput(this.value)">
+    ${htmlPessoas}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="secondary" style="margin:0;font-size:12px;padding:10px" onclick="abrirMesa(${num})">+ Pedido</button>
+      <button class="secondary" style="margin:0;font-size:12px;padding:10px" onclick="abrirModalTransferencia(${num})">🔄 Transferir</button>
+      <button class="secondary" style="margin:0;font-size:12px;padding:10px;grid-column:span 2;background:rgba(56, 189, 248, 0.1);color:#0284c7;border-color:rgba(56, 189, 248, 0.3)" onclick="unirMesas(${num})">🔗 Juntar / Unir Mesas</button>
+      <button class="primary" style="grid-column:span 2;font-size:13px;padding:12px" onclick="dividirContaModal(${num})">💳 Pagar / Fechar Conta</button>
     </div>
-
-    <div class="atendimento-layout">
-      <div class="side-cats">${catBtns}</div>
-      <div class="products-list" id="produtos"></div>
-    </div>
-  `;
-  atualizarResumoEnviadosAtendimento();
-  renderProdutos();
+  </div>`;
+ }).join("") : `<div class="empty">Nenhuma mesa aberta no momento.</div>`);
 }
 
 function renderizar(){
-  if(modoCliente) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('navInferior').style.display = 'none';
-    document.getElementById('adminHeaderBtn').style.display = 'none';
-    const logoutBtn = document.getElementById('logoutHeaderBtn');
-    if (logoutBtn) logoutBtn.style.display = 'none';
-    document.getElementById('user-role-label').textContent = 'CARDÁPIO DIGITAL — B.B CHURRASCO';
-    if(mesaUrlCliente) mesaSelecionada = mesaUrlCliente;
-    else mesaSelecionada = 1;
-    telaAtual = 'atendimento';
-    carregarCardapioDinamico();
-    renderAtendimento();
-    return;
-  }
-
-  if(telaAtual === 'mesas') renderMesas();
-  else if(telaAtual === 'comandas') renderComandas();
-  else if(telaAtual === 'cozinha') renderCozinha();
-  else if(telaAtual === 'churrasco') renderChurrasco();
-  else if(telaAtual === 'bebidas') renderBebidas();
-  else if(telaAtual === 'relatorios') renderRelatorios();
-  else if(telaAtual === 'atendimento') renderAtendimento();
+  document.querySelectorAll(".bottom button").forEach(b=>b.classList.remove("active"));
+  const navMap = {
+    "mesas": "navMesas", "atendimento": "navMesas", "comandas": "navComandas",
+    "cozinha": "navCozinha", "churrasco": "navChurrasco", "bebidas": "navBebidas", "relatorios": "navRelatorios"
+  };
+  document.getElementById(navMap[telaAtual] || "navMesas")?.classList.add("active");
+  
+  if(telaAtual === "mesas") renderMesas();
+  if(telaAtual === "atendimento") renderAtendimento();
+  if(telaAtual === "comandas") renderComandas();
+  if(telaAtual === "cozinha") renderCozinha();
+  if(telaAtual === "churrasco") renderChurrasco();
+  if(telaAtual === "bebidas") renderBebidas();
+  if(telaAtual === "relatorios") renderRelatorios();
+  atualizarBar();
 }
 
 setInterval(() => {
-  if (!modoCliente && ['mesas', 'comandas', 'cozinha', 'churrasco', 'bebidas'].includes(telaAtual)) {
+  if(["mesas", "comandas", "cozinha", "churrasco", "bebidas"].includes(telaAtual)){
     renderizar();
   }
-}, 30000);
+}, 60000);
 
-if(modoCliente) {
-  renderizar();
-} else if(usuarioLogadoEmail){
+if (modoCliente) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('navInferior').style.display = 'none';
+  document.getElementById('adminHeaderBtn').style.display = 'none';
+  document.getElementById('logoutHeaderBtn').style.display = 'none';
+  document.getElementById('soundToggleBtn').style.display = 'none';
+  document.getElementById('pushToggleBtn').style.display = 'none';
+  document.getElementById('user-role-label').textContent = mesaUrlCliente ? `Cardápio Digital — Mesa ${pad(mesaUrlCliente)}` : 'Cardápio Digital — Delivery';
+  
   iniciarOuvintesFirebase();
+  
+  if (mesaUrlCliente && mesaUrlCliente >= 1 && mesaUrlCliente <= TOTAL_MESAS) {
+    abrirMesa(mesaUrlCliente);
+  } else {
+    abrirMesa(45); 
+    garcomTemp = "Delivery (Cliente)";
+  }
+} else {
   renderizar();
 }
 </script>
 </body>
 </html>
-
