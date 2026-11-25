@@ -1,3 +1,7 @@
+Adicionei os dois itens exatamente nas categorias solicitadas (Vinagrete por R$ 2,00 em GUARNIÇÕES e Unidade de cigarro por R$ 1,00 em DIVERSOS) dentro do objeto cardapio.
+> Aviso rápido sobre o Firebase: Como o sistema também lê o cardápio salvo na coleção configuracoes/cardapio do Firestore, se você já tiver salvo edições anteriores pelo Painel Administrativo (⚙), o banco pode sobrescrever os itens padrão ao carregar. Nesse caso, basta abrir o painel admin (⚙) e clicar em 💾 Salvar Alterações no Banco (ou adicioná-los por lá).
+> 
+Segue o código completo pronto para copiar e colar:
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -1169,7 +1173,8 @@ let cardapio = {
     ["Baião cremoso grande", 12, "🍚", "", false],
     ["Baião cremoso pequeno", 6, "🍚", "", false],
     ["Feijão verde", 20, "🍲", "Combo", false],
-    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false]
+    ["Panelada", 18, "🍲", "Arroz / farofa de cuscuz", false],
+    ["Vinagrete", 2, "🥗", "", false]
   ],
   "PETISCOS":[
     ["Macaxeira", 16, "🍟", "", false],
@@ -1197,6 +1202,7 @@ let cardapio = {
   ],
   "DIVERSOS":[
     ["Cigarro", 7, "🚬", "Carteira", false],
+    ["Unidade de cigarro", 1, "🚬", "Unidade", false],
     ["Partilha halls", 3, "🍬", "", false]
   ]
 };
@@ -3848,3 +3854,4 @@ if(modoCliente) {
 </script>
 </body>
 </html>
+
