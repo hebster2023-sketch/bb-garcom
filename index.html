@@ -107,7 +107,7 @@ body{padding-bottom:140px}
 }
 
 .header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.theme-btn, .sound-btn, .admin-btn, .push-btn, .logout-btn{
+.theme-btn, .sound-btn, .admin-btn, .push-btn, .logout-btn, .bt-btn{
   background: rgba(20, 20, 20, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
@@ -122,8 +122,29 @@ body{padding-bottom:140px}
   -webkit-backdrop-filter: blur(12px);
   transition: transform .2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active, .logout-btn:active{transform:scale(.85)}
-.sound-btn.active, .push-btn.active{background:rgba(16, 185, 129, 0.35);border:1px solid #10b981;color:#fff}
+.theme-btn:active, .sound-btn:active, .admin-btn:active, .push-btn:active, .logout-btn:active, .bt-btn:active{transform:scale(.85)}
+.sound-btn.active, .push-btn.active, .bt-btn.active{background:rgba(16, 185, 129, 0.35);border:1px solid #10b981;color:#fff}
+
+/* Aviso Discreto de Conflito / Visualização Simultânea */
+.aviso-conflito-mesa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #b45309;
+  padding: 7px 12px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 10px;
+  animation: fadeInOut .25s ease;
+}
+[data-theme="dark"] .aviso-conflito-mesa {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
 
 /* Toast Flutuante */
 #toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(90%, 400px);pointer-events:none}
@@ -298,7 +319,7 @@ body{padding-bottom:140px}
 .card{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:24px;box-shadow:0 8px 24px rgba(0,0,0,0.03);padding:18px;margin-bottom:14px}
 .section-title{display:flex;align-items:end;justify-content:space-between;margin:20px 2px 12px;font-size:1.1rem;color:#ff5252;padding-bottom:5px;gap:8px;flex-wrap:wrap}.section-title h2{font-size:19px;font-weight:900;color:var(--ink);margin:0}.muted{color:var(--muted);font-size:12px}
 
-.topbar{display:flex;gap:10px;align-items:center}
+.topbar{display:flex;gap:8px;align-items:center}
 .back{border:0;background:var(--card);border:1px solid var(--border);color:var(--ink);border-radius:14px;width:40px;height:40px;font-weight:900;font-size:16px;display:grid;place-items:center;cursor:pointer;transition:transform .2s;flex-shrink:0}
 .back:active{transform:scale(0.85)}
 .mesa-head{flex:1;min-width:0}.mesa-head h2{font-size:18px;font-weight:900;color:var(--ink);margin:0}.mesa-head p{margin:2px 0 0;font-size:11px;color:var(--muted)}
@@ -702,6 +723,7 @@ body{padding-bottom:140px}
     </div>
   </div>
   <div class="header-actions">
+    <button class="bt-btn" id="btPrinterBtn" onclick="abrirConfigImpressora()" title="Impressora Térmica Bluetooth (58mm/80mm)">🖨️</button>
     <button class="push-btn" id="pushToggleBtn" onclick="pedirPermissaoPush()" title="Notificações Push no Celular">📲</button>
     <button class="sound-btn" id="soundToggleBtn" onclick="toggleSound()" title="Ativar/Desativar Alerta Sonoro">🔔</button>
     <button class="theme-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Tema">☀️</button>
@@ -827,6 +849,363 @@ window.addEventListener('offline', () => {
   atualizarIndicadorRede();
   showToast("🟡 Sem internet: Modo Contingência ativo (salvando localmente).", true);
 });
+
+// ----------------- FERRAMENTA 6: BLOQUEIO / AVISO DE EDIÇÃO SIMULTÂNEA (CONFLITO DE GARÇONS) -----------------
+const sessaoDispositivoId = sessionStorage.getItem('bb_device_id') || ('dev_' + Math.random().toString(36).slice(2, 10));
+sessionStorage.setItem('bb_device_id', sessaoDispositivoId);
+let mesaAtualPresenca = null;
+let heartbeatPresencaInterval = null;
+
+function obterNomeOperadorAtual() {
+  if (garcomSessao && garcomSessao.trim()) return garcomSessao.trim();
+  if (garcomTemp && garcomTemp.trim()) return garcomTemp.trim();
+  if (usuarioLogadoEmail) {
+    const auto = extrairNomeGarcomPorEmail(usuarioLogadoEmail);
+    if (auto) return auto;
+    return usuarioLogadoEmail.split('@')[0];
+  }
+  return "Outro Garçom";
+}
+
+function registrarPresencaNaMesa(numMesa) {
+  if (modoCliente || !numMesa) return;
+  const numStr = String(numMesa);
+  if (mesaAtualPresenca && mesaAtualPresenca !== numStr) {
+    removerPresencaDaMesa(mesaAtualPresenca);
+  }
+  mesaAtualPresenca = numStr;
+
+  const atualizarHeartbeat = () => {
+    if (!mesaAtualPresenca || telaAtual !== "atendimento") return;
+    const nomeOp = obterNomeOperadorAtual();
+    const campo = `visualizandoPor.${sessaoDispositivoId}`;
+    db.collection("comandas").doc(mesaAtualPresenca).set({
+      visualizandoPor: {
+        [sessaoDispositivoId]: {
+          nome: nomeOp,
+          email: usuarioLogadoEmail || "",
+          ts: Date.now()
+        }
+      }
+    }, { merge: true }).catch(() => {});
+  };
+
+  atualizarHeartbeat();
+  if (heartbeatPresencaInterval) clearInterval(heartbeatPresencaInterval);
+  heartbeatPresencaInterval = setInterval(atualizarHeartbeat, 15000);
+}
+
+function removerPresencaDaMesa(numMesa = mesaAtualPresenca) {
+  if (heartbeatPresencaInterval) {
+    clearInterval(heartbeatPresencaInterval);
+    heartbeatPresencaInterval = null;
+  }
+  if (!numMesa) return;
+  const numStr = String(numMesa);
+  if (mesaAtualPresenca === numStr) mesaAtualPresenca = null;
+
+  const c = comandas[numStr];
+  if (!c) return;
+
+  const campoDelete = {};
+  campoDelete[`visualizandoPor.${sessaoDispositivoId}`] = firebase.firestore.FieldValue.delete();
+  db.collection("comandas").doc(numStr).update(campoDelete).catch(() => {});
+}
+
+window.addEventListener('beforeunload', () => {
+  if (mesaAtualPresenca) removerPresencaDaMesa(mesaAtualPresenca);
+});
+
+function obterOutrosGarconsNaMesa(numMesa) {
+  const c = comandas[String(numMesa)];
+  if (!c || !c.visualizandoPor || typeof c.visualizandoPor !== 'object') return [];
+  const agora = Date.now();
+  const outros = [];
+  for (const devId in c.visualizandoPor) {
+    if (devId === sessaoDispositivoId) continue;
+    const info = c.visualizandoPor[devId];
+    if (info && info.ts && (agora - Number(info.ts)) < 45000) {
+      outros.push(info.nome || "Outro garçom");
+    }
+  }
+  return Array.from(new Set(outros));
+}
+
+function atualizarBannerConflitoMesa() {
+  const bannerEl = document.getElementById("bannerConflitoMesaBox");
+  if (!bannerEl || !mesaSelecionada) return;
+  const outros = obterOutrosGarconsNaMesa(mesaSelecionada);
+  if (outros.length === 0) {
+    bannerEl.innerHTML = "";
+    return;
+  }
+  const nomesStr = outros.map(n => escapeHTML(n)).join(", ");
+  const verbo = outros.length === 1 ? "também está vendo esta mesa" : "também estão vendo esta mesa";
+  bannerEl.innerHTML = `
+    <div class="aviso-conflito-mesa">
+      <span>👁️</span>
+      <span><b>${nomesStr}</b> ${verbo}</span>
+    </div>
+  `;
+}
+
+// ----------------- FERRAMENTA 8: IMPRESSÃO TÉRMICA BLUETOOTH (58mm / 80mm) & RAWBT -----------------
+let btCharacteristic = null;
+let btDevice = null;
+let larguraPapelTermica = parseInt(localStorage.getItem('bb_printer_width')) || 58; // 58 ou 80 mm
+let modoImpressaoPreferido = localStorage.getItem('bb_printer_mode') || 'rawbt'; // 'ble' ou 'rawbt'
+let autoImprimirCozinha = localStorage.getItem('bb_auto_print_kitchen') === 'true';
+
+function normalizarTextoImpressora(str) {
+  if (!str) return "";
+  return String(str)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E\n]/g, "");
+}
+
+function gerarLinhaSeparadora(larguraMm) {
+  const cols = larguraMm === 80 ? 48 : 32;
+  return "-".repeat(cols) + "\n";
+}
+
+function formatarColunasTermica(esq, dir, larguraMm) {
+  const cols = larguraMm === 80 ? 48 : 32;
+  const e = normalizarTextoImpressora(esq);
+  const d = normalizarTextoImpressora(dir);
+  const espacos = Math.max(1, cols - e.length - d.length);
+  if (e.length + d.length + 1 > cols) {
+    return e.slice(0, cols - d.length - 1) + " " + d + "\n";
+  }
+  return e + " ".repeat(espacos) + d + "\n";
+}
+
+function montarTextoCupomCozinha(numMesa, garcom, itensLista) {
+  const sep = gerarLinhaSeparadora(larguraPapelTermica);
+  const agoraStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  let txt = "";
+  txt += "      B.B CHURRASCO\n";
+  txt += "   VIA PRODUCAO / COZINHA\n";
+  txt += sep;
+  txt += `MESA: ${pad(numMesa)}   HORA: ${agoraStr}\n`;
+  txt += `GARCOM: ${normalizarTextoImpressora(garcom || 'Atendimento')}\n`;
+  txt += sep;
+  itensLista.forEach(it => {
+    txt += `${it.qtd}x ${normalizarTextoImpressora(it.nome).toUpperCase()}\n`;
+    txt += `   Cliente: ${normalizarTextoImpressora(it.cliente || 'Cliente 1')}\n`;
+    if (it.obs) {
+      txt += `   OBS: ${normalizarTextoImpressora(it.obs).toUpperCase()}\n`;
+    }
+  });
+  txt += sep;
+  txt += "\n\n\n";
+  return txt;
+}
+
+function montarTextoExtratoMesa(numMesa) {
+  const c = comandas[numMesa];
+  if (!c) return "";
+  const sep = gerarLinhaSeparadora(larguraPapelTermica);
+  const agora = new Date();
+  const dataStr = agora.toLocaleDateString('pt-BR') + " " + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  let txt = "";
+  txt += "      B.B CHURRASCO\n";
+  txt += "   CONFERENCIA DE CONTA\n";
+  txt += sep;
+  txt += `MESA: ${pad(numMesa)}   ${dataStr}\n`;
+  txt += `GARCOM: ${normalizarTextoImpressora(c.garcom || 'Atendimento')}\n`;
+  txt += sep;
+
+  const itensPendentes = c.itens || [];
+  if (itensPendentes.length > 0) {
+    txt += "ITENS EM ABERTO:\n";
+    itensPendentes.forEach(it => {
+      const sub = (Number(it.qtd) || 0) * (Number(it.preco) || 0);
+      txt += formatarColunasTermica(`${it.qtd}x ${it.nome}`, br(sub), larguraPapelTermica);
+      if (it.cliente && it.cliente !== 'Cliente 1') {
+        txt += `  (${normalizarTextoImpressora(it.cliente)})\n`;
+      }
+    });
+    txt += sep;
+  }
+
+  const itensPagos = c.itensPagos || [];
+  const totalJaPago = itensPagos.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+  if (itensPagos.length > 0) {
+    txt += "ITENS JA PAGOS:\n";
+    itensPagos.forEach(it => {
+      const sub = (Number(it.qtd) || 0) * (Number(it.preco) || 0);
+      txt += formatarColunasTermica(`[PAGO] ${it.qtd}x ${it.nome}`, br(sub), larguraPapelTermica);
+    });
+    txt += formatarColunasTermica("TOTAL JA PAGO:", br(totalJaPago), larguraPapelTermica);
+    txt += sep;
+  }
+
+  txt += formatarColunasTermica("SALDO RESTANTE:", br(c.total || 0), larguraPapelTermica);
+  txt += sep;
+  txt += "  Obrigado pela preferencia!\n\n\n\n";
+  return txt;
+}
+
+async function conectarImpressoraWebBluetooth() {
+  if (!navigator.bluetooth) {
+    showToast("Web Bluetooth indisponível neste navegador (no iPhone/Android use o modo RawBT).", true);
+    return;
+  }
+  try {
+    showToast("🔍 Buscando impressora térmica Bluetooth...");
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [
+        '000018f0-0000-1000-8000-00805f9b34fb',
+        'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+        '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+      ]
+    });
+    btDevice = device;
+    const server = await device.gatt.connect();
+    const services = await server.getPrimaryServices();
+    for (const service of services) {
+      const characteristics = await service.getCharacteristics();
+      for (const char of characteristics) {
+        if (char.properties.write || char.properties.writeWithoutResponse) {
+          btCharacteristic = char;
+          break;
+        }
+      }
+      if (btCharacteristic) break;
+    }
+
+    if (btCharacteristic) {
+      modoImpressaoPreferido = 'ble';
+      localStorage.setItem('bb_printer_mode', 'ble');
+      document.getElementById('btPrinterBtn')?.classList.add('active');
+      showToast(`🖨️ Impressora "${device.name || 'Térmica'}" conectada!`);
+      abrirConfigImpressora();
+    } else {
+      showToast("Não foi possível encontrar canal de impressão neste dispositivo.", true);
+    }
+  } catch (err) {
+    showToast("Conexão Bluetooth cancelada ou falhou.", true);
+  }
+}
+
+async function enviarTextoParaImpressora(textoCupom) {
+  if (!textoCupom) return;
+
+  if (modoImpressaoPreferido === 'ble' && btCharacteristic) {
+    try {
+      const encoder = new TextEncoder();
+      const initCmd = new Uint8Array([0x1B, 0x40]); // ESC @ Inicializa impressora
+      const cutCmd = new Uint8Array([0x1D, 0x56, 0x41, 0x10]); // Corte parcial se suportado
+      const bodyBytes = encoder.encode(textoCupom);
+
+      const fullData = new Uint8Array(initCmd.length + bodyBytes.length + cutCmd.length);
+      fullData.set(initCmd, 0);
+      fullData.set(bodyBytes, initCmd.length);
+      fullData.set(cutCmd, initCmd.length + bodyBytes.length);
+
+      const chunkSize = 100;
+      for (let i = 0; i < fullData.length; i += chunkSize) {
+        const chunk = fullData.slice(i, i + chunkSize);
+        if (btCharacteristic.properties.writeWithoutResponse) {
+          await btCharacteristic.writeValueWithoutResponse(chunk);
+        } else {
+          await btCharacteristic.writeValue(chunk);
+        }
+      }
+      showToast("🖨️ Impresso via Bluetooth!");
+      return;
+    } catch (e) {
+      showToast("Falha no Bluetooth direto, abrindo ponte RawBT...", true);
+    }
+  }
+
+  // App Ponte RawBT (Android / Mini-impressoras térmicas)
+  const rawbtUrl = "rawbt:" + encodeURIComponent(textoCupom);
+  window.location.href = rawbtUrl;
+  showToast("🖨️ Enviado para app de impressão (RawBT)!");
+}
+
+function imprimirViaCozinhaMesa(numMesa) {
+  const c = comandas[numMesa];
+  if (!c || !Array.isArray(c.itens) || c.itens.length === 0) {
+    showToast("Nenhum item na mesa para imprimir.", true);
+    return;
+  }
+  const texto = montarTextoCupomCozinha(numMesa, c.garcom, c.itens);
+  enviarTextoParaImpressora(texto);
+}
+
+function imprimirExtratoConferenciaMesa(numMesa) {
+  const c = comandas[numMesa];
+  if (!c) {
+    showToast("Mesa vazia.", true);
+    return;
+  }
+  const texto = montarTextoExtratoMesa(numMesa);
+  enviarTextoParaImpressora(texto);
+}
+
+function abrirConfigImpressora() {
+  const conectadoBle = Boolean(btCharacteristic && btDevice && btDevice.gatt?.connected);
+  document.getElementById("modalTitle").textContent = "🖨️ Impressora Térmica Bluetooth";
+  document.getElementById("modalBody").innerHTML = `
+    <div style="background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;font-size:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span>Status Web Bluetooth:</span>
+        <b style="color:${conectadoBle ? '#10b981' : 'var(--muted)'}">${conectadoBle ? `🟢 Conectada (${escapeHTML(btDevice.name || 'Térmica')})` : '⚪ Não pareada'}</b>
+      </div>
+      <div style="font-size:11px;color:var(--muted)">
+        Compatível com mini-impressoras térmicas e maquininhas via <b>Web Bluetooth</b> ou app ponte <b>RawBT</b>.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">Largura do Papel Térmico:</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" onclick="definirLarguraImpressora(58)" style="padding:10px;border-radius:12px;border:2px solid ${larguraPapelTermica === 58 ? 'var(--brand)' : 'var(--border)'};background:${larguraPapelTermica === 58 ? 'rgba(211,47,47,0.1)' : 'var(--input-bg)'};color:var(--ink);font-weight:900;font-size:12px;cursor:pointer">🧾 58mm (Bobina Pequena)</button>
+        <button type="button" onclick="definirLarguraImpressora(80)" style="padding:10px;border-radius:12px;border:2px solid ${larguraPapelTermica === 80 ? 'var(--brand)' : 'var(--border)'};background:${larguraPapelTermica === 80 ? 'rgba(211,47,47,0.1)' : 'var(--input-bg)'};color:var(--ink);font-weight:900;font-size:12px;cursor:pointer">🧾 80mm (Bobina Larga)</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">Modo de Envio:</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" onclick="definirModoImpressao('rawbt')" style="padding:10px;border-radius:12px;border:2px solid ${modoImpressaoPreferido === 'rawbt' ? '#0284c7' : 'var(--border)'};background:${modoImpressaoPreferido === 'rawbt' ? 'rgba(2,132,199,0.1)' : 'var(--input-bg)'};color:var(--ink);font-weight:900;font-size:12px;cursor:pointer">📲 App Ponte (RawBT)</button>
+        <button type="button" onclick="definirModoImpressao('ble')" style="padding:10px;border-radius:12px;border:2px solid ${modoImpressaoPreferido === 'ble' ? '#10b981' : 'var(--border)'};background:${modoImpressaoPreferido === 'ble' ? 'rgba(16,185,129,0.1)' : 'var(--input-bg)'};color:var(--ink);font-weight:900;font-size:12px;cursor:pointer">🔵 Web Bluetooth Direto</button>
+      </div>
+    </div>
+
+    <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="font-size:12px;font-weight:800">⚡ Imprimir via cozinha ao lançar item</span>
+      <input type="checkbox" ${autoImprimirCozinha ? 'checked' : ''} onchange="alternarAutoImprimirCozinha(this.checked)" style="width:18px;height:18px;accent-color:var(--brand)">
+    </div>
+
+    <button class="primary" style="background:#0284c7;margin-bottom:8px" onclick="conectarImpressoraWebBluetooth()">🔵 Parear Impressora Bluetooth</button>
+    <button class="secondary" style="margin-top:0" onclick="enviarTextoParaImpressora('   B.B CHURRASCO\\nTESTE DE IMPRESSAO ${larguraPapelTermica}MM\\n------------------------\\nImpressora configurada!\\n\\n\\n')">🧪 Imprimir Teste (${larguraPapelTermica}mm)</button>
+    <button class="secondary" onclick="fecharModal()">Fechar</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+
+function definirLarguraImpressora(mm) {
+  larguraPapelTermica = mm;
+  localStorage.setItem('bb_printer_width', String(mm));
+  abrirConfigImpressora();
+}
+
+function definirModoImpressao(modo) {
+  modoImpressaoPreferido = modo;
+  localStorage.setItem('bb_printer_mode', modo);
+  abrirConfigImpressora();
+}
+
+function alternarAutoImprimirCozinha(ativo) {
+  autoImprimirCozinha = ativo;
+  localStorage.setItem('bb_auto_print_kitchen', String(ativo));
+  showToast(ativo ? "Impressão automática de cozinha ativada!" : "Impressão automática desativada.");
+}
 
 let swRegistration = null;
 if ('serviceWorker' in navigator) {
@@ -1187,8 +1566,7 @@ function showToast(msg, isError = false){
   }, 2500);
 }
 
-// ----------------- CARDÁPIO PADRÃO (ORDENADO POR GIRO + VINAGRETE E CIGARRO UNIDADE + ESTOQUE) -----------------
-// Estrutura de cada item: [0: nome, 1: preco, 2: icon/img, 3: desc, 4: indisponivel, 5: criadoEmItem, 6: estoqueQtd (null = ilimitado)]
+// ----------------- CARDÁPIO PADRÃO -----------------
 let cardapio = {
   "CHURRASCOS":[
     ["Cupim", 10, "🍖", "", false, 0, null],
@@ -1324,7 +1702,6 @@ function salvarCardapioDinamicoNoFirebase(silencioso = false){
   });
 }
 
-// Atualiza estoque numérico do item ao lançar/remover
 function ajustarEstoqueItem(nomeProd, deltaEstoque) {
   let alterou = false;
   for (let cat in cardapio) {
@@ -1708,6 +2085,7 @@ function iniciarOuvintesFirebase() {
 
     if(["mesas", "comandas", "cozinha", "churrasco", "bebidas"].includes(telaAtual)) renderizar();
     if(telaAtual === "atendimento") {
+      atualizarBannerConflitoMesa();
       atualizarResumoEnviadosAtendimento();
       renderProdutos();
     }
@@ -1779,6 +2157,7 @@ function handleLogin(e){
 
 function sairDoSistema() {
   if (!confirm("Deseja sair da conta atual e voltar para a tela de login?")) return;
+  removerPresencaDaMesa();
   firebase.auth().signOut().then(() => {
     usuarioLogadoEmail = "";
     garcomSessao = "";
@@ -1815,10 +2194,16 @@ function concluirLogin(email){
 
 function mudarTela(t, num=null){
   if(t === 'relatorios' && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')) return;
-  telaAtual = t; if(num !== null) mesaSelecionada = Number(num); renderizar(); window.scrollTo(0,0);
+  if (telaAtual === "atendimento" && t !== "atendimento") {
+    removerPresencaDaMesa();
+  }
+  telaAtual = t; 
+  if(num !== null) mesaSelecionada = Number(num); 
+  renderizar(); 
+  window.scrollTo(0,0);
 }
 
-// ----------------- ATENDIMENTO: SALVA NA HORA + OBSERVAÇÃO RÁPIDA + REPETIR RODADA + PEDIR CONTA -----------------
+// ----------------- ATENDIMENTO -----------------
 function abrirMesa(num){
   mesaSelecionada = Number(num);
   pedidoTemp = { "Cliente 1": {} };
@@ -1838,6 +2223,7 @@ function abrirMesa(num){
     garcomTemp = garcomSessao || extrairNomeGarcomPorEmail(usuarioLogadoEmail) || "";
   }
 
+  registrarPresencaNaMesa(num);
   mudarTela("atendimento", num);
 }
 
@@ -2057,6 +2443,11 @@ function salvarAdicaoDiretaNaComanda(nomeProd, cli, obs = "") {
   atualizarResumoEnviadosAtendimento();
   renderProdutos();
   showToast(`+1 ${nomeProd}${obs ? ` (${obs})` : ''} salvo na Mesa ${pad(numMesaStr)}`);
+
+  if (autoImprimirCozinha && ["CHURRASCOS", "CARANGUEJO", "PETISCOS", "GUARNIÇÕES"].includes(catDoItem)) {
+    const cupom = montarTextoCupomCozinha(numMesaStr, dadosMesa.garcom, [novoLote]);
+    enviarTextoParaImpressora(cupom);
+  }
 
   db.collection("comandas").doc(numMesaStr).set(dadosMesa, { merge: true }).catch(err => {
     showToast("Erro ao salvar item: " + err.message, true);
@@ -3298,8 +3689,14 @@ function enviarContaWhatsApp(num) {
     texto += `${i.qtd}x ${i.nome} - ${br(i.qtd * i.preco)}\n`;
   });
 
+  if (c.itensPagos && c.itensPagos.length > 0) {
+    const totalPago = c.itensPagos.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
+    texto += `---------------------------------\n`;
+    texto += `*JÁ PAGO:* ${br(totalPago)}\n`;
+  }
+
   texto += `---------------------------------\n`;
-  texto += `*TOTAL:* ${br(c.total)}\n\n`;
+  texto += `*SALDO RESTANTE:* ${br(c.total)}\n\n`;
   texto += `Obrigado pela preferência e volte sempre! 🥩🔥`;
 
   const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
@@ -3351,12 +3748,15 @@ function dividirContaModal(num){
     </div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <button class="secondary" style="margin:0;font-size:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:#25d366;color:#fff;border:0" onclick="enviarContaWhatsApp(${num})">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+    <button class="secondary" style="margin:0;font-size:11px;padding:10px 4px;display:flex;align-items:center;justify-content:center;gap:4px;background:#25d366;color:#fff;border:0" onclick="enviarContaWhatsApp(${num})">
       <span>💬</span> WhatsApp
     </button>
-    <button class="secondary" style="margin:0;font-size:12px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="abrirJanelaConsumoCliente(${num})">
-      <span>🧾</span> Ver Consumo
+    <button class="secondary" style="margin:0;font-size:11px;padding:10px 4px;display:flex;align-items:center;justify-content:center;gap:4px;background:#0284c7;color:#fff;border:0" onclick="imprimirExtratoConferenciaMesa(${num})">
+      <span>🖨️</span> Imprimir
+    </button>
+    <button class="secondary" style="margin:0;font-size:11px;padding:10px 4px;display:flex;align-items:center;justify-content:center;gap:4px" onclick="abrirJanelaConsumoCliente(${num})">
+      <span>🧾</span> Consumo
     </button>
   </div>
 
@@ -4036,14 +4436,20 @@ function abrirDetalhesVendaHistorico(index) {
         <span>📅 Fechamento:</span>
         <b>${diaSem ? `${diaSem}, ` : ''}${dataExata} às ${horarioExato}</b>
       </div>
+      ${venda.desconto ? `
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#10b981">
+          <span>🏷️ Desconto Aplicado:</span>
+          <b>-${br(venda.desconto)}</b>
+        </div>
+      ` : ''}
       <div style="display:flex;justify-content:space-between">
         <span>💳 Pagamento:</span>
-        <b>${formaPag}</b>
+        <b style="color:#10b981">${formaPag}</b>
       </div>
     </div>
 
     <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Itens Consumidos:</div>
-    <div style="max-height:240px;overflow:auto;padding-right:4px">
+    <div style="max-height:240px;overflow:auto;margin-bottom:8px">
       ${itensHTML}
     </div>
 
@@ -4053,540 +4459,683 @@ function abrirDetalhesVendaHistorico(index) {
     </div>
 
     ${venda._docId ? `
-      <button class="secondary" onclick="excluirVendaHistorico('${escapeHTML(venda._docId)}', ${Number(venda.mesa || 0)}, ${Number(venda.total || 0)}, '${escapeHTML(horarioExato)}')" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.1);margin-bottom:6px">
-        🗑️ Apagar Esta Comanda Fechada
+      <button class="secondary" style="margin-bottom:4px;background:rgba(211,47,47,0.1);color:var(--brand);border:1px solid var(--brand)" onclick="excluirVendaHistorico('${venda._docId}', ${venda.mesa || 0}, ${Number(venda.total || 0)}, '${escapeHTML(horarioExato)}')">
+        🗑️ Apagar Este Registro do Relatório
       </button>
     ` : ''}
-    <button class="secondary" onclick="fecharModal()">Fechar</button>
-  `;
-  document.getElementById("modal").classList.add("show");
-}
-
-// ----------------- FECHAMENTO DE CAIXA CEGO -----------------
-function abrirModalFechamentoCaixaCego(esperadoDinheiroComTroco, esperadoDigital, totalDespesasPeriodo) {
-  document.getElementById("modalTitle").textContent = "🔐 Conferência / Fechamento de Caixa";
-  document.getElementById("modalBody").innerHTML = `
-    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Informe os valores contados na gaveta e nos comprovantes para conferir o turno:</p>
-    
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
-      <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border)">
-        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">💵 Dinheiro Contado na Gaveta (R$)</label>
-        <input type="number" id="inputConfDinheiro" step="0.01" placeholder="0,00" oninput="calcularConferenciaCaixa(${esperadoDinheiroComTroco}, ${esperadoDigital})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:15px;font-weight:900">
-        <small style="color:var(--muted);font-size:10px">Inclui Fundo de Troco inicial (${br(configSistema.fundoTroco || 0)}) − Despesas (${br(totalDespesasPeriodo)})</small>
-      </div>
-
-      <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border)">
-        <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">💳 Pix + Cartões Conferidos (R$)</label>
-        <input type="number" id="inputConfDigital" step="0.01" placeholder="0,00" oninput="calcularConferenciaCaixa(${esperadoDinheiroComTroco}, ${esperadoDigital})" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:15px;font-weight:900">
-      </div>
-    </div>
-
-    <div id="resultadoConferenciaBox" style="background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;font-size:12px">
-      <div style="text-align:center;color:var(--muted);font-weight:800">Digite os valores contados acima para ver a diferença.</div>
-    </div>
 
     <button class="secondary" onclick="fecharModal()">Fechar</button>
   `;
   document.getElementById("modal").classList.add("show");
 }
 
-function calcularConferenciaCaixa(espDinheiro, espDigital) {
-  const infDin = parseFloat(document.getElementById("inputConfDinheiro")?.value);
-  const infDig = parseFloat(document.getElementById("inputConfDigital")?.value);
-  const box = document.getElementById("resultadoConferenciaBox");
-  if (!box) return;
-
-  const dinVal = isNaN(infDin) ? 0 : infDin;
-  const digVal = isNaN(infDig) ? 0 : infDig;
-
-  const diffDin = dinVal - espDinheiro;
-  const diffDig = digVal - espDigital;
-  const diffTotal = diffDin + diffDig;
-
-  const formatarDiff = (v) => {
-    if (Math.abs(v) < 0.01) return `<b style="color:#10b981">✅ Batendo exato (R$ 0,00)</b>`;
-    if (v > 0) return `<b style="color:#0284c7">➕ Sobra de ${br(v)}</b>`;
-    return `<b style="color:#d32f2f">➖ Falta de ${br(Math.abs(v))}</b>`;
-  };
-
-  box.innerHTML = `
-    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span>Esperado Gaveta (c/ troco):</span> <b>${br(espDinheiro)}</b>
-    </div>
-    <div style="display:flex;justify-content:space-between;padding:4px 0 8px;border-bottom:1px dashed var(--border)">
-      <span>Resultado Gaveta:</span> ${formatarDiff(diffDin)}
-    </div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0 4px;border-bottom:1px solid var(--border)">
-      <span>Esperado Pix + Cartões:</span> <b>${br(espDigital)}</b>
-    </div>
-    <div style="display:flex;justify-content:space-between;padding:4px 0 8px;border-bottom:1px dashed var(--border)">
-      <span>Resultado Pix/Cartões:</span> ${formatarDiff(diffDig)}
-    </div>
-    <div style="display:flex;justify-content:space-between;padding-top:8px;font-size:13px">
-      <span><b>Balanço Geral:</b></span> ${formatarDiff(diffTotal)}
-    </div>
-  `;
-}
-
-function alterarPeriodoInicioRelatorio(val) {
-  if (!val) return;
-  filtroDataHoraInicio = val;
+// ----------------- CONTROLES DO FILTRO POR DATA E HORA -----------------
+function aplicarPeriodoPersonalizado() {
+  const inpIni = document.getElementById('filtroDtInicio');
+  const inpFim = document.getElementById('filtroDtFim');
+  if (inpIni && inpIni.value) filtroDataHoraInicio = inpIni.value;
+  if (inpFim && inpFim.value) filtroDataHoraFim = inpFim.value;
   modoFiltroRelatorio = 'PERIODO';
   renderRelatorios();
+  showToast("Período filtrado atualizado!");
 }
 
-function alterarPeriodoFimRelatorio(val) {
-  if (!val) return;
-  filtroDataHoraFim = val;
-  modoFiltroRelatorio = 'PERIODO';
-  renderRelatorios();
-}
-
-function definirFiltroRelatorio(modo) {
-  if (modo === 'TURNO_ATUAL') {
-    const padrao = obterIntervaloTurnoPadrao();
-    filtroDataHoraInicio = padrao.inicio;
-    filtroDataHoraFim = padrao.fim;
+function definirAtalhoPeriodo(tipo) {
+  const agora = new Date();
+  if (tipo === 'TURNO_ATUAL') {
+    const t = obterIntervaloTurnoPadrao();
+    filtroDataHoraInicio = t.inicio;
+    filtroDataHoraFim = t.fim;
     modoFiltroRelatorio = 'PERIODO';
-  } else if (modo === 'TODAS') {
+  } else if (tipo === 'ONTEM') {
+    const ini = new Date(agora);
+    ini.setDate(agora.getDate() - 1);
+    ini.setHours(15, 0, 0, 0);
+    const fim = new Date(agora);
+    fim.setHours(9, 0, 0, 0);
+    filtroDataHoraInicio = formatarDateParaInputDateTimeLocal(ini);
+    filtroDataHoraFim = formatarDateParaInputDateTimeLocal(fim);
+    modoFiltroRelatorio = 'PERIODO';
+  } else if (tipo === 'SEMANA_7D') {
+    const ini = new Date(agora);
+    ini.setDate(agora.getDate() - 6);
+    ini.setHours(0, 0, 0, 0);
+    const fim = new Date(agora);
+    fim.setHours(23, 59, 0, 0);
+    filtroDataHoraInicio = formatarDateParaInputDateTimeLocal(ini);
+    filtroDataHoraFim = formatarDateParaInputDateTimeLocal(fim);
+    modoFiltroRelatorio = 'PERIODO';
+  } else if (tipo === 'MES_ATUAL') {
+    const ini = new Date(agora.getFullYear(), agora.getMonth(), 1, 0, 0, 0);
+    const fim = new Date(agora.getFullYear(), agora.getMonth() + 1, 0, 23, 59, 0);
+    filtroDataHoraInicio = formatarDateParaInputDateTimeLocal(ini);
+    filtroDataHoraFim = formatarDateParaInputDateTimeLocal(fim);
+    modoFiltroRelatorio = 'PERIODO';
+  } else if (tipo === 'TUDO') {
     modoFiltroRelatorio = 'TODAS';
   }
   renderRelatorios();
 }
 
 function renderRelatorios(){
-  const ehTodas = modoFiltroRelatorio === 'TODAS';
-
   const vendasFiltradas = historicoVendas.filter(v => registroDentroDoPeriodo(v));
   const despesasFiltradas = despesas.filter(d => registroDentroDoPeriodo(d));
   const cancelamentosFiltrados = cancelamentos.filter(c => registroDentroDoPeriodo(c));
 
-  let totalPix = 0, totalCredito = 0, totalDebito = 0, totalDinheiro = 0, totalGeral = 0;
-  let vendasPorGarcom = {};
-  
-  vendasFiltradas.forEach(v => {
-    let t = Number(v.total) || 0;
-    totalGeral += t;
-    if(v.pagamento === 'Pix') totalPix += t;
-    else if(v.pagamento === 'Cartão de Crédito') totalCredito += t;
-    else if(v.pagamento === 'Cartão de Débito') totalDebito += t;
-    else if(v.pagamento === 'Dinheiro') totalDinheiro += t;
+  const totalBruto = vendasFiltradas.reduce((a,b) => a + (Number(b.total) || 0), 0);
+  const totalDespesas = despesasFiltradas.reduce((a,b) => a + (Number(b.valor) || 0), 0);
+  const totalCancelamentos = cancelamentosFiltrados.reduce((a,b) => a + (Number(b.totalCancelado) || 0), 0);
+  const saldoLiquido = totalBruto - totalDespesas;
 
-    const gNome = (v.garcom || "Sem Garçom").trim() || "Sem Garçom";
-    if (!vendasPorGarcom[gNome]) vendasPorGarcom[gNome] = { total: 0, atendimentos: 0 };
-    vendasPorGarcom[gNome].total += t;
-    vendasPorGarcom[gNome].atendimentos += 1;
+  const ticketMedio = vendasFiltradas.length > 0 ? (totalBruto / vendasFiltradas.length) : 0;
+  let mesaMaiorValor = { mesa: '-', total: 0 };
+  vendasFiltradas.forEach(v => {
+    if ((Number(v.total) || 0) > mesaMaiorValor.total) {
+      mesaMaiorValor = { mesa: pad(v.mesa || 0), total: Number(v.total) || 0 };
+    }
   });
 
-  let totalDespesas = despesasFiltradas.reduce((acc, d) => acc + (Number(d.valor) || 0), 0);
-  let saldoLiquido = totalGeral - totalDespesas;
-  let fundoTrocoAtual = Number(configSistema.fundoTroco || 0);
-  let esperadoDinheiroGaveta = Math.max(0, fundoTrocoAtual + totalDinheiro - totalDespesas);
-  let esperadoDigitalTotal = totalPix + totalCredito + totalDebito;
+  let porPagamento = { "Pix": 0, "Cartão de Crédito": 0, "Cartão de Débito": 0, "Dinheiro": 0 };
+  let vendasPorGarcom = {};
+  let vendasPorDiaSemana = {
+    "Domingo": { total: 0, qtd: 0 },
+    "Segunda-feira": { total: 0, qtd: 0 },
+    "Terça-feira": { total: 0, qtd: 0 },
+    "Quarta-feira": { total: 0, qtd: 0 },
+    "Quinta-feira": { total: 0, qtd: 0 },
+    "Sexta-feira": { total: 0, qtd: 0 },
+    "Sábado": { total: 0, qtd: 0 }
+  };
+
+  vendasFiltradas.forEach(v => {
+    let pg = v.pagamento || "Pix";
+    porPagamento[pg] = (porPagamento[pg] || 0) + (Number(v.total) || 0);
+    
+    let g = v.garcom || "Sem Garçom";
+    if(!vendasPorGarcom[g]) vendasPorGarcom[g] = { total: 0, mesas: 0 };
+    vendasPorGarcom[g].total += (Number(v.total) || 0);
+    vendasPorGarcom[g].mesas += 1;
+
+    const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
+    if (diaSem && vendasPorDiaSemana[diaSem]) {
+      vendasPorDiaSemana[diaSem].total += (Number(v.total) || 0);
+      vendasPorDiaSemana[diaSem].qtd += 1;
+    }
+  });
+
+  const fundoTroco = Number(configSistema.fundoTroco || 0);
+  const dinheiroGavetaEsperado = fundoTroco + (porPagamento["Dinheiro"] || 0) - totalDespesas;
+
+  let contagemProdutos = {};
+  vendasFiltradas.forEach(v => {
+    if(v.itens && Array.isArray(v.itens)){
+      v.itens.forEach(it => {
+        contagemProdutos[it.nome] = (contagemProdutos[it.nome] || 0) + it.qtd;
+      });
+    }
+  });
+
+  let topProdutos = Object.keys(contagemProdutos).map(nome => ({ nome, qtd: contagemProdutos[nome] })).sort((a,b) => b.qtd - a.qtd).slice(0, 6);
+  let topProdutosHTML = topProdutos.length ? topProdutos.map((p, idx) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span><b>${idx + 1}º</b> ${escapeHTML(p.nome)}</span>
+      <span style="background:rgba(211, 47, 47, 0.1);color:var(--brand);padding:2px 10px;border-radius:10px;font-weight:900">${p.qtd} un</span>
+    </div>
+  `).join('') : '<div class="empty">Nenhuma venda registrada ainda.</div>';
+
+  let diasComMovimento = Object.entries(vendasPorDiaSemana).filter(([, info]) => info.qtd > 0);
+  let diasSemanaHTML = diasComMovimento.length ? diasComMovimento.map(([dia, info]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span class="weekday-badge">📅 ${dia}</span>
+        <small class="muted" style="margin-left:6px">(${info.qtd} ${info.qtd === 1 ? 'venda' : 'vendas'})</small>
+      </div>
+      <b style="color:#10b981">${br(info.total)}</b>
+    </div>
+  `).join('') : '<div class="empty">Nenhum movimento por dia da semana neste período.</div>';
+
+  let garconsRanking = Object.keys(vendasPorGarcom).map(nome => ({ nome, total: vendasPorGarcom[nome].total, mesas: vendasPorGarcom[nome].mesas })).sort((a,b) => b.total - a.total);
+  let garconsHTML = garconsRanking.length ? garconsRanking.map(g => `
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div><b>👤 ${escapeHTML(g.nome)}</b><br><small class="muted">${g.mesas} ${g.mesas === 1 ? 'mesa atendida' : 'mesas atendidas'}</small></div>
+      <b style="color:#10b981">${br(g.total)}</b>
+    </div>
+  `).join('') : '<div class="empty">Nenhum registro de garçom.</div>';
+
+  let listaVendasHTML = historicoVendas.map((v, globalIdx) => {
+    if (!registroDentroDoPeriodo(v)) return '';
+    const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
+    const resumoRapidoItens = (v.itens || []).slice(0, 3).map(it => `${it.qtd}x ${escapeHTML(it.nome)}`).join(', ');
+    const maisItens = (v.itens || []).length > 3 ? ` +${v.itens.length - 3} itens` : '';
+
+    return `
+      <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${globalIdx})" title="Toque para ver os itens consumidos">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <b>Mesa ${pad(v.mesa || 0)}</b>
+            ${diaSem ? `<span class="weekday-badge" style="margin-left:4px">${diaSem}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <b style="color:#10b981;font-size:13px">${br(v.total)}</b>
+            ${v._docId ? `
+              <button type="button" onclick="event.stopPropagation(); excluirVendaHistorico('${v._docId}', ${v.mesa || 0}, ${Number(v.total || 0)}, '${escapeHTML(v.horario || '')}')" title="Apagar este registro" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:900;cursor:pointer">🗑️</button>
+            ` : ''}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+          <span>👤 ${escapeHTML(v.garcom || "Sem Garçom")} • 💳 ${escapeHTML(v.pagamento || "Pix")}</span>
+          <span>📅 ${v.data || ''} 🕒 ${v.horario || "--:--"}</span>
+        </div>
+        ${resumoRapidoItens ? `
+          <div style="font-size:11px;color:var(--ink);opacity:0.85;margin-top:6px;padding-top:5px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:78%">🍽️ ${resumoRapidoItens}${maisItens}</span>
+            <span style="color:var(--brand);font-weight:900;font-size:10px">Ver detalhes →</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).filter(Boolean).join('');
+
+  let despesasHTML = despesasFiltradas.map(d => {
+    const diaSem = d.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(d));
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <span>💸 ${escapeHTML(d.desc)}</span><br>
+          <small class="muted">${diaSem ? `${diaSem}, ` : ''}${d.data || ''} às ${d.horario || "--:--"}</small>
+        </div>
+        <b style="color:var(--brand)">- ${br(d.valor)}</b>
+      </div>
+    `;
+  }).join('');
+
+  let cancelamentosHTML = cancelamentosFiltrados.map(canc => {
+    const diaSem = canc.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(canc));
+    return `
+      <div style="background:rgba(211,47,47,0.06);padding:10px;border-radius:14px;border:1px solid rgba(211,47,47,0.2);font-size:12px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between">
+          <b>⚠️ Mesa ${pad(canc.mesa)}</b>
+          <b style="color:var(--brand)">- ${br(canc.totalCancelado)}</b>
+        </div>
+        <div style="font-size:11px;color:var(--ink);margin-top:3px">Motivo: <b>${escapeHTML(canc.motivo)}</b></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">👤 ${escapeHTML(canc.garcom)} • 📅 ${diaSem ? `${diaSem}, ` : ''}${canc.data || ''} 🕒 ${canc.horario}</div>
+      </div>
+    `;
+  }).join('');
 
   const urlBase = window.location.origin + window.location.pathname;
-  const linkMesaPadrao = `${urlBase}?mesa=1`;
-  const linkDeliveryPadrao = `${urlBase}?modo=delivery`;
+  const linkDelivery = `${urlBase}?modo=delivery`;
 
-  const textoInicioFormatado = formatarDateTimeLocalParaBR(filtroDataHoraInicio);
-  const textoFimFormatado = formatarDateTimeLocalParaBR(filtroDataHoraFim);
-
-  const subtituloPeriodo = ehTodas
-    ? 'Histórico Acumulado (Todas as Datas)'
-    : `De ${textoInicioFormatado} até ${textoFimFormatado}`;
-
-  const rankingGarconsHTML = Object.keys(vendasPorGarcom)
-    .sort((a, b) => vendasPorGarcom[b].total - vendasPorGarcom[a].total)
-    .map(gNome => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-        <div>
-          <b>👤 ${escapeHTML(gNome)}</b>
-          <small style="display:block;color:var(--muted)">${vendasPorGarcom[gNome].atendimentos} ${vendasPorGarcom[gNome].atendimentos === 1 ? 'fechamento' : 'fechamentos'}</small>
-        </div>
-        <b style="color:#10b981;font-size:14px">${br(vendasPorGarcom[gNome].total)}</b>
-      </div>
-    `).join('');
+  const resumoPeriodoTexto = modoFiltroRelatorio === 'TODAS'
+    ? 'Exibindo TODO O HISTÓRICO acumulado'
+    : `De <b>${formatarDateTimeLocalParaBR(filtroDataHoraInicio)}</b> até <b>${formatarDateTimeLocalParaBR(filtroDataHoraFim)}</b>`;
 
   document.getElementById("conteudo").innerHTML = `
-    <div class="section-title">
-      <div><h2>Relatórios Financeiros</h2><span class="muted">${subtituloPeriodo}</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="abrirModalFechamentoCaixaCego(${esperadoDinheiroGaveta}, ${esperadoDigitalTotal}, ${totalDespesas})" style="border:0;background:#0284c7;color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">🔐 Conferir Caixa</button>
-        <button onclick="exportarRelatoriosCSV()" style="border:0;background:#10b981;color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">📥 CSV</button>
-        <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:12px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">+ Gasto</button>
-      </div>
+  <div class="section-title">
+    <div><h2>Relatórios & Financeiro</h2><span class="muted">Acompanhamento de turno por data, dia da semana e hora</span></div>
+    <button onclick="exportarRelatoriosCSV()" style="background:#10b981;color:#fff;border:0;border-radius:12px;padding:8px 14px;font-weight:900;font-size:11px;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,0.25)">📥 Exportar CSV/Excel</button>
+  </div>
+
+  <!-- FILTRO DE DATA, DIA DA SEMANA E HORA -->
+  <div class="card" style="padding:14px;margin-bottom:14px;border:1px solid rgba(211,47,47,0.25);background:linear-gradient(135deg, rgba(211,47,47,0.04), var(--card))">
+    <div style="font-size:11px;font-weight:900;color:var(--brand);text-transform:uppercase;margin-bottom:8px">📅 Filtrar Período (Data & Horário do Turno)</div>
+    
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px">
+      <button type="button" onclick="definirAtalhoPeriodo('TURNO_ATUAL')" class="filter-tab ${modoFiltroRelatorio === 'PERIODO' ? 'active' : ''}" style="padding:6px 12px;font-size:10px">🔥 Turno Atual (15h → 09h)</button>
+      <button type="button" onclick="definirAtalhoPeriodo('ONTEM')" class="filter-tab" style="padding:6px 12px;font-size:10px">⏪ Turno Anterior</button>
+      <button type="button" onclick="definirAtalhoPeriodo('SEMANA_7D')" class="filter-tab" style="padding:6px 12px;font-size:10px">📆 Últimos 7 Dias</button>
+      <button type="button" onclick="definirAtalhoPeriodo('MES_ATUAL')" class="filter-tab" style="padding:6px 12px;font-size:10px">🗓️ Este Mês</button>
+      <button type="button" onclick="definirAtalhoPeriodo('TUDO')" class="filter-tab ${modoFiltroRelatorio === 'TODAS' ? 'active' : ''}" style="padding:6px 12px;font-size:10px">♾️ Tudo</button>
     </div>
 
-    <div class="card" style="padding:14px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:8px">📅 Filtrar Período / Turno (Início e Fim):</div>
-      
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-        <button onclick="definirFiltroRelatorio('TURNO_ATUAL')" style="flex:1;padding:9px 10px;border-radius:12px;border:1px solid ${!ehTodas ? 'var(--brand)' : 'var(--border)'};background:${!ehTodas ? 'var(--brand)' : 'var(--input-bg)'};color:${!ehTodas ? '#fff' : 'var(--ink)'};font-size:11px;font-weight:900;cursor:pointer">🌙 Turno Atual / Madrugada</button>
-        <button onclick="definirFiltroRelatorio('TODAS')" style="flex:1;padding:9px 10px;border-radius:12px;border:1px solid ${ehTodas ? 'var(--brand)' : 'var(--border)'};background:${ehTodas ? 'var(--brand)' : 'var(--input-bg)'};color:${ehTodas ? '#fff' : 'var(--ink)'};font-size:11px;font-weight:900;cursor:pointer">📚 Todo Histórico</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr;gap:8px">
-        <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">🟢 Início do Turno / Dia:</label>
-            <span class="weekday-badge">${obterDiaSemanaPorTimestamp(new Date(filtroDataHoraInicio).getTime())}</span>
-          </div>
-          <input type="datetime-local" value="${filtroDataHoraInicio}" onchange="alterarPeriodoInicioRelatorio(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:13px;font-weight:800;outline:none">
-        </div>
-
-        <div style="background:var(--input-bg);padding:10px 12px;border-radius:14px;border:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">🔴 Final do Turno / Dia:</label>
-            <span class="weekday-badge">${obterDiaSemanaPorTimestamp(new Date(filtroDataHoraFim).getTime())}</span>
-          </div>
-          <input type="datetime-local" value="${filtroDataHoraFim}" onchange="alterarPeriodoFimRelatorio(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:10px;font-size:13px;font-weight:800;outline:none">
-        </div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:16px;margin-bottom:14px;background:linear-gradient(135deg, rgba(56, 189, 248, 0.08), var(--card));border-color:rgba(56, 189, 248, 0.3)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#0284c7">📱 Links do Cardápio Digital (Clientes)</h3>
-      
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;font-weight:900;color:var(--ink);display:block;margin-bottom:4px">Link para Mesa (QR Code):</label>
-        <div style="display:flex;gap:6px">
-          <input type="text" id="inputLinkMesa" readonly value="${linkMesaPadrao}" style="flex:1;padding:8px 12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:11px;font-weight:700">
-          <button onclick="copiarLinkParaClipboard('inputLinkMesa')" style="background:#0284c7;color:#fff;border:0;padding:8px 14px;border-radius:12px;font-weight:900;font-size:11px;cursor:pointer">Copiar</button>
-        </div>
-      </div>
-
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div>
-        <label style="font-size:11px;font-weight:900;color:var(--ink);display:block;margin-bottom:4px">Link para Delivery (Em casa):</label>
-        <div style="display:flex;gap:6px">
-          <input type="text" id="inputLinkDelivery" readonly value="${linkDeliveryPadrao}" style="flex:1;padding:8px 12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:11px;font-weight:700">
-          <button onclick="copiarLinkParaClipboard('inputLinkDelivery')" style="background:#0284c7;color:#fff;border:0;padding:8px 14px;border-radius:12px;font-weight:900;font-size:11px;cursor:pointer">Copiar</button>
-        </div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);display:block;margin-bottom:3px">Início (Data e Hora):</label>
+        <input type="datetime-local" id="filtroDtInicio" value="${filtroDataHoraInicio}" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:800">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:900;color:var(--muted);display:block;margin-bottom:3px">Fim (Data e Hora):</label>
+        <input type="datetime-local" id="filtroDtFim" value="${filtroDataHoraFim}" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:800">
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px">
-      <div class="card" style="margin:0;padding:14px;text-align:center">
-        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Entradas</span>
-        <div style="font-size:18px;font-weight:900;color:#10b981;margin-top:4px">${br(totalGeral)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="font-size:11px;color:var(--ink);flex:1;min-width:180px">🕒 ${resumoPeriodoTexto}</div>
+      <button type="button" onclick="aplicarPeriodoPersonalizado()" style="background:var(--brand);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-weight:900;font-size:11px;cursor:pointer">🔍 Filtrar Período</button>
+    </div>
+  </div>
+  
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+    <div class="card" style="text-align:center;margin:0;padding:16px">
+      <div class="muted" style="font-weight:800;font-size:11px">FATURAMENTO BRUTO</div>
+      <div style="font-size:20px;font-weight:900;color:#10b981;margin-top:4px">${br(totalBruto)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${vendasFiltradas.length} ${vendasFiltradas.length === 1 ? 'fechamento' : 'fechamentos'}</div>
+    </div>
+    <div class="card" style="text-align:center;margin:0;padding:16px">
+      <div class="muted" style="font-weight:800;font-size:11px">SALDO LÍQUIDO</div>
+      <div style="font-size:20px;font-weight:900;color:${saldoLiquido>=0?'#0284c7':'var(--brand)'};margin-top:4px">${br(saldoLiquido)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">Bruto − Despesas</div>
+    </div>
+  </div>
+
+  <!-- INDICADORES GERENCIAIS (TICKET MÉDIO + GAVETA DINHEIRO) -->
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📌 Resumo Operacional & Conferência de Gaveta</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--muted);font-weight:900">TICKET MÉDIO</div>
+        <div style="font-size:15px;font-weight:900;color:var(--ink);margin-top:2px">${br(ticketMedio)}</div>
       </div>
-      <div class="card" style="margin:0;padding:14px;text-align:center">
-        <span style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Total Gastos</span>
-        <div style="font-size:18px;font-weight:900;color:#d32f2f;margin-top:4px">${br(totalDespesas)}</div>
-      </div>
-      <div class="card" style="margin:0;padding:14px;text-align:center;grid-column:span 2;background:linear-gradient(135deg, rgba(16, 185, 129, 0.08), var(--card));border-color:rgba(16, 185, 129, 0.3)">
-        <span style="font-size:10px;color:#10b981;font-weight:900;text-transform:uppercase">Saldo Líquido do Período</span>
-        <div style="font-size:24px;font-weight:900;color:#10b981;margin-top:4px">${br(saldoLiquido)}</div>
-        ${fundoTrocoAtual > 0 ? `<div style="font-size:11px;color:var(--muted);font-weight:800;margin-top:4px">Fundo de Troco Inicial: ${br(fundoTrocoAtual)} • Esperado na Gaveta: <b>${br(esperadoDinheiroGaveta)}</b></div>` : ''}
+      <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--muted);font-weight:900">MAIOR CONTA</div>
+        <div style="font-size:15px;font-weight:900;color:var(--brand);margin-top:2px">Mesa ${mesaMaiorValor.mesa} (${br(mesaMaiorValor.total)})</div>
       </div>
     </div>
-
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Resumo por Forma de Pagamento</h3>
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>💠 Pix</span><b>${br(totalPix)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>💳 Cartão de Crédito</span><b>${br(totalCredito)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>🏧 Cartão de Débito</span><b>${br(totalDebito)}</b></div>
-      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span>💵 Dinheiro</span><b>${br(totalDinheiro)}</b></div>
+    <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:12px;border-radius:14px;font-size:12px">
+      <div style="font-weight:900;color:#10b981;margin-bottom:6px">💵 Conferência de Dinheiro Físico na Gaveta:</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Fundo de Troco Inicial:</span><b>+${br(fundoTroco)}</b></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Vendas em Dinheiro:</span><b>+${br(porPagamento["Dinheiro"] || 0)}</b></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>Despesas Pagas (Sangrias):</span><b style="color:var(--brand)">−${br(totalDespesas)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px dashed rgba(16,185,129,0.4);font-size:14px">
+        <span style="font-weight:900">Total Esperado em Espécie:</span>
+        <b style="color:#10b981">${br(dinheiroGavetaEsperado)}</b>
+      </div>
     </div>
+  </div>
 
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 8px 0;font-size:14px;font-weight:900">🏆 Vendas por Garçom (Turno)</h3>
-      ${rankingGarconsHTML || '<div class="empty" style="padding:12px">Nenhuma venda registrada por garçom neste período.</div>'}
+  <!-- Faturamento por Dia da Semana -->
+  <div class="card">
+    <h3 style="margin:0 0 10px 0;font-size:15px;font-weight:900">📅 Faturamento por Dia da Semana</h3>
+    ${diasSemanaHTML}
+  </div>
+
+  <!-- Links do Cardápio Digital -->
+  <div class="card" style="background:linear-gradient(135deg, rgba(211,47,47,0.05), var(--card));border-color:rgba(211,47,47,0.25)">
+    <h3 style="margin:0 0 10px 0;font-size:15px;font-weight:900;color:var(--brand)">📲 Cardápio Digital (WhatsApp & Mesas)</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Envie o link abaixo pelo WhatsApp ou gere o QR Code para as mesas:</p>
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Link Geral / Delivery WhatsApp:</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" readonly value="${linkDelivery}" id="inputLinkDelivery" style="flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-size:11px;font-weight:700">
+        <button onclick="copiarLinkParaClipboard('inputLinkDelivery')" style="background:var(--brand);color:#fff;border:0;border-radius:10px;padding:0 12px;font-weight:900;font-size:11px;cursor:pointer">Copiar</button>
+      </div>
     </div>
-
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 4px 0;font-size:14px;font-weight:900">📜 Comandas Fechadas (${vendasFiltradas.length})</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Toque em qualquer registro para ver os itens consumidos ou apagar o registro:</div>
-      ${vendasFiltradas.length ? `<div style="display:flex;flex-direction:column;gap:8px">${vendasFiltradas.map((v) => {
-        const idxGlobal = historicoVendas.indexOf(v);
-        const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
-        return `
-        <div class="report-sale-card" onclick="abrirDetalhesVendaHistorico(${idxGlobal})">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <b>Mesa ${pad(v.mesa)} <small class="muted">(${escapeHTML(v.garcom || 'Sem garçom')})</small></b>
-            <b style="color:#10b981;font-size:13px">${br(v.total)} ›</b>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:6px">
-            <span class="muted">${diaSem ? `<b>${diaSem}</b> • ` : ''}${v.data ? `${v.data} ` : ''}às ${v.horario} • ${escapeHTML(v.pagamento || 'Pix')}</span>
-            <span style="font-size:10px;font-weight:900;color:var(--brand)">Ver itens</span>
-          </div>
-        </div>
-      `}).join("")}</div>` : `<div class="empty">Nenhuma venda registrada neste período.</div>`}
+    <div>
+      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Link Direto por Mesa (QR Code):</label>
+      <div style="display:flex;gap:6px">
+        <select id="selectMesaQR" onchange="document.getElementById('inputLinkMesaQR').value = '${urlBase}?mesa=' + this.value" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-size:11px;font-weight:800">
+          ${Array.from({length: TOTAL_MESAS}, (_,i) => `<option value="${i+1}">Mesa ${pad(i+1)}</option>`).join('')}
+        </select>
+        <input type="text" readonly value="${urlBase}?mesa=1" id="inputLinkMesaQR" style="flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-size:11px;font-weight:700">
+        <button onclick="copiarLinkParaClipboard('inputLinkMesaQR')" style="background:#10b981;color:#fff;border:0;border-radius:10px;padding:0 12px;font-weight:900;font-size:11px;cursor:pointer">Copiar</button>
+      </div>
     </div>
+  </div>
 
-    ${despesasFiltradas.length ? `
-    <div class="card" style="padding:16px;margin-bottom:14px">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">💸 Gastos / Saídas</h3>
-      ${despesasFiltradas.map(d => {
-        const diaSem = d.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(d));
-        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${escapeHTML(d.desc)} <small class="muted">(${diaSem ? `${diaSem}, ` : ''}${d.data ? `${d.data} ` : ''}${d.horario})</small></span><b style="color:#d32f2f">- ${br(d.valor)}</b></div>`;
-      }).join("")}
-    </div>` : ''}
+  <!-- Desempenho dos Garçons -->
+  <div class="card">
+    <h3 style="margin:0 0 10px 0;font-size:15px;font-weight:900">🏆 Desempenho dos Garçons</h3>
+    ${garconsHTML}
+  </div>
 
-    ${cancelamentosFiltrados.length ? `
-    <div class="card" style="padding:16px;margin-bottom:14px;border-left:4px solid var(--brand)">
-      <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:var(--brand)">⚠️ Auditoria de Cancelamentos</h3>
-      ${cancelamentosFiltrados.map(can => {
-        const diaSem = can.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(can));
-        return `
-        <div style="background:var(--input-bg);padding:10px;border-radius:12px;border:1px solid var(--border);margin-bottom:8px;font-size:12px">
-          <div style="display:flex;justify-content:space-between"><b>Mesa ${pad(can.mesa)} (${escapeHTML(can.garcom)})</b><b style="color:var(--brand)">${br(can.totalCancelado)}</b></div>
-          <small class="muted">${diaSem ? `${diaSem}, ` : ''}${can.data ? `${can.data} ` : ''}às ${can.horario} • Motivo: ${escapeHTML(can.motivo)}</small>
-        </div>
-      `}).join("")}
-    </div>` : ''}
+  <!-- Ranking de Produtos -->
+  <div class="card">
+    <h3 style="margin:0 0 10px 0;font-size:15px;font-weight:900">🔥 Produtos Mais Vendidos</h3>
+    ${topProdutosHTML}
+  </div>
 
-    <button class="secondary" onclick="limparRelatorios()" style="border-color:var(--brand);color:var(--brand);background:rgba(211,47,47,0.08)">🗑️ Zerar Todos os Relatórios</button>
+  <!-- Formas de Pagamento -->
+  <div class="card">
+    <h3 style="margin:0 0 12px 0;font-size:15px;font-weight:900">💳 Resumo por Pagamento</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+      <div style="display:flex;justify-content:space-between"><span>💠 Pix:</span><b>${br(porPagamento["Pix"] || 0)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>💳 Cartão de Crédito:</span><b>${br(porPagamento["Cartão de Crédito"] || 0)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>🏧 Cartão de Débito:</span><b>${br(porPagamento["Cartão de Débito"] || 0)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>💵 Dinheiro:</span><b>${br(porPagamento["Dinheiro"] || 0)}</b></div>
+    </div>
+  </div>
+
+  <!-- Histórico de Mesas Fechadas (Clicável para ver produtos + Botão individual de excluir) -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0;font-size:15px;font-weight:900">🧾 Contas Fechadas / Baixadas (${vendasFiltradas.length})</h3>
+      <span style="font-size:10px;color:var(--muted);font-weight:800">Toque p/ abrir • 🗑️ apaga 1</span>
+    </div>
+    <div style="max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:8px">
+      ${listaVendasHTML || '<div class="empty">Nenhum fechamento registrado neste período.</div>'}
+    </div>
+  </div>
+
+  <!-- Registro de Cancelamentos -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0;font-size:15px;font-weight:900;color:var(--brand)">⚠️ Cancelamentos Registrados</h3>
+      <b style="color:var(--brand);font-size:13px">${br(totalCancelamentos)}</b>
+    </div>
+    <div style="max-height:200px;overflow:auto">
+      ${cancelamentosHTML || '<div class="empty">Nenhum cancelamento neste período.</div>'}
+    </div>
+  </div>
+
+  <!-- Despesas -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0;font-size:15px;font-weight:900">💸 Saídas & Despesas</h3>
+      <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">+ Gasto</button>
+    </div>
+    ${despesasHTML || '<div class="empty">Nenhuma despesa registrada neste período.</div>'}
+  </div>
+
+  <button class="secondary" onclick="limparRelatorios()">🗑️ Zerar Todos os Relatórios</button>
   `;
 }
 
 function setFiltroMesa(f){ filtroMesaAtual = f; renderMesas(); }
 
-function calcularTempoAberto(criadoEm){
-  if(!criadoEm) return "";
+function calcularTempoMesa(criadoEm){
+  if(!criadoEm) return { texto: "Agora", classe: "tempo-verde" };
   let diffMs = Date.now() - criadoEm;
   let mins = Math.floor(diffMs / 60000);
-  if(mins < 1) return `<div class="timer tempo-verde">⏱️ Agora mesmo</div>`;
-  let h = Math.floor(mins / 60);
-  let m = mins % 60;
-  let txt = h > 0 ? `${h}h ${m}m` : `${m} min`;
-  let classeCor = mins < 30 ? 'tempo-verde' : (mins < 60 ? 'tempo-amarelo' : 'tempo-vermelho');
-  return `<div class="timer ${classeCor}">⏱️ ${txt}</div>`;
+  if(mins < 1) return { texto: "Agora", classe: "tempo-verde" };
+  if(mins < 30) return { texto: `${mins} min`, classe: "tempo-verde" };
+  if(mins < 60) return { texto: `${mins} min`, classe: "tempo-amarelo" };
+  let horas = Math.floor(mins / 60);
+  let restMins = mins % 60;
+  return { texto: `${horas}h ${restMins}m`, classe: "tempo-vermelho" };
 }
 
-function calcularAlertaMesaParada(c) {
+function obterAlertaMesaParada(c) {
   if (!c) return "";
-  const ultimoMov = Number(c.atualizadoEm || c.criadoEm || 0);
-  if (!ultimoMov) return "";
-  const minsParada = Math.floor((Date.now() - ultimoMov) / 60000);
-  if (minsParada >= 25) {
-    return `<div class="alerta-parada">⏳ Sem pedido há ${minsParada}m</div>`;
+  const refTempo = c.atualizadoEm || c.criadoEm;
+  if (!refTempo) return "";
+  const minsSemPedido = Math.floor((Date.now() - refTempo) / 60000);
+  if (minsSemPedido < 25) return "";
+  if (minsSemPedido < 60) {
+    return `<div class="alerta-parada">⏳ ${minsSemPedido}m sem pedido</div>`;
   }
-  return "";
+  const h = Math.floor(minsSemPedido / 60);
+  const m = minsSemPedido % 60;
+  return `<div class="alerta-parada">⏳ ${h}h${m > 0 ? m + 'm' : ''} parada</div>`;
 }
 
 function renderMesas(){
- let html = "";
- let ocupadasCount = 0;
- let livresCount = 0;
-
- for(let i=1; i<=TOTAL_MESAS; i++){
+ const ocupadas = Object.keys(comandas).length;
+ let html = `<div class="section-title"><h2>Mesas</h2><span class="muted">${ocupadas}/${TOTAL_MESAS} ocupadas</span></div>
+ <div class="filter-tabs">
+   <button class="filter-tab ${filtroMesaAtual==='todas'?'active':''}" onclick="setFiltroMesa('todas')">Todas (${TOTAL_MESAS})</button>
+   <button class="filter-tab ${filtroMesaAtual==='ocupadas'?'active':''}" onclick="setFiltroMesa('ocupadas')">Ocupadas (${ocupadas})</button>
+   <button class="filter-tab ${filtroMesaAtual==='livres'?'active':''}" onclick="setFiltroMesa('livres')">Livres (${TOTAL_MESAS - ocupadas})</button>
+ </div><div class="tables">`;
+ 
+ for(let i=1;i<=TOTAL_MESAS;i++){
    const c = comandas[i];
-   if(c) ocupadasCount++; else livresCount++;
- }
+   if(filtroMesaAtual === 'ocupadas' && !c) continue;
+   if(filtroMesaAtual === 'livres' && c) continue;
 
- for(let i=1; i<=TOTAL_MESAS; i++){
-   const c = comandas[i];
-   if(filtroMesaAtual === "livres" && c) continue;
-   if(filtroMesaAtual === "ocupadas" && !c) continue;
-   if(filtroMesaAtual === "minhas" && (!c || (garcomSessao && (c.garcom || "").toLowerCase() !== garcomSessao.toLowerCase()))) continue;
+   let tempoInfo = c ? calcularTempoMesa(c.criadoEm) : null;
+   let temAlertaNovo = c && c.novoPedidoAlerta;
+   let pediuConta = c && c.pediuContaAlerta;
+   let alertaParadaHTML = c ? obterAlertaMesaParada(c) : "";
 
-   const classeNovoPedido = (c && c.novoPedidoAlerta) ? 'novo-pedido-ativo' : '';
-   const classePediuConta = (c && c.pediuContaAlerta) ? 'pediu-conta-ativo' : '';
-   const timerHTML = c ? calcularTempoAberto(c.criadoEm) : "";
-   const alertaParadaHTML = c ? calcularAlertaMesaParada(c) : "";
+   let temProntoNaMesa = false;
+   if (c && Array.isArray(c.itens)) {
+     temProntoNaMesa = c.itens.some(it => it.statusCozinha === 'pronto');
+   }
 
-   html += `<button class="table ${c ? "busy" : ""} ${classeNovoPedido} ${classePediuConta}" onclick="abrirMesa(${i})">
+   let badgeTipo = 'Livre';
+   if (pediuConta) badgeTipo = '⚠️ PEDIU CONTA!';
+   else if (temAlertaNovo) badgeTipo = '🔔 NOVO PEDIDO!';
+   else if (temProntoNaMesa) badgeTipo = '✅ ITEM PRONTO!';
+   else if (c) badgeTipo = 'Ocupada';
+
+   html += `<button class="table ${c?"busy":""} ${temAlertaNovo ? "novo-pedido-ativo" : ""} ${pediuConta ? "pediu-conta-ativo" : ""}" onclick="abrirMesa(${i})">
      <div class="num">Mesa ${pad(i)}</div>
-     <div class="badge-status ${c ? "ocupada" : "livre"}">${c ? (c.pediuContaAlerta ? "🔔 PEDIU CONTA" : (c.novoPedidoAlerta ? "🔔 NOVO PEDIDO!" : "Ocupada")) : "Livre"}</div>
+     <div class="badge-status ${c?"ocupada":"livre"}" style="${pediuConta ? 'background:#f59e0b;color:#fff' : (temProntoNaMesa && !temAlertaNovo ? 'background:#10b981;color:#fff' : '')}">${badgeTipo}</div>
      ${c ? `<div class="total">${br(c.total)}</div>` : ""}
-     ${timerHTML}
-     ${alertaParadaHTML}
      ${c && c.garcom ? `<div class="garcom-tag">👤 ${escapeHTML(c.garcom)}</div>` : ""}
+     ${tempoInfo ? `<div class="timer ${tempoInfo.classe}">⏱ ${tempoInfo.texto}</div>` : ""}
+     ${alertaParadaHTML}
    </button>`;
  }
- 
- document.getElementById("conteudo").innerHTML = `
-   <div class="section-title"><div><h2>Salão — ${TOTAL_MESAS} Mesas</h2><span class="muted">Toque na mesa para atender</span></div></div>
-   <div class="filter-tabs">
-     <button class="filter-tab ${filtroMesaAtual==='todas'?'active':''}" onclick="setFiltroMesa('todas')">Todas (${TOTAL_MESAS})</button>
-     <button class="filter-tab ${filtroMesaAtual==='livres'?'active':''}" onclick="setFiltroMesa('livres')">Livres (${livresCount})</button>
-     <button class="filter-tab ${filtroMesaAtual==='ocupadas'?'active':''}" onclick="setFiltroMesa('ocupadas')">Ocupadas (${ocupadasCount})</button>
-     ${garcomSessao ? `<button class="filter-tab ${filtroMesaAtual==='minhas'?'active':''}" onclick="setFiltroMesa('minhas')">👤 Minhas (${escapeHTML(garcomSessao)})</button>` : ''}
-   </div>
-   <div class="tables">${html || `<div class="empty" style="grid-column:span 3">Nenhuma mesa encontrada neste filtro.</div>`}</div>`;
+ html += `</div>`; document.getElementById("conteudo").innerHTML = html;
 }
 
 function atualizarResumoEnviadosAtendimento() {
   const container = document.getElementById("resumoEnviadosAtendimentoBox");
   if (!container || !mesaSelecionada) return;
-  const c = comandas[mesaSelecionada];
-
-  if (!c || !Array.isArray(c.itens) || c.itens.length === 0) {
+  const cExistente = comandas[mesaSelecionada];
+  if (!cExistente || ((!cExistente.itens || cExistente.itens.length === 0) && (!cExistente.itensPagos || cExistente.itensPagos.length === 0))) {
     container.innerHTML = "";
     return;
   }
 
-  let itensPorPessoa = {};
-  c.itens.forEach((it, idx) => {
-    const cli = it.cliente || "Cliente 1";
-    if (!itensPorPessoa[cli]) itensPorPessoa[cli] = [];
-    itensPorPessoa[cli].push({ ...it, _idx: idx });
-  });
+  let itensJaEnviadosHTML = (cExistente.itens || []).map((i, idx) => {
+    let badgeStatus = '';
+    if (i.statusCozinha === 'pendente') badgeStatus = '<span style="font-size:9px;background:#ffe5e5;color:var(--brand);padding:2px 6px;border-radius:6px;font-weight:900">⏳ Na fila</span>';
+    else if (i.statusCozinha === 'preparando') badgeStatus = '<span style="font-size:9px;background:#fef7e0;color:#b06000;padding:2px 6px;border-radius:6px;font-weight:900">🔥 Preparando</span>';
+    else if (i.statusCozinha === 'pronto') badgeStatus = '<span style="font-size:9px;background:#e6f4ea;color:#137333;padding:2px 6px;border-radius:6px;font-weight:900">✅ Pronto</span>';
+    else if (i.statusCozinha === 'entregue') badgeStatus = '<span style="font-size:9px;background:#e0f2fe;color:#0284c7;padding:2px 6px;border-radius:6px;font-weight:900">🍽️ Entregue</span>';
 
-  let gruposHTML = "";
-  for (const cli in itensPorPessoa) {
-    const subtotalCli = itensPorPessoa[cli].reduce((acc, i) => acc + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
-    gruposHTML += `
-      <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">
-        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:900;color:var(--brand);margin-bottom:4px">
-          <span>👤 ${escapeHTML(cli)}</span>
-          <span>${br(subtotalCli)}</span>
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border);gap:6px">
+        <div style="flex:1;min-width:0">
+          <b>[${escapeHTML(i.cliente || 'Cliente 1')}]</b> ${i.qtd}x ${escapeHTML(i.nome)}
+          ${i.obs ? `<div style="font-size:10px;color:#d97706;font-weight:800">💬 ${escapeHTML(i.obs)}</div>` : ''}
+          ${i.horario ? `<small class="muted"> às ${i.horario}</small>` : ''}
         </div>
-        ${itensPorPessoa[cli].map(i => `
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;gap:6px">
-            <div style="flex:1">
-              <span><b>${i.qtd}x</b> ${escapeHTML(i.nome)}</span>
-              ${i.obs ? `<div style="font-size:10px;color:#d97706;font-weight:800">💬 ${escapeHTML(i.obs)}</div>` : ''}
-              ${i.horario ? `<small class="muted" style="font-size:10px"> (às ${i.horario})</small>` : ''}
-            </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <b>${br(i.qtd * i.preco)}</b>
-              ${!modoCliente ? `<button onclick="removerItemJaEnviado(${mesaSelecionada}, ${i._idx})" title="Remover item" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:8px;width:24px;height:24px;font-size:11px;font-weight:900;cursor:pointer;display:grid;place-items:center">🗑️</button>` : ''}
-            </div>
-          </div>
-        `).join("")}
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${badgeStatus}
+          <b>${br(i.qtd * i.preco)}</b>
+          <button onclick="removerItemJaEnviado(${mesaSelecionada}, ${idx})" title="Remover item da comanda" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:8px;width:24px;height:24px;font-weight:900;font-size:11px;cursor:pointer;display:grid;place-items:center">✕</button>
+        </div>
       </div>
     `;
-  }
+  }).join('');
+
+  const itensPagosMesa = cExistente.itensPagos || [];
+  const totalJaPagoMesa = itensPagosMesa.reduce((s, it) => s + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
+  let itensPagosAtendimentoHTML = itensPagosMesa.length > 0 ? `
+    <div style="margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.28)">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:900;color:#10b981;text-transform:uppercase;margin-bottom:4px">
+        <span>✅ Itens Já Pagos Nesta Mesa</span>
+        <span>${br(totalJaPagoMesa)}</span>
+      </div>
+      ${itensPagosMesa.map(ip => `
+        <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#10b981">
+          <span><b>[${escapeHTML(ip.cliente || 'Cliente 1')}]</b> ${ip.qtd}x ${escapeHTML(ip.nome)}</span>
+          <b>${br(ip.qtd * ip.preco)}</b>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
 
   container.innerHTML = `
-    <div class="card" style="padding:14px;margin-bottom:14px;border-left:4px solid #10b981">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px">
-        <span style="font-size:11px;font-weight:900;color:#10b981;text-transform:uppercase">✅ Pedidos na Mesa</span>
-        <b style="font-size:14px;color:var(--ink)">Total: ${br(c.total || 0)}</b>
-      </div>
-      ${gruposHTML}
-      ${!modoCliente ? `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-          <button onclick="repetirUltimaRodadaMesa()" style="background:rgba(2,132,199,0.12);color:#0284c7;border:1px solid #0284c7;border-radius:12px;padding:10px;font-weight:900;font-size:12px;cursor:pointer">🔁 Repetir Rodada</button>
-          <button onclick="marcarPediuContaMesa(${mesaSelecionada})" style="background:${c.pediuContaAlerta ? '#f59e0b' : 'rgba(245,158,11,0.12)'};color:${c.pediuContaAlerta ? '#fff' : '#d97706'};border:1px solid #f59e0b;border-radius:12px;padding:10px;font-weight:900;font-size:12px;cursor:pointer">${c.pediuContaAlerta ? '🔔 Pedindo Conta' : '🧾 Pedir Conta'}</button>
+    <div class="card" style="padding:14px;margin-bottom:14px;border-left:4px solid var(--brand)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:900;color:var(--brand)">📋 Comanda Mesa ${pad(mesaSelecionada)}:</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <button onclick="imprimirViaCozinhaMesa(${mesaSelecionada})" style="padding:4px 8px;border-radius:8px;border:1px solid #0284c7;background:rgba(2,132,199,0.1);color:#0284c7;font-size:10px;font-weight:900;cursor:pointer" title="Imprimir Via Cozinha">🖨️ Cozinha</button>
+          <button onclick="repetirUltimaRodadaMesa()" style="padding:4px 8px;border-radius:8px;border:1px solid var(--brand);background:rgba(211,47,47,0.1);color:var(--brand);font-size:10px;font-weight:900;cursor:pointer" title="Repetir última rodada">🔁 Repetir</button>
+          <b style="font-size:13px">${br(cExistente.total)}</b>
         </div>
-        <button onclick="dividirContaModal(${mesaSelecionada})" style="width:100%;margin-top:8px;background:#10b981;color:#fff;border:0;border-radius:12px;padding:11px;font-weight:900;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,0.25)">💳 Pagar / Fechar Conta</button>
+      </div>
+      <div style="max-height:175px;overflow:auto">${itensJaEnviadosHTML}</div>
+      ${itensPagosAtendimentoHTML}
+      ${!modoCliente ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <button class="primary" style="padding:10px;font-size:12px;background:#10b981;box-shadow:0 4px 12px rgba(16,185,129,0.25)" onclick="fecharMesa(${mesaSelecionada})">💳 Fechar / Pagar</button>
+          <button class="secondary" style="margin:0;padding:10px;font-size:12px;border-color:${cExistente.pediuContaAlerta ? '#f59e0b' : 'var(--border)'};color:${cExistente.pediuContaAlerta ? '#d97706' : 'var(--ink)'}" onclick="marcarPediuContaMesa(${mesaSelecionada})">
+            ${cExistente.pediuContaAlerta ? '🔔 Conta Solicitada!' : '🧾 Pedir Conta'}
+          </button>
+        </div>
       ` : ''}
     </div>
   `;
 }
 
 function renderAtendimento(){
- const cats = Object.keys(cardapio);
- const iconeCat = {
-   "CHURRASCOS": "🔥",
+ const cExistente = comandas[mesaSelecionada];
+ const listaClientes = obterListaClientesMesa();
+ let clientesTabs = listaClientes.map(cli => `
+   <button class="filter-tab ${clienteAtual===cli?'active':''}" onclick="mudarClienteAtual('${escapeHTML(cli)}')">👤 ${escapeHTML(cli)}</button>
+ `).join('');
+
+ const catIcons = {
+   "CHURRASCOS": "🥩",
    "CARANGUEJO": "🦀",
-   "BEBIDAS": "🍺",
-   "GUARNIÇÕES": "🍚",
    "PETISCOS": "🍟",
+   "GUARNIÇÕES": "🍚",
+   "BEBIDAS": "🍺",
    "REFRIGERANTES": "🥤",
    "SUCOS": "🧃",
    "DIVERSOS": "📦"
  };
 
- let listaClientes = obterListaClientesMesa();
- let clientesChipsHTML = listaClientes.map(cli => `
-   <button onclick="mudarClienteAtual('${escapeHTML(cli)}')" style="padding:7px 12px;border-radius:12px;border:1px solid ${cli === clienteAtual ? 'var(--brand)' : 'var(--border)'};background:${cli === clienteAtual ? 'var(--brand)' : 'var(--input-bg)'};color:${cli === clienteAtual ? '#fff' : 'var(--ink)'};font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">
-     👤 ${escapeHTML(cli)}
+ const sideCatsHTML = Object.keys(cardapio).map(c => `
+   <button class="side-cat ${categoriaAtual===c?'active':''}" data-cat="${escapeHTML(c)}" onclick="termoBuscaProduto=''; document.getElementById('inputBuscaProd').value=''; setCategoria('${escapeHTML(c)}')">
+     <span class="cat-ico">${catIcons[c] || '🍽️'}</span>
+     <span>${escapeHTML(c)}</span>
    </button>
  `).join('');
 
+ const textoBotaoPediuConta = (cExistente && cExistente.pediuContaAlerta) ? '🔔 Pediu a Conta!' : '🧾 Pedir Conta';
+
  document.getElementById("conteudo").innerHTML = `
-   <div class="topbar">
-     ${!modoCliente ? `<button class="back" onclick="mudarTela('mesas')">←</button>` : ''}
-     <div class="mesa-head">
-       <h2>${modoCliente && !mesaUrlCliente ? 'Cardápio Digital — Delivery' : `Mesa ${pad(mesaSelecionada)}`}</h2>
-       <p>${modoCliente ? 'Faça seu pedido pelo celular' : 'Toque em + para salvar na hora na mesa'}</p>
-     </div>
-     ${!modoCliente ? `
-       <button onclick="anotarPedidoPorVoz()" title="Anotar pedido por voz" style="background:var(--brand);color:#fff;border:0;width:42px;height:42px;border-radius:14px;font-size:18px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(211,47,47,0.3)">🎙️</button>
-     ` : ''}
-   </div>
+  <div class="topbar">
+    ${!modoCliente ? `<button class="back" onclick="mudarTela('mesas')">←</button>` : ''}
+    <div class="mesa-head">
+      <h2>Mesa ${pad(mesaSelecionada)}</h2>
+      <p>${modoCliente ? 'Cardápio Digital Online' : 'Toque em + para lançar na hora (cada + vira uma remessa)'}</p>
+    </div>
+    ${!modoCliente ? `
+      <button onclick="imprimirExtratoConferenciaMesa(${mesaSelecionada})" title="Imprimir Conferência" style="border:0;background:#0284c7;color:#fff;border-radius:14px;width:40px;height:40px;font-size:17px;display:grid;place-items:center;cursor:pointer;flex-shrink:0">🖨️</button>
+    ` : ''}
+    <button onclick="anotarPedidoPorVoz()" title="Anotar pedido por voz" style="border:0;background:var(--brand);color:#fff;border-radius:14px;width:40px;height:40px;font-size:17px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(211,47,47,0.3);flex-shrink:0">🎙️</button>
+  </div>
 
-   <div id="resumoEnviadosAtendimentoBox" style="margin-top:12px"></div>
+  <!-- BANNER DISCRETO DE CONFLITO DE GARÇONS -->
+  <div id="bannerConflitoMesaBox"></div>
 
-   <div class="card" style="margin-top:12px;padding:14px">
-     ${!modoCliente ? `
-     <div style="margin-bottom:10px">
-       <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Garçom Responsável</label>
-       <input value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Nome do garçom (opcional)" style="width:100%;padding:10px 12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none">
-     </div>` : ''}
-     
-     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-       <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">Pessoa / Cliente no Pedido</label>
-       <button onclick="renomearClienteAtual()" style="border:0;background:none;color:var(--brand);font-size:11px;font-weight:900;cursor:pointer;padding:0">✏️ Renomear "${escapeHTML(clienteAtual)}"</button>
-     </div>
-     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">
-       ${clientesChipsHTML}
-       <button onclick="adicionarNovoClientePrompt()" style="padding:7px 12px;border-radius:12px;border:1px dashed var(--brand);background:none;color:var(--brand);font-weight:900;font-size:12px;cursor:pointer;white-space:nowrap">+ Pessoa</button>
-     </div>
-   </div>
+  ${!modoCliente ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="secondary" style="margin:0;font-size:11px;padding:10px" onclick="abrirModalTransferencia(${mesaSelecionada})">🔄 Transferir Mesa</button>
+      <button class="secondary" style="margin:0;font-size:11px;padding:10px" onclick="unirMesas(${mesaSelecionada})">🔗 Juntar Mesas</button>
+    </div>
+    <div class="card" style="padding:12px 14px;margin-top:10px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">Garçom Responsável</label>
+        ${garcomSessao ? `<span style="font-size:10px;color:#10b981;font-weight:900">✓ Vinculado à conta</span>` : ''}
+      </div>
+      <input id="inputGarcom" value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" placeholder="Ex: Carlos / João" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:13px;font-weight:700;outline:none">
+    </div>
+  ` : `
+    <div style="margin-top:12px;margin-bottom:10px">
+      <button class="secondary" style="margin:0;font-size:12px;padding:12px;background:#f59e0b;color:#fff;border:0;box-shadow:0 4px 12px rgba(245,158,11,0.3)" onclick="marcarPediuContaMesa(${mesaSelecionada})">${textoBotaoPediuConta}</button>
+    </div>
+  `}
 
-   <div class="search-box"><span>🔍</span><input type="text" placeholder="Pesquisar produto no cardápio..." value="${escapeHTML(termoBuscaProduto)}" oninput="filtrarProdutosInput(this.value)"></div>
-   
-   <div class="atendimento-layout">
-     <div class="side-cats" id="cats">
-       ${cats.map(c => `
-         <button class="side-cat ${c === categoriaAtual ? 'active' : ''}" data-cat="${escapeHTML(c)}" onclick="setCategoria('${escapeHTML(c)}')">
-           <span class="cat-ico">${iconeCat[c] || "🍽️"}</span>
-           <span>${escapeHTML(c)}</span>
-         </button>
-       `).join("")}
-     </div>
-     <div id="produtos" class="products-list"></div>
-   </div>`;
- 
- atualizarResumoEnviadosAtendimento();
- renderProdutos();
+  <div id="resumoEnviadosAtendimentoBox"></div>
+
+  <div style="margin:12px 0 6px;font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">
+    <span>Pedido para:</span>
+    <button onclick="renomearClienteAtual()" style="border:0;background:none;color:var(--brand);font-size:11px;font-weight:900;cursor:pointer;padding:2px 6px">✏️ Renomear "${escapeHTML(clienteAtual)}"</button>
+  </div>
+  <div class="filter-tabs" style="align-items:center;margin-bottom:12px">
+    ${clientesTabs}
+    <button class="filter-tab" style="background:rgba(16, 185, 129, 0.12);color:#10b981;border-color:#10b981" onclick="adicionarNovoClientePrompt()">+ Pessoa</button>
+  </div>
+
+  <div class="search-box">
+    <span>🔍</span>
+    <input id="inputBuscaProd" type="text" placeholder="Buscar produto no cardápio..." value="${escapeHTML(termoBuscaProduto)}" oninput="filtrarProdutosInput(this.value)">
+  </div>
+
+  <div class="atendimento-layout">
+    <div class="side-cats">${sideCatsHTML}</div>
+    <div id="produtos" class="products-list"></div>
+  </div>
+  `;
+  atualizarBannerConflitoMesa();
+  atualizarResumoEnviadosAtendimento();
+  renderProdutos();
 }
 
 function renderComandas(){
- const ativas = Object.keys(comandas).map(Number).sort((a,b)=>a-b);
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><div><h2>Comandas Ativas</h2><span class="muted">${ativas.length} em aberto</span></div></div>
-   ${ativas.length ? ativas.map(num => {
-     const c = comandas[num];
-     const timerHTML = calcularTempoAberto(c.criadoEm);
-     let itensPorPessoa = {};
-     (c.itens || []).forEach(it => {
-       let cli = it.cliente || "Cliente 1";
-       if(!itensPorPessoa[cli]) itensPorPessoa[cli] = [];
-       itensPorPessoa[cli].push(it);
-     });
+ const ativas = Object.keys(comandas);
+ let html = `<div class="section-title"><h2>Comandas ativas</h2><span class="muted">${ativas.length} abertas</span></div>`;
+ if(!ativas.length){ document.getElementById("conteudo").innerHTML = html + `<div class="empty">Nenhuma comanda aberta no momento.</div>`; return; }
+ 
+ html += ativas.map(num => { 
+   const c = comandas[num];
+   let porPessoa = {};
+   (c.itens || []).forEach(i => {
+     let p = i.cliente || "Cliente 1";
+     if(!porPessoa[p]) porPessoa[p] = [];
+     porPessoa[p].push(i);
+   });
 
-     let resumoPessoasHTML = "";
-     for(const cli in itensPorPessoa){
-       let subCli = itensPorPessoa[cli].reduce((acc, i) => acc + (i.qtd * i.preco), 0);
-       resumoPessoasHTML += `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">
-         <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:900;color:var(--brand)">
-           <span>👤 ${escapeHTML(cli)}</span>
-           <span>${br(subCli)}</span>
-         </div>
-         <div class="muted" style="font-size:11px;margin-top:2px">
-           ${itensPorPessoa[cli].map(i => `${i.qtd}x ${escapeHTML(i.nome)}${i.obs ? ` (${escapeHTML(i.obs)})` : ''} ${i.horario ? `(${i.horario})` : ''}`).join(" • ")}
-         </div>
-       </div>`;
-     }
-
-     return `<div class="card command ${c.pediuContaAlerta ? 'pediu-conta-ativo' : ''}">
-       <div class="row">
-         <div>
-           <h3>Mesa ${pad(num)} ${c.pediuContaAlerta ? '<span style="font-size:11px;background:#f59e0b;color:#fff;padding:2px 8px;border-radius:99px;margin-left:4px">🔔 PEDIU CONTA</span>' : ''}</h3>
-           <small class="muted">${escapeHTML(c.garcom || "Sem garçom")}</small>
-           <div style="margin-top:4px">${timerHTML}</div>
-         </div>
-         <div style="text-align:right"><span class="tag">${br(c.total)}</span></div>
+   let detalhesHTML = "";
+   for(const p in porPessoa){
+     let subP = porPessoa[p].reduce((acc, it) => acc + it.qtd*it.preco, 0);
+     detalhesHTML += `<div style="margin-top:8px;padding:8px 10px;background:var(--input-bg);border-radius:14px;border:1px solid var(--border)">
+       <div style="display:flex;justify-content:space-between;font-weight:900;font-size:12px;color:var(--brand);margin-bottom:4px">
+         <span>👤 ${escapeHTML(p)}</span>
+         <span>${br(subP)}</span>
        </div>
-       ${resumoPessoasHTML}
-       <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
-         <button class="primary" style="margin:0;padding:13px;font-size:14px;background:var(--brand)" onclick="abrirMesa(${num})">+ Pedido</button>
-         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-           <button class="secondary" style="margin:0;padding:10px;font-size:12px" onclick="abrirModalTransferencia(${num})">🔄 Transferir</button>
-           <button class="secondary" style="margin:0;padding:10px;font-size:12px;border-color:var(--brand);color:var(--brand)" onclick="unirMesas(${num})">🔗 Juntar / Unir Mesas</button>
-         </div>
-         <button class="primary" style="margin:0;padding:13px;font-size:13px;background:#10b981;box-shadow:0 6px 18px rgba(16,185,129,0.25)" onclick="fecharMesa(${num})">💳 Pagar / Fechar Conta</button>
-       </div>
+       ${porPessoa[p].map(it => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0">
+         <span>${it.qtd}x ${escapeHTML(it.nome)} ${it.obs ? `<small style="color:#d97706;font-weight:800">(${escapeHTML(it.obs)})</small>` : ''} ${it.horario ? `<small class="muted">(${it.horario})</small>` : ''}</span>
+         <span>${br(it.qtd*it.preco)}</span>
+       </div>`).join("")}
      </div>`;
-   }).join("") : `<div class="empty">Nenhuma comanda aberta.</div>`}`;
+   }
+
+   // Bloco de itens já pagos visível diretamente na tela de comandas
+   const itensPagos = Array.isArray(c.itensPagos) ? c.itensPagos : [];
+   const totalJaPago = itensPagos.reduce((acc, ip) => acc + (Number(ip.qtd) || 0) * (Number(ip.preco) || 0), 0);
+   let pagosComandaHTML = "";
+   if (itensPagos.length > 0) {
+     pagosComandaHTML = `
+       <div style="margin-top:8px;padding:8px 10px;background:rgba(16,185,129,0.09);border-radius:14px;border:1px solid rgba(16,185,129,0.32)">
+         <div style="display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:11px;color:#10b981;margin-bottom:4px;text-transform:uppercase">
+           <span>✅ Itens Já Pagos</span>
+           <span>${br(totalJaPago)}</span>
+         </div>
+         ${itensPagos.map(ip => `
+           <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0;color:#059669">
+             <span><b>[${escapeHTML(ip.cliente || 'Cliente 1')}]</b> ${ip.qtd}x ${escapeHTML(ip.nome)}</span>
+             <b>${br((Number(ip.qtd) || 0) * (Number(ip.preco) || 0))}</b>
+           </div>
+         `).join("")}
+       </div>
+     `;
+   }
+
+   let tempoInfo = calcularTempoMesa(c.criadoEm);
+   let alertaParadaHTML = obterAlertaMesaParada(c);
+
+   return `<div class="card command ${c.pediuContaAlerta ? 'pediu-conta-ativo' : ''}">
+     <div class="row">
+       <div>
+         <h3>Mesa ${pad(num)} ${c.pediuContaAlerta ? '<span style="font-size:10px;background:#f59e0b;color:#fff;padding:2px 8px;border-radius:8px;margin-left:4px">⚠️ PEDIU CONTA</span>' : ''}</h3>
+         <span class="muted">👤 Garçom: <b>${escapeHTML(c.garcom || "Não inf.")}</b> • ⏱ ${tempoInfo.texto}</span>
+         ${alertaParadaHTML ? `<div style="display:inline-block;margin-left:6px">${alertaParadaHTML}</div>` : ''}
+       </div>
+       <span class="tag">${br(c.total)}</span>
+     </div>
+     ${detalhesHTML}
+     ${pagosComandaHTML}
+     <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px">
+       <button class="secondary" style="margin:0;padding:10px;font-size:12px" onclick="abrirMesa(${num})">+ Pedido</button>
+       <button class="primary" style="padding:10px;font-size:12px" onclick="fecharMesa(${num})">Fechar / Pagar</button>
+       <button class="secondary" style="margin:0;padding:10px 12px;font-size:13px;background:#0284c7;color:#fff;border:0" onclick="imprimirExtratoConferenciaMesa(${num})" title="Imprimir Conferência">🖨️</button>
+     </div>
+   </div>`; 
+ }).join("");
+ document.getElementById("conteudo").innerHTML = html;
 }
 
 function renderizar(){
-  document.getElementById("navMesas")?.classList.toggle("active", telaAtual==="mesas" || telaAtual==="atendimento");
+  document.getElementById("navMesas")?.classList.toggle("active", telaAtual==="mesas"||telaAtual==="atendimento");
   document.getElementById("navComandas")?.classList.toggle("active", telaAtual==="comandas");
   document.getElementById("navCozinha")?.classList.toggle("active", telaAtual==="cozinha");
   document.getElementById("navChurrasco")?.classList.toggle("active", telaAtual==="churrasco");
@@ -4599,25 +5148,49 @@ function renderizar(){
   else if(telaAtual==="cozinha") renderCozinha();
   else if(telaAtual==="churrasco") renderChurrasco();
   else if(telaAtual==="bebidas") renderBebidas();
-  else if(telaAtual==="relatorios") renderRelatorios();
-  
+  else renderRelatorios();
   atualizarBar();
 }
 
-if(modoCliente){
+// INICIALIZAÇÃO AUTOMÁTICA SE FOR MODO CLIENTE (QR CODE OU WHATSAPP)
+if (modoCliente) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('navInferior').style.display = 'none';
   document.getElementById('adminHeaderBtn').style.display = 'none';
   document.getElementById('logoutHeaderBtn').style.display = 'none';
   document.getElementById('soundToggleBtn').style.display = 'none';
   document.getElementById('pushToggleBtn').style.display = 'none';
-  document.getElementById('user-role-label').textContent = mesaUrlCliente ? `CARDÁPIO DIGITAL — Mesa ${pad(mesaUrlCliente)}` : 'CARDÁPIO DIGITAL — Delivery';
-  mesaSelecionada = mesaUrlCliente || 1;
-  pedidoTemp = { "Cliente 1": {} };
-  clienteAtual = "Cliente 1";
+  document.getElementById('btPrinterBtn').style.display = 'none';
+  document.getElementById('user-role-label').textContent = 'Cardápio Digital Online';
+
   iniciarOuvintesFirebase();
-  mudarTela("atendimento", mesaSelecionada);
+
+  if (mesaUrlCliente && mesaUrlCliente >= 1 && mesaUrlCliente <= TOTAL_MESAS) {
+    abrirMesa(mesaUrlCliente);
+  } else {
+    abrirMesa(1);
+    setTimeout(() => {
+      let opcoes = "";
+      for(let i=1; i<=TOTAL_MESAS; i++) opcoes += `<option value="${i}">Mesa ${pad(i)}</option>`;
+      document.getElementById("modalTitle").textContent = "🔥 Bem-vindo ao B.B Churrasco";
+      document.getElementById("modalBody").innerHTML = `
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Selecione o número da sua mesa para iniciar o pedido:</p>
+        <select id="selectMesaClienteInicio" style="width:100%;padding:12px;border-radius:14px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-size:14px;font-weight:800;margin-bottom:14px">${opcoes}</select>
+        <button class="primary" onclick="let m = document.getElementById('selectMesaClienteInicio').value; abrirMesa(m); fecharModal();">Acessar Cardápio</button>
+      `;
+      document.getElementById("modal").classList.add("show");
+    }, 300);
+  }
 }
+
+setInterval(() => {
+  if (telaAtual === "mesas") renderMesas();
+  if (telaAtual === "comandas") renderComandas();
+  if (telaAtual === "cozinha") renderCozinha();
+  if (telaAtual === "churrasco") renderChurrasco();
+  if (telaAtual === "bebidas") renderBebidas();
+  if (telaAtual === "atendimento") atualizarBannerConflitoMesa();
+}, 30000);
 </script>
 </body>
 </html>
