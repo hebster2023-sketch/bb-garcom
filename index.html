@@ -850,7 +850,7 @@ window.addEventListener('offline', () => {
   showToast("🟡 Sem internet: Modo Contingência ativo (salvando localmente).", true);
 });
 
-// ----------------- BLOQUEIO / AVISO DE EDIÇÃO SIMULTÂNEA (CORRIGIDO PARA NÃO RECRIAR MESA FECHADA) -----------------
+// ----------------- BLOQUEIO / AVISO DE EDIÇÃO SIMULTÂNEA -----------------
 const sessaoDispositivoId = sessionStorage.getItem('bb_device_id') || ('dev_' + Math.random().toString(36).slice(2, 10));
 sessionStorage.setItem('bb_device_id', sessaoDispositivoId);
 let mesaAtualPresenca = null;
@@ -877,7 +877,6 @@ function registrarPresencaNaMesa(numMesa) {
 
   const atualizarHeartbeat = () => {
     if (!mesaAtualPresenca || telaAtual !== "atendimento") return;
-    // Só atualiza presença se a mesa realmente estiver aberta/ocupada (evita recriar mesa fantasma R$ 0,00)
     if (!comandas[mesaAtualPresenca]) return;
     const nomeOp = obterNomeOperadorAtual();
     const payload = {};
@@ -1647,7 +1646,6 @@ let cardapio = {
   ]
 };
 
-// Helper: identifica se um produto pertence a BEBIDAS ou REFRIGERANTES
 function ehBebidaOuRefrigerante(nomeProduto) {
   if (!nomeProduto) return false;
   const nomeLower = String(nomeProduto).toLowerCase().trim();
@@ -1657,7 +1655,6 @@ function ehBebidaOuRefrigerante(nomeProduto) {
   );
 }
 
-// Helper: agrupa apenas Bebidas e Refrigerantes iguais (mesmo cliente + mesmo nome + mesmo preço) para o pagamento
 function montarListaItensParaPagamento(itensMesa) {
   const listaExibicao = [];
   const mapaBebidas = new Map();
@@ -2136,7 +2133,6 @@ function iniciarOuvintesFirebase() {
       const temItensPagos = Array.isArray(dados.itensPagos) && dados.itensPagos.length > 0;
       const totalMesa = Number(dados.total) || 0;
 
-      // Filtra e limpa comandas "fantasmas" (fechadas mas recriadas só com presença/R$ 0,00)
       if (!temItensPendentes && !temItensPagos && totalMesa <= 0) {
         if (!snapshot.metadata.hasPendingWrites) {
           db.collection("comandas").doc(id).delete().catch(()=>{});
@@ -3776,7 +3772,7 @@ function enviarContaWhatsApp(num) {
   window.open(url, '_blank');
 }
 
-// ----------------- PAGAMENTO (BEBIDAS E REFRIGERANTES AGRUPADOS POR IGUALDADE) -----------------
+// ----------------- PAGAMENTO -----------------
 let listaPagamentoAtualModal = [];
 
 function selecionarTudoClientePagamento(nomeCliente) {
@@ -3959,7 +3955,6 @@ function abrirConfirmacaoPagamento(num, tipo) {
         let preco = parseFloat(span.dataset.preco);
         valorBrutoPendenteTemp += qtdPagarGrupo * preco;
 
-        // Distribui a baixa pelas remessas originais desse grupo em ordem cronológica
         const grupo = listaPagamentoAtualModal[gIdx];
         if (grupo && Array.isArray(grupo.originais)) {
           let restanteDistribuir = qtdPagarGrupo;
@@ -4294,7 +4289,6 @@ function executarPagamentoConfirmado(num, tipo) {
     
     let novoTotal = Math.max(0, Number(c.total) - valorBrutoPendenteTemp);
 
-    // Se quitou tudo na baixa parcial, libera a mesa completamente em vez de deixar ocupada com R$ 0,00
     if (novosItens.length === 0 && novoTotal <= 0) {
       if (mesaAtualPresenca === numMesaStr) {
         if (heartbeatPresencaInterval) {
@@ -4477,179 +4471,217 @@ function calcularTempoAberta(timestamp){
   const diffMin = Math.floor(diffMs / 60000);
   if(diffMin < 1) return { texto: "Agora", classe: "tempo-verde" };
   let textoTempo = diffMin < 60 ? `${diffMin} min` : `${Math.floor(diffMin/60)}h ${diffMin%60}m`;
-  let classeTempo = diffMin < 45 ? "tempo-verde" : (diffMin < 90 ? "tempo-amarelo" : "tempo-vermelho");
-  return { texto: `⏱️ ${textoTempo}`, classe: classeTempo };
+  let classeCor = diffMin < 30 ? "tempo-verde" : (diffMin < 60 ? "tempo-amarelo" : "tempo-vermelho");
+  return { texto: textoTempo, classe: classeCor };
 }
 
 function renderMesas(){
- let h = "";
- let ocupadasCount = 0;
- let livresCount = 0;
-
+ let html = "", livres = 0, ocupadas = 0;
  for(let i=1; i<=TOTAL_MESAS; i++){
-   const c = comandas[i];
-   if(c) ocupadasCount++;
-   else livresCount++;
+  const c = comandas[i];
+  const temItensPendentes = c && Array.isArray(c.itens) && c.itens.length > 0;
+  const temItensPagos = c && Array.isArray(c.itensPagos) && c.itensPagos.length > 0;
+  const totalMesa = c ? (Number(c.total) || 0) : 0;
+  const busy = Boolean(c && (temItensPendentes || temItensPagos || totalMesa > 0));
+
+  if(busy) ocupadas++; else livres++;
+
+  if(filtroMesaAtual === "livres" && busy) continue;
+  if(filtroMesaAtual === "ocupadas" && !busy) continue;
+
+  let tInfo = busy && c.criadoEm ? calcularTempoAberta(c.criadoEm) : { texto: "", classe: "" };
+  let isNovo = busy && c.novoPedidoAlerta ? "novo-pedido-ativo" : "";
+  let isPediuConta = busy && c.pediuContaAlerta ? "pediu-conta-ativo" : "";
+
+  let alertaParadaHTML = "";
+  if (busy) {
+    const ultimoMovTs = c.atualizadoEm || c.criadoEm || 0;
+    const minSemConsumo = ultimoMovTs ? Math.floor((Date.now() - ultimoMovTs) / 60000) : 0;
+    if (minSemConsumo >= 30) {
+      alertaParadaHTML = `<span class="alerta-parada">⏳ ${minSemConsumo}m s/ pedir</span>`;
+    }
+  }
+
+  let outrosVendo = busy ? obterOutrosGarconsNaMesa(i) : [];
+  let tagVisualizandoHTML = outrosVendo.length > 0
+    ? `<span style="font-size:8.5px;background:rgba(245,158,11,0.18);color:#d97706;padding:2px 6px;border-radius:99px;margin-top:3px;font-weight:900">👁️ ${escapeHTML(outrosVendo[0])}</span>`
+    : "";
+
+  html += `<button class="table card-mesa ${busy?"busy ocupada":"livre"} ${isNovo} ${isPediuConta}" onclick="abrirMesa(${i})">
+   <span class="num">Mesa ${pad(i)}</span>
+   <span class="badge-status status-mesa ${busy ? 'ocupada' : 'livre'}">${busy ? "Ocupada" : "Livre"}</span>
+   ${busy ? `
+     <span class="total total-mesa">${br(totalMesa)}</span>
+     ${c.pediuContaAlerta ? '<span style="font-size:9px;background:#f59e0b;color:#fff;padding:2px 6px;border-radius:99px;margin-top:3px;font-weight:900">💰 PEDIU CONTA</span>' : ''}
+     ${tInfo.texto ? `<span class="timer ${tInfo.classe}">⏱️ ${tInfo.texto}</span>` : ''}
+     ${alertaParadaHTML}
+     ${tagVisualizandoHTML}
+     ${c.garcom ? `<span class="garcom-tag">👤 ${escapeHTML(c.garcom)}</span>` : ''}
+   ` : `<span style="font-size:10px;color:var(--muted);margin-top:6px;font-weight:700">Toque para abrir</span>`}
+  </button>`;
  }
 
- for(let i=1; i<=TOTAL_MESAS; i++){
-   const c = comandas[i];
-   if(filtroMesaAtual === "ocupadas" && !c) continue;
-   if(filtroMesaAtual === "livres" && c) continue;
-
-   const alertaClass = c && c.novoPedidoAlerta ? "novo-pedido-ativo" : "";
-   const contaClass = c && c.pediuContaAlerta ? "pediu-conta-ativo" : "";
-   const tempoObj = c ? calcularTempoAberta(c.criadoEm) : { texto: "", classe: "" };
-
-   let badgeParadaHTML = "";
-   if (c) {
-     const ultimaMov = c.atualizadoEm || c.criadoEm || 0;
-     const minParada = ultimaMov ? Math.floor((Date.now() - ultimaMov) / 60000) : 0;
-     if (minParada >= 25) {
-       badgeParadaHTML = `<div class="alerta-parada">⏳ Sem pedido há ${minParada} min</div>`;
-     }
-   }
-
-   h += `<div class="table card-mesa ${c ? "busy ocupada" : "livre"} ${alertaClass} ${contaClass}" onclick="abrirMesa(${i})">
-     <div class="num">Mesa ${pad(i)}</div>
-     ${c && c.pediuContaAlerta ? `<span class="badge-status" style="background:#f59e0b;color:#fff">💰 PEDIU CONTA</span>` : (c && c.novoPedidoAlerta ? `<span class="badge-status" style="background:#38bdf8;color:#fff">🔔 NOVO PEDIDO</span>` : `<span class="badge-status ${c ? "ocupada" : "livre"}">${c ? "OCUPADA" : "LIVRE"}</span>`)}
-     ${c ? `
-       <div class="total">${br(c.total)}</div>
-       ${tempoObj.texto ? `<div class="timer ${tempoObj.classe}">${tempoObj.texto}</div>` : ''}
-       ${badgeParadaHTML}
-       <div class="garcom-tag">👤 ${escapeHTML(c.garcom || 'Não inf.')}</div>
-     ` : ""}
-   </div>`;
- }
+ const mesasVaziasHTML = html ? `<div class="tables">${html}</div>` : `<div class="empty">Nenhuma mesa encontrada neste filtro.</div>`;
 
  document.getElementById("conteudo").innerHTML = `
-   <div class="section-title"><h2>Controle de Mesas</h2><span class="muted">45 mesas no salão</span></div>
-   <div class="filter-tabs">
-     <button class="filter-tab ${filtroMesaAtual==='todas'?'active':''}" onclick="definirFiltroMesas('todas')">Todas (${TOTAL_MESAS})</button>
-     <button class="filter-tab ${filtroMesaAtual==='ocupadas'?'active':''}" onclick="definirFiltroMesas('ocupadas')">Ocupadas (${ocupadasCount})</button>
-     <button class="filter-tab ${filtroMesaAtual==='livres'?'active':''}" onclick="definirFiltroMesas('livres')">Livres (${livresCount})</button>
-   </div>
-   <div class="tables">${h || '<div class="empty" style="grid-column:span 3">Nenhuma mesa encontrada.</div>'}</div>
- `;
+  <div class="section-title">
+    <div><h2>Mesas</h2><span class="muted">Sincronizado via Firebase</span></div>
+    <div style="font-size:11px;font-weight:900">
+      <span style="color:#10b981">${livres} livres</span> • 
+      <span style="color:var(--brand)">${ocupadas} ocupadas</span>
+    </div>
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab ${filtroMesaAtual === 'todas' ? 'active' : ''}" onclick="definirFiltroMesas('todas')">Todas (${TOTAL_MESAS})</button>
+    <button class="filter-tab ${filtroMesaAtual === 'livres' ? 'active' : ''}" onclick="definirFiltroMesas('livres')">Livres (${livres})</button>
+    <button class="filter-tab ${filtroMesaAtual === 'ocupadas' ? 'active' : ''}" onclick="definirFiltroMesas('ocupadas')">Ocupadas (${ocupadas})</button>
+  </div>
+  ${mesasVaziasHTML}`;
 }
 
 function atualizarResumoEnviadosAtendimento() {
   const container = document.getElementById("resumoEnviadosAtendimentoBox");
   if (!container || !mesaSelecionada) return;
   const cExistente = comandas[mesaSelecionada];
-  const itensJaEnviados = (cExistente && Array.isArray(cExistente.itens)) ? cExistente.itens : [];
-  const totalEnviado = cExistente ? Number(cExistente.total || 0) : 0;
+  const itensEnviados = (cExistente && Array.isArray(cExistente.itens)) ? cExistente.itens : [];
+  const itensPagos = (cExistente && Array.isArray(cExistente.itensPagos)) ? cExistente.itensPagos : [];
 
-  if (itensJaEnviados.length === 0) {
+  if (itensEnviados.length === 0 && itensPagos.length === 0) {
     container.innerHTML = "";
     return;
   }
 
-  container.innerHTML = `
-    <div class="card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg, rgba(16,185,129,0.06), var(--card));border-color:rgba(16,185,129,0.35)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:900;color:#10b981;text-transform:uppercase">📋 Itens na Mesa (${itensJaEnviados.length} ${itensJaEnviados.length === 1 ? 'remessa' : 'remessas'})</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          ${!modoCliente ? `<button onclick="repetirUltimaRodadaMesa()" style="border:1px solid #0284c7;background:rgba(2,132,199,0.12);color:#0284c7;border-radius:10px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer">🔁 Repetir Rodada</button>` : ''}
-          <b style="font-size:14px;color:var(--ink)">${br(totalEnviado)}</b>
-        </div>
-      </div>
-      <div style="max-height:160px;overflow:auto;display:flex;flex-direction:column;gap:4px">
-        ${itensJaEnviados.map((it, idx) => {
-          let badgeStatus = '';
-          if (it.statusCozinha === 'pendente') badgeStatus = '<span style="font-size:9px;background:rgba(211,47,47,0.12);color:var(--brand);padding:1px 5px;border-radius:5px;margin-left:4px">⏳ Fila</span>';
-          else if (it.statusCozinha === 'preparando') badgeStatus = '<span style="font-size:9px;background:rgba(245,158,11,0.15);color:#d97706;padding:1px 5px;border-radius:5px;margin-left:4px">🔥 Preparando</span>';
-          else if (it.statusCozinha === 'pronto') badgeStatus = '<span style="font-size:9px;background:rgba(16,185,129,0.15);color:#10b981;padding:1px 5px;border-radius:5px;margin-left:4px">✅ Pronto</span>';
-          else if (it.statusCozinha === 'entregue') badgeStatus = '<span style="font-size:9px;background:rgba(107,114,128,0.15);color:#6b7280;padding:1px 5px;border-radius:5px;margin-left:4px">🍽️ Entregue</span>';
+  const totalAcumulado = cExistente ? Number(cExistente.total || 0) : 0;
+  const totalJaPago = itensPagos.reduce((s, i) => s + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0);
 
-          return `
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--border)">
-            <div style="flex:1;padding-right:6px">
-              <b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)} ${badgeStatus}
-              ${it.obs ? `<div style="font-size:10px;color:#d97706;font-weight:800">💬 ${escapeHTML(it.obs)}</div>` : ''}
-              ${it.horario ? `<small class="muted" style="font-size:10px;display:block">🕒 ${it.horario}</small>` : ''}
-            </div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <b>${br(it.qtd * it.preco)}</b>
-              ${!modoCliente ? `<button onclick="removerItemJaEnviado(${mesaSelecionada}, ${idx})" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:6px;width:22px;height:22px;font-weight:900;cursor:pointer;font-size:11px" title="Remover item">✕</button>` : ''}
-            </div>
-          </div>
-        `}).join('')}
-      </div>
-      ${!modoCliente ? `
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
-          <button onclick="dividirContaModal(${mesaSelecionada})" style="padding:10px 4px;border:0;border-radius:12px;background:#10b981;color:#fff;font-weight:900;font-size:11px;cursor:pointer">💳 Conta / Pagar</button>
-          <button onclick="imprimirViaCozinhaMesa(${mesaSelecionada})" style="padding:10px 4px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);color:var(--ink);font-weight:900;font-size:11px;cursor:pointer">🖨️ Via Cozinha</button>
-          <button onclick="marcarPediuContaMesa(${mesaSelecionada})" style="padding:10px 4px;border:1px solid #f59e0b;border-radius:12px;background:${cExistente.pediuContaAlerta ? '#f59e0b' : 'rgba(245,158,11,0.12)'};color:${cExistente.pediuContaAlerta ? '#fff' : '#d97706'};font-weight:900;font-size:11px;cursor:pointer">${cExistente.pediuContaAlerta ? '🔔 Pediu Conta' : '💰 Pedir Conta'}</button>
+  let listaItensHTML = itensEnviados.map((it, idx) => {
+    let badgeStatus = "";
+    if (it.statusCozinha === 'preparando') badgeStatus = `<span style="font-size:9px;background:#fef3c7;color:#d97706;padding:1px 5px;border-radius:4px;font-weight:900;margin-left:4px">🔥 Preparando</span>`;
+    else if (it.statusCozinha === 'pronto') badgeStatus = `<span style="font-size:9px;background:#d1fae5;color:#059669;padding:1px 5px;border-radius:4px;font-weight:900;margin-left:4px">✅ Pronto</span>`;
+    else if (it.statusCozinha === 'entregue') badgeStatus = `<span style="font-size:9px;background:#e0f2fe;color:#0284c7;padding:1px 5px;border-radius:4px;font-weight:900;margin-left:4px">🍽️ Entregue</span>`;
+
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border);gap:6px">
+        <div style="flex:1;min-width:0">
+          <span style="color:var(--brand);font-weight:900">[${escapeHTML(it.cliente || 'Cliente 1')}]</span> <b>${it.qtd}x</b> ${escapeHTML(it.nome)} ${badgeStatus}
+          ${it.obs ? `<div style="font-size:10px;color:#d97706;font-weight:800">💬 ${escapeHTML(it.obs)}</div>` : ''}
+          ${it.horario ? `<small class="muted" style="margin-left:4px">(${it.horario})</small>` : ''}
         </div>
-      ` : ''}
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <b>${br(it.qtd * it.preco)}</b>
+          <button onclick="removerItemJaEnviado(${mesaSelecionada}, ${idx})" title="Remover item enviado" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:8px;width:26px;height:26px;font-weight:900;cursor:pointer;display:grid;place-items:center">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  let listaPagosHTML = itensPagos.length > 0 ? `
+    <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+      <div style="font-size:10px;font-weight:900;color:#10b981;text-transform:uppercase;margin-bottom:4px">✅ Itens já pagos (${br(totalJaPago)}):</div>
+      ${itensPagos.map(ip => `
+        <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#10b981">
+          <span><b>[${escapeHTML(ip.cliente || 'Cliente 1')}]</b> ${ip.qtd}x ${escapeHTML(ip.nome)}</span>
+          <b>${br(ip.qtd * ip.preco)}</b>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  container.innerHTML = `
+    <div class="card" style="margin-top:12px;padding:12px;border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.04)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:6px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:900;color:#10b981">📋 Comanda da Mesa (${itensEnviados.length} ${itensEnviados.length === 1 ? 'lançamento' : 'lançamentos'})</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="repetirUltimaRodadaMesa()" style="border:1px solid #0284c7;background:rgba(2,132,199,0.1);color:#0284c7;border-radius:10px;padding:4px 8px;font-size:10px;font-weight:900;cursor:pointer" title="Repetir último pedido de bebidas/espetos">🔁 Repetir Rodada</button>
+          <span style="font-size:13px;font-weight:900;color:var(--brand)">Saldo: ${br(totalAcumulado)}</span>
+        </div>
+      </div>
+      <div style="max-height:175px;overflow:auto">
+        ${listaItensHTML}
+      </div>
+      ${listaPagosHTML}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+        <button class="secondary" style="margin:0;padding:8px;font-size:11px;background:rgba(2,132,199,0.1);color:#0284c7;border-color:#0284c7" onclick="imprimirViaCozinhaMesa(${mesaSelecionada})">🖨️ Imprimir Via Cozinha</button>
+        <button class="secondary" style="margin:0;padding:8px;font-size:11px" onclick="dividirContaModal(${mesaSelecionada})">💰 Fechar / Pagar Mesa</button>
+      </div>
     </div>
   `;
 }
 
 function renderAtendimento(){
  const cats = Object.keys(cardapio);
- if(!cats.includes(categoriaAtual) && cats.length > 0) categoriaAtual = cats[0];
- const catIcons = { "CHURRASCOS": "🥩", "BEBIDAS": "🍺", "CARANGUEJO": "🦀", "GUARNIÇÕES": "🍚", "PETISCOS": "🍟", "REFRIGERANTES": "🥤", "SUCOS": "🧃", "DIVERSOS": "🚬" };
- 
+ const cExistente = comandas[mesaSelecionada];
  const listaClientes = obterListaClientesMesa();
- if (!listaClientes.includes(clienteAtual)) clienteAtual = "Cliente 1";
+ const pediuContaAtivo = Boolean(cExistente && cExistente.pediuContaAlerta);
 
- let tabsClientes = listaClientes.map(cli => `
-   <button class="filter-tab ${clienteAtual === cli ? 'active' : ''}" onclick="mudarClienteAtual('${escapeHTML(cli)}')">👤 ${escapeHTML(cli)}</button>
- `).join('');
+ const catIcons = {
+   "CHURRASCOS": "🍖",
+   "BEBIDAS": "🍺",
+   "CARANGUEJO": "🦀",
+   "GUARNIÇÕES": "🍚",
+   "PETISCOS": "🍟",
+   "REFRIGERANTES": "🥤",
+   "SUCOS": "🧃",
+   "DIVERSOS": "🚬"
+ };
+
+ const garcomTravado = !modoCliente && Boolean(garcomSessao && usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin'));
 
  document.getElementById("conteudo").innerHTML = `
   <div class="topbar">
     ${!modoCliente ? `<button class="back" onclick="mudarTela('mesas')">←</button>` : ''}
-    <div class="mesa-head"><h2>Mesa ${pad(mesaSelecionada)}</h2><p>${modoCliente ? 'Cardápio Digital Interativo' : 'Toque em + para lançar na mesa instantaneamente'}</p></div>
-    <div style="display:flex;gap:6px">
-      ${!modoCliente && comandas[mesaSelecionada] ? `
-        <button onclick="unirMesas(${mesaSelecionada})" style="border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:14px;padding:8px 10px;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap">🔗 Unir</button>
-        <button onclick="abrirModalTransferencia(${mesaSelecionada})" style="border:1px solid var(--border);background:var(--card);color:var(--ink);border-radius:14px;padding:8px 10px;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap">🔄 Transferir</button>
-      ` : ''}
+    <div class="mesa-head">
+      <h2>Mesa ${pad(mesaSelecionada)}</h2>
+      <p>${modoCliente ? 'Toque em + para montar seu pedido' : 'Toque em + para salvar na comanda'}</p>
     </div>
+    ${(!modoCliente && cExistente) ? `
+      <button onclick="marcarPediuContaMesa(${mesaSelecionada})" style="border:1px solid ${pediuContaAtivo ? '#f59e0b' : 'var(--border)'};background:${pediuContaAtivo ? '#f59e0b' : 'var(--card)'};color:${pediuContaAtivo ? '#fff' : 'var(--ink)'};border-radius:14px;padding:8px 10px;font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0" title="Avisar o caixa que o cliente pediu a conta">
+        ${pediuContaAtivo ? '💰 Conta Solicitada' : '💰 Pediu Conta'}
+      </button>
+    ` : ''}
+    <button onclick="anotarPedidoPorVoz()" style="border:0;background:var(--brand);color:#fff;border-radius:14px;width:40px;height:40px;font-size:18px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(211,47,47,0.3);flex-shrink:0" title="Anotar pedido por voz">🎙️</button>
   </div>
 
   <div id="bannerConflitoMesaBox"></div>
 
-  <div id="resumoEnviadosAtendimentoBox" style="margin-top:12px"></div>
-  
-  <div class="card" style="margin-top:12px;padding:14px">
-    ${!modoCliente ? `
-      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Garçom Responsável</label>
-      <input type="text" placeholder="Digite o nome do garçom..." value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none;margin-bottom:10px">
-    ` : `
-      <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Seu Nome (Para o Garçom Identificar)</label>
-      <input type="text" placeholder="Ex: João, Maria..." value="${escapeHTML(garcomTemp)}" oninput="atualizarGarcom(this.value)" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:13px;font-weight:700;outline:none;margin-bottom:10px">
-    `}
-    
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-      <span style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted)">Pessoa / Sub-comanda (${escapeHTML(clienteAtual)}):</span>
-      <div style="display:flex;gap:6px">
-        <button onclick="renomearClienteAtual()" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:10px;padding:4px 9px;font-size:11px;font-weight:900;cursor:pointer">✏️ Renomear</button>
-        <button onclick="anotarPedidoPorVoz()" style="background:#0284c7;color:#fff;border:0;border-radius:10px;padding:4px 10px;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:4px">🎙️ Voz</button>
-        <button onclick="adicionarNovoClientePrompt()" style="background:var(--brand);color:#fff;border:0;border-radius:10px;padding:4px 10px;font-size:11px;font-weight:900;cursor:pointer">+ Pessoa</button>
+  ${!modoCliente ? `
+    <div class="card" style="margin-top:12px;padding:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
+        <div>
+          <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px">👤 Atendente / Garçom</label>
+          <input value="${escapeHTML(garcomTemp)}" ${garcomTravado ? 'readonly' : ''} onchange="atualizarGarcom(this.value)" placeholder="Nome do garçom" style="width:100%;padding:9px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:700;outline:none;opacity:${garcomTravado ? '0.85' : '1'}">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px">👥 Pessoa da Mesa</label>
+          <div style="display:flex;gap:4px">
+            <select onchange="mudarClienteAtual(this.value)" style="flex:1;min-width:0;padding:9px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:12px;font-size:12px;font-weight:800;outline:none">
+              ${listaClientes.map(c => `<option value="${escapeHTML(c)}" ${c===clienteAtual?'selected':''}>${escapeHTML(c)}</option>`).join("")}
+            </select>
+            <button onclick="renomearClienteAtual()" title="Renomear pessoa atual" style="background:var(--input-bg);color:var(--ink);border:1px solid var(--border);border-radius:12px;padding:0 10px;font-weight:900;font-size:13px;cursor:pointer">✏️</button>
+            <button onclick="adicionarNovoClientePrompt()" title="Adicionar outra pessoa" style="background:var(--brand);color:#fff;border:0;border-radius:12px;padding:0 11px;font-weight:900;font-size:15px;cursor:pointer">+</button>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="filter-tabs" style="margin-bottom:0">${tabsClientes}</div>
-  </div>
+  ` : ''}
 
-  <div class="search-box">
+  <div id="resumoEnviadosAtendimentoBox"></div>
+
+  <div class="search-box" style="margin-top:12px">
     <span>🔍</span>
-    <input type="text" placeholder="Buscar produto no cardápio..." value="${escapeHTML(termoBuscaProduto)}" oninput="filtrarProdutosInput(this.value)">
+    <input type="text" placeholder="Buscar produto pelo nome..." value="${escapeHTML(termoBuscaProduto)}" oninput="filtrarProdutosInput(this.value)">
   </div>
 
   <div class="atendimento-layout">
-    <div class="side-cats" id="cats">
-      ${cats.map(c => `
-        <button class="side-cat ${c === categoriaAtual ? 'active' : ''}" data-cat="${escapeHTML(c)}" onclick="setCategoria('${escapeHTML(c)}')">
-          <span class="cat-ico">${catIcons[c] || '🍽️'}</span>
-          <span>${escapeHTML(c)}</span>
+    <div class="side-cats">
+      ${cats.map(cat => `
+        <button class="side-cat" data-cat="${escapeHTML(cat)}" onclick="setCategoria('${escapeHTML(cat)}')">
+          <span class="cat-ico">${catIcons[cat] || '📦'}</span>
+          <span>${escapeHTML(cat)}</span>
         </button>
       `).join("")}
     </div>
-    <div id="produtos" class="products-list"></div>
+    <div class="products-list" id="produtos"></div>
   </div>`;
  
  atualizarBannerConflitoMesa();
@@ -4657,81 +4689,153 @@ function renderAtendimento(){
  renderProdutos();
 }
 
+// ----------------- COMANDAS ATIVAS (AGORA LISTANDO TODOS OS ITENS ADICIONADOS E OS ITENS PAGOS) -----------------
 function renderComandas(){
- let itens = "";
- for(let i=1; i<=TOTAL_MESAS; i++){
-   const c = comandas[i]; if(!c) continue;
-   let tempoObj = calcularTempoAberta(c.criadoEm);
-   let clientesUnicos = Array.from(new Set((c.itens || []).map(x => x.cliente || "Cliente 1")));
-   let resumoClientes = clientesUnicos.map(cli => {
-     let subCli = (c.itens || []).filter(x => (x.cliente || "Cliente 1") === cli).reduce((acc, item) => acc + (Number(item.qtd) || 0) * (Number(item.preco) || 0), 0);
-     return `• <b>${escapeHTML(cli)}</b>: ${br(subCli)}`;
-   }).join("<br>");
+ let lista = [];
+ for(let i=1; i<=TOTAL_MESAS; i++){ if(comandas[i]) lista.push({num:i, ...comandas[i]}); }
 
-   itens += `<div class="card command ${c.pediuContaAlerta ? 'pediu-conta-ativo' : ''}">
-     <div class="row">
-       <div>
-         <h3>Mesa ${pad(i)}</h3>
-         <small class="muted">👤 Garçom: <b>${escapeHTML(c.garcom || 'Não inf.')}</b> ${tempoObj.texto ? `• <span style="font-weight:900">${tempoObj.texto}</span>` : ''}</small>
-       </div>
-       <span class="tag">${c.pediuContaAlerta ? '💰 PEDIU CONTA' : 'Aberta'}</span>
-     </div>
-     <div style="font-size:12px;margin-top:8px;color:var(--ink)">${resumoClientes || '<span class="muted">Aguardando itens...</span>'}</div>
-     <div class="totalrow" style="font-size:16px"><span>Saldo Restante</span><span style="color:var(--brand)">${br(c.total)}</span></div>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-       <button class="secondary" style="margin-top:0" onclick="abrirMesa(${i})">✏️ Adicionar Itens</button>
-       <button class="primary" onclick="fecharMesa(${i})">💳 Conta / Pagar</button>
-     </div>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-       <button class="secondary" style="margin-top:0;padding:8px;font-size:11px" onclick="unirMesas(${i})">🔗 Unir Mesa</button>
-       <button class="secondary" style="margin-top:0;padding:8px;font-size:11px" onclick="abrirModalTransferencia(${i})">🔄 Transferir</button>
-     </div>
-   </div>`;
- }
- document.getElementById("conteudo").innerHTML = `<div class="section-title"><h2>Comandas Abertas</h2></div>${itens || '<div class="empty">Nenhuma comanda aberta no momento.</div>'}`;
+ const badgeStatusItem = (st) => {
+   if (st === 'preparando') return `<span style="font-size:9px;background:#fef3c7;color:#d97706;padding:1px 6px;border-radius:5px;font-weight:900">🔥 Preparando</span>`;
+   if (st === 'pronto') return `<span style="font-size:9px;background:#d1fae5;color:#059669;padding:1px 6px;border-radius:5px;font-weight:900">✅ Pronto</span>`;
+   if (st === 'entregue') return `<span style="font-size:9px;background:#e0f2fe;color:#0284c7;padding:1px 6px;border-radius:5px;font-weight:900">🍽️ Entregue</span>`;
+   return `<span style="font-size:9px;background:rgba(211,47,47,0.1);color:var(--brand);padding:1px 6px;border-radius:5px;font-weight:900">⏳ Fila</span>`;
+ };
+
+ document.getElementById("conteudo").innerHTML = `
+  <div class="section-title"><h2>Comandas Ativas</h2><span class="muted">${lista.length} mesas abertas</span></div>
+  ${lista.length ? lista.map(c => {
+    const itensPendentes = Array.isArray(c.itens) ? c.itens : [];
+    const itensPagos = Array.isArray(c.itensPagos) ? c.itensPagos : [];
+    const totalJaPago = itensPagos.reduce((acc, ip) => acc + (Number(ip.qtd) || 0) * (Number(ip.preco) || 0), 0);
+
+    // Agrupa itens em aberto por cliente
+    const gruposPorCliente = {};
+    itensPendentes.forEach(it => {
+      const cli = it.cliente || "Cliente 1";
+      if (!gruposPorCliente[cli]) gruposPorCliente[cli] = { itens: [], subtotal: 0 };
+      gruposPorCliente[cli].itens.push(it);
+      gruposPorCliente[cli].subtotal += (Number(it.qtd) || 0) * (Number(it.preco) || 0);
+    });
+
+    const htmlItensEmAberto = Object.keys(gruposPorCliente).length > 0
+      ? Object.keys(gruposPorCliente).map(cli => {
+          const grupo = gruposPorCliente[cli];
+          return `
+            <div style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:900;color:var(--brand);margin-bottom:4px">
+                <span>👤 ${escapeHTML(cli)}</span>
+                <span>Subtotal: ${br(grupo.subtotal)}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                ${grupo.itens.map(it => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 6px;background:var(--card);border-radius:8px;border:1px solid var(--border);gap:6px">
+                    <div style="flex:1;min-width:0">
+                      <div><b>${it.qtd}x</b> ${escapeHTML(it.nome)} ${badgeStatusItem(it.statusCozinha)}</div>
+                      ${it.obs ? `<div style="font-size:10px;color:#d97706;font-weight:800">💬 ${escapeHTML(it.obs)}</div>` : ''}
+                      ${it.horario ? `<small class="muted" style="font-size:10px">🕒 ${it.horario}</small>` : ''}
+                    </div>
+                    <strong style="font-size:12px;flex-shrink:0">${br((Number(it.qtd) || 0) * (Number(it.preco) || 0))}</strong>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `;
+        }).join("")
+      : `<div style="font-size:11px;color:var(--muted);text-align:center;padding:4px 0">Nenhum item em aberto nesta mesa.</div>`;
+
+    const htmlItensPagos = itensPagos.length > 0 ? `
+      <div style="margin-top:8px;padding:8px;border-radius:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.35)">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:900;color:#10b981;margin-bottom:5px">
+          <span>✅ ITENS JÁ PAGOS NA MESA</span>
+          <span>Pago: ${br(totalJaPago)}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${itensPagos.map(ip => `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:4px 6px;background:rgba(16,185,129,0.12);border-radius:8px;color:var(--ink);gap:6px">
+              <div style="flex:1;min-width:0">
+                <span style="background:#10b981;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:4px;margin-right:4px">PAGO</span>
+                <b style="color:#059669">[${escapeHTML(ip.cliente || 'Cliente 1')}]</b> <b>${ip.qtd}x</b> ${escapeHTML(ip.nome)}
+                ${ip.horario ? `<small class="muted" style="margin-left:4px">(${ip.horario})</small>` : ''}
+              </div>
+              <strong style="color:#10b981;flex-shrink:0">${br((Number(ip.qtd) || 0) * (Number(ip.preco) || 0))}</strong>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    ` : "";
+
+    return `
+    <div class="card command">
+      <div class="row">
+        <div>
+          <h3>Mesa ${pad(c.num)}</h3>
+          <small class="muted">${c.garcom ? `Garçom: ${escapeHTML(c.garcom)}` : "Garçom não informado"}</small>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <span class="tag">${br(c.total)}</span>
+          ${totalJaPago > 0 ? `<span style="font-size:10px;font-weight:900;color:#10b981">✅ Já pago: ${br(totalJaPago)}</span>` : ''}
+        </div>
+      </div>
+
+      <div style="margin:10px 0;background:var(--input-bg);padding:10px;border-radius:14px;border:1px solid var(--border)">
+        ${htmlItensEmAberto}
+        ${htmlItensPagos}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <button class="secondary" style="margin:0;padding:10px;font-size:12px" onclick="abrirMesa(${c.num})">+ Lançar</button>
+        <button class="secondary" style="margin:0;padding:10px;font-size:12px;background:#0284c7;color:#fff;border:0" onclick="imprimirExtratoConferenciaMesa(${c.num})">🖨️ Conferência</button>
+        <button class="secondary" style="margin:0;padding:10px;font-size:12px" onclick="abrirModalTransferencia(${c.num})">🔄 Transferir</button>
+        <button class="secondary" style="margin:0;padding:10px;font-size:12px" onclick="unirMesas(${c.num})">🔗 Juntar</button>
+        <button class="primary" style="grid-column: span 2; margin:0;padding:11px;font-size:12px" onclick="fecharMesa(${c.num})">💰 Pagar / Fechar Conta</button>
+      </div>
+    </div>`;
+  }).join("") : `<div class="empty">Nenhuma comanda aberta no momento.</div>`}`;
 }
 
-// ----------------- RELATÓRIOS & GESTÃO -----------------
+// ----------------- RELATÓRIOS & GESTÃO FINANCEIRA -----------------
+let termoBuscaRelatorio = "";
+
+function filtrarVendasRelatorio(val) {
+  termoBuscaRelatorio = val.toLowerCase().trim();
+  renderRelatorios();
+}
+
+function alterarModoFiltroRelatorio(modo) {
+  modoFiltroRelatorio = modo;
+  if (modo === 'PERIODO' && (!filtroDataHoraInicio || !filtroDataHoraFim)) {
+    const padrao = obterIntervaloTurnoPadrao();
+    filtroDataHoraInicio = padrao.inicio;
+    filtroDataHoraFim = padrao.fim;
+  }
+  renderRelatorios();
+}
+
 function aplicarFiltroPeriodoRelatorio() {
-  const inpIni = document.getElementById("filtroDtInicio");
-  const inpFim = document.getElementById("filtroDtFim");
-  if (inpIni && inpIni.value) filtroDataHoraInicio = inpIni.value;
-  if (inpFim && inpFim.value) filtroDataHoraFim = inpFim.value;
+  const inpIni = document.getElementById('inpFiltroInicio')?.value;
+  const inpFim = document.getElementById('inpFiltroFim')?.value;
+  if (inpIni) filtroDataHoraInicio = inpIni;
+  if (inpFim) filtroDataHoraFim = inpFim;
   modoFiltroRelatorio = 'PERIODO';
   renderRelatorios();
 }
 
-function definirAtalhoTurnoAtual() {
-  const turno = obterIntervaloTurnoPadrao();
-  filtroDataHoraInicio = turno.inicio;
-  filtroDataHoraFim = turno.fim;
+function definirTurnoHojeRelatorio() {
+  const padrao = obterIntervaloTurnoPadrao();
+  filtroDataHoraInicio = padrao.inicio;
+  filtroDataHoraFim = padrao.fim;
   modoFiltroRelatorio = 'PERIODO';
   renderRelatorios();
-  showToast("Filtro ajustado para o turno atual (15h às 09h)!");
 }
 
-function definirAtalhoHoje() {
-  const agora = new Date();
-  const ini = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
-  const fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 0);
+function definirDiaAnteriorRelatorio() {
+  const ini = new Date(filtroDataHoraInicio || obterIntervaloTurnoPadrao().inicio);
+  const fim = new Date(filtroDataHoraFim || obterIntervaloTurnoPadrao().fim);
+  ini.setDate(ini.getDate() - 1);
+  fim.setDate(fim.getDate() - 1);
   filtroDataHoraInicio = formatarDateParaInputDateTimeLocal(ini);
   filtroDataHoraFim = formatarDateParaInputDateTimeLocal(fim);
   modoFiltroRelatorio = 'PERIODO';
-  renderRelatorios();
-}
-
-function definirAtalhoOntem() {
-  const agora = new Date();
-  const ini = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 0, 0, 0);
-  const fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 23, 59, 0);
-  filtroDataHoraInicio = formatarDateParaInputDateTimeLocal(ini);
-  filtroDataHoraFim = formatarDateParaInputDateTimeLocal(fim);
-  modoFiltroRelatorio = 'PERIODO';
-  renderRelatorios();
-}
-
-function definirAtalhoTudo() {
-  modoFiltroRelatorio = 'TODAS';
   renderRelatorios();
 }
 
@@ -4739,51 +4843,57 @@ function abrirDetalhesVendaRelatorio(docId) {
   const venda = historicoVendas.find(v => v._docId === docId);
   if (!venda) return;
 
-  const diaSem = venda.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(venda));
-  const itensLista = Array.isArray(venda.itens) ? venda.itens : [];
-  const descontoVenda = Number(venda.desconto || 0);
+  const itensVenda = Array.isArray(venda.itens) ? venda.itens : [];
+  const totalCalculadoItens = itensVenda.reduce((acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.preco) || 0), 0);
+  const diaSemanaVenda = venda.diaSemana || obterDiaSemanaPorTimestamp(venda.timestamp);
+  const dataCompletaVenda = `${diaSemanaVenda ? diaSemanaVenda + ', ' : ''}${venda.data || 'Hoje'} às ${venda.horario || '--:--'}`;
 
-  let itensHTML = itensLista.length > 0 ? itensLista.map(it => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-      <div>
-        <b>[${escapeHTML(it.cliente || 'Cliente 1')}]</b> ${it.qtd}x ${escapeHTML(it.nome)}
-        ${it.horario ? `<div style="font-size:10px;color:var(--muted)">🕒 Pedido às ${it.horario}</div>` : ''}
-      </div>
-      <b>${br((Number(it.qtd) || 0) * (Number(it.preco) || 0))}</b>
-    </div>
-  `).join('') : '<div class="empty">Nenhum detalhe de item registrado nesta baixa.</div>';
+  let listaItensHTML = itensVenda.length
+    ? itensVenda.map(it => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div>
+            <b>${it.qtd}x ${escapeHTML(it.nome)}</b>
+            <div style="font-size:10px;color:var(--muted)">
+              👤 ${escapeHTML(it.cliente || 'Cliente 1')} • ${br(it.preco)} un
+              ${it.horario ? ` • Lançado às ${it.horario}` : ''}
+            </div>
+          </div>
+          <b style="color:var(--brand)">${br((Number(it.qtd) || 0) * (Number(it.preco) || 0))}</b>
+        </div>
+      `).join('')
+    : '<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px">Nenhum item detalhado nesta parcela.</div>';
 
-  document.getElementById("modalTitle").textContent = `🧾 Detalhes — Mesa ${pad(venda.mesa)}`;
+  document.getElementById("modalTitle").textContent = `🧾 Detalhes da Venda — Mesa ${pad(venda.mesa)}`;
   document.getElementById("modalBody").innerHTML = `
     <div style="background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;font-size:12px">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span class="muted">Dia / Data:</span>
-        <b>${diaSem ? `${diaSem}, ` : ''}${venda.data || ''} às ${venda.horario || ''}</b>
+        <span class="muted">Dia / Data / Hora:</span>
+        <b>${escapeHTML(dataCompletaVenda)}</b>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px">
         <span class="muted">Garçom:</span>
-        <b>${escapeHTML(venda.garcom || 'Não inf.')}</b>
+        <b>${escapeHTML(venda.garcom || 'Sem Garçom')}</b>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:4px">
         <span class="muted">Pagamento:</span>
-        <b style="color:#10b981">${escapeHTML(venda.pagamento || 'Não inf.')}</b>
+        <b style="color:#10b981">${escapeHTML(venda.pagamento || 'Não informado')}</b>
       </div>
-      ${descontoVenda > 0 ? `
-        <div style="display:flex;justify-content:space-between;color:#d97706">
-          <span>Desconto Aplicado:</span>
-          <b>− ${br(descontoVenda)}</b>
+      ${Number(venda.desconto || 0) > 0 ? `
+        <div style="display:flex;justify-content:space-between">
+          <span class="muted">Desconto aplicado:</span>
+          <b style="color:var(--brand)">− ${br(venda.desconto)}</b>
         </div>
       ` : ''}
     </div>
 
-    <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Itens Consumidos nesta Venda:</div>
-    <div style="max-height:240px;overflow:auto;padding:0 4px">
-      ${itensHTML}
+    <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Itens Consumidos:</div>
+    <div style="max-height:240px;overflow:auto;background:var(--input-bg);padding:4px 12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px">
+      ${listaItensHTML}
     </div>
 
-    <div class="totalrow">
+    <div class="totalrow" style="padding:10px 0">
       <span>Total Pago</span>
-      <span style="color:#10b981">${br(venda.total)}</span>
+      <span style="color:#10b981">${br(venda.total || totalCalculadoItens)}</span>
     </div>
 
     <button class="secondary" onclick="fecharModal()">Fechar</button>
@@ -4792,420 +4902,332 @@ function abrirDetalhesVendaRelatorio(docId) {
 }
 
 function exportarRelatorioCSV() {
-  const vendasFiltradas = historicoVendas.filter(v => registroDentroDoPeriodo(v));
-  const despesasFiltradas = despesas.filter(d => registroDentroDoPeriodo(d));
-  const cancelamentosFiltrados = cancelamentos.filter(c => registroDentroDoPeriodo(c));
+  const vendasPeriodo = historicoVendas.filter(v => registroDentroDoPeriodo(v));
+  if (!vendasPeriodo.length) {
+    showToast("Nenhuma venda no período selecionado para exportar.", true);
+    return;
+  }
 
-  let linhas = [];
-  linhas.push(["Tipo", "Dia da Semana", "Data", "Horario", "Mesa / Descricao", "Garcom / Motivo", "Forma Pagamento", "Desconto (R$)", "Valor (R$)", "Itens"].join(";"));
-
-  vendasFiltradas.forEach(v => {
-    const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
-    const itensStr = (v.itens || []).map(it => `${it.qtd}x ${it.nome} (${it.cliente || 'Cliente 1'})`).join(" | ");
+  let linhas = ["Dia da Semana;Data;Horario;Mesa;Garcom;Pagamento;Desconto;Total Pago;Itens"];
+  vendasPeriodo.forEach(v => {
+    const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(v.timestamp) || "";
+    const itensStr = (v.itens || []).map(i => `${i.qtd}x ${i.nome}`).join(" | ");
     linhas.push([
-      "VENDA",
       diaSem,
       v.data || "",
       v.horario || "",
-      `Mesa ${pad(v.mesa)}`,
-      v.garcom || "Não inf.",
-      v.pagamento || "",
-      (Number(v.desconto || 0)).toFixed(2).replace(".", ","),
-      (Number(v.total || 0)).toFixed(2).replace(".", ","),
-      `"${itensStr.replace(/"/g, '""')}"`
-    ].join(";"));
-  });
-
-  despesasFiltradas.forEach(d => {
-    const diaSem = d.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(d));
-    linhas.push([
-      "DESPESA",
-      diaSem,
-      d.data || "",
-      d.horario || "",
-      `"${(d.desc || "").replace(/"/g, '""')}"`,
-      "-",
-      "Saída Caixa",
-      "0,00",
-      (-Math.abs(Number(d.valor || 0))).toFixed(2).replace(".", ","),
-      "-"
-    ].join(";"));
-  });
-
-  cancelamentosFiltrados.forEach(c => {
-    const diaSem = c.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(c));
-    linhas.push([
-      "CANCELAMENTO",
-      diaSem,
-      c.data || "",
-      c.horario || "",
-      `Mesa ${pad(c.mesa)}`,
-      `"${(c.motivo || "").replace(/"/g, '""')}"`,
-      "Cancelado",
-      "0,00",
-      (Number(c.totalCancelado || 0)).toFixed(2).replace(".", ","),
-      "-"
+      pad(v.mesa),
+      (v.garcom || "Sem Garcom").replace(/;/g, ","),
+      (v.pagamento || "").replace(/;/g, ","),
+      Number(v.desconto || 0).toFixed(2).replace('.', ','),
+      Number(v.total || 0).toFixed(2).replace('.', ','),
+      itensStr.replace(/;/g, ",")
     ].join(";"));
   });
 
   const csvContent = "\uFEFF" + linhas.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  const dataHojeArquivo = new Date().toISOString().slice(0, 10);
-  link.setAttribute("download", `Relatorio_BB_Churrasco_${dataHojeArquivo}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  showToast("📊 Planilha CSV exportada com sucesso!");
-}
-
-function abrirConferenciaGavetaModal(totalDinheiroVendas, totalDespesasPeriodo, fundoTroco) {
-  const saldoEsperadoGaveta = Math.max(0, (Number(fundoTroco) || 0) + (Number(totalDinheiroVendas) || 0) - (Number(totalDespesasPeriodo) || 0));
-
-  document.getElementById("modalTitle").textContent = "💰 Conferência de Gaveta (Fechamento Cego)";
-  document.getElementById("modalBody").innerHTML = `
-    <div style="background:var(--input-bg);padding:12px;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;font-size:12px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span class="muted">Fundo de Troco Inicial:</span>
-        <b>+ ${br(fundoTroco)}</b>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span class="muted">Entradas em Dinheiro (Período):</span>
-        <b style="color:#10b981">+ ${br(totalDinheiroVendas)}</b>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed var(--border)">
-        <span class="muted">Saídas / Despesas:</span>
-        <b style="color:#d32f2f">− ${br(totalDespesasPeriodo)}</b>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:14px">
-        <b>Esperado na Gaveta:</b>
-        <b style="color:var(--brand)">${br(saldoEsperadoGaveta)}</b>
-      </div>
-    </div>
-
-    <div style="margin-bottom:12px">
-      <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px">💵 Quanto você contou fisicamente na gaveta? (R$)</label>
-      <input type="number" id="inputContagemGaveta" step="0.01" placeholder="0,00" oninput="calcularDiferencaGaveta(${saldoEsperadoGaveta})" style="width:100%;padding:12px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:14px;font-size:18px;font-weight:900;text-align:center;outline:none">
-    </div>
-
-    <div id="boxResultadoGaveta" style="display:none;padding:12px;border-radius:14px;text-align:center;font-size:13px;font-weight:900;margin-bottom:12px"></div>
-
-    <button class="secondary" onclick="fecharModal()">Fechar Conferência</button>
-  `;
-  document.getElementById("modal").classList.add("show");
-  setTimeout(() => document.getElementById("inputContagemGaveta")?.focus(), 100);
-}
-
-function calcularDiferencaGaveta(esperado) {
-  const inp = document.getElementById("inputContagemGaveta");
-  const box = document.getElementById("boxResultadoGaveta");
-  if (!inp || !box) return;
-  if (inp.value === "") {
-    box.style.display = "none";
-    return;
-  }
-  const contado = parseFloat(inp.value) || 0;
-  const diff = Number((contado - esperado).toFixed(2));
-  box.style.display = "block";
-
-  if (Math.abs(diff) < 0.01) {
-    box.style.background = "rgba(16,185,129,0.15)";
-    box.style.color = "#10b981";
-    box.innerHTML = "✅ CAIXA BATENDO EXATAMENTE!";
-  } else if (diff > 0) {
-    box.style.background = "rgba(2,132,199,0.15)";
-    box.style.color = "#0284c7";
-    box.innerHTML = `🔵 SOBRA DE CAIXA: + ${br(diff)}`;
-  } else {
-    box.style.background = "rgba(211,47,47,0.15)";
-    box.style.color = "#d32f2f";
-    box.innerHTML = `🔴 QUEBRA / FALTA NO CAIXA: − ${br(Math.abs(diff))}`;
-  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Relatorio_BB_Churrasco_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("📥 Planilha CSV exportada com sucesso!");
 }
 
 function renderRelatorios(){
-  const vendasFiltradas = historicoVendas.filter(v => registroDentroDoPeriodo(v));
-  const despesasFiltradas = despesas.filter(d => registroDentroDoPeriodo(d));
-  const cancelamentosFiltrados = cancelamentos.filter(c => registroDentroDoPeriodo(c));
+  if(usuarioLogadoEmail && !usuarioLogadoEmail.toLowerCase().includes('admin')){
+    mudarTela('mesas');
+    return;
+  }
 
-  let totalBruto = vendasFiltradas.reduce((a, b) => a + Number(b.total || 0), 0);
-  let totalDescontos = vendasFiltradas.reduce((a, b) => a + Number(b.desconto || 0), 0);
-  let totalDesp = despesasFiltradas.reduce((a, b) => a + Number(b.valor || 0), 0);
-  let totalCancelado = cancelamentosFiltrados.reduce((a, b) => a + Number(b.totalCancelado || 0), 0);
-  let liquido = totalBruto - totalDesp;
-  let ticketMedio = vendasFiltradas.length ? (totalBruto / vendasFiltradas.length) : 0;
+  const vendasPeriodo = historicoVendas.filter(v => registroDentroDoPeriodo(v));
+  const despesasPeriodo = despesas.filter(d => registroDentroDoPeriodo(d));
+  const cancelamentosPeriodo = cancelamentos.filter(c => registroDentroDoPeriodo(c));
 
-  let porPagamento = { "Pix": 0, "Cartão de Crédito": 0, "Cartão de Débito": 0, "Dinheiro": 0 };
+  const totalVendas = vendasPeriodo.reduce((acc, v) => acc + Number(v.total || 0), 0);
+  const totalDespesas = despesasPeriodo.reduce((acc, d) => acc + Number(d.valor || 0), 0);
+  const totalCancelados = cancelamentosPeriodo.reduce((acc, c) => acc + Number(c.totalCancelado || 0), 0);
+  const lucroLiquido = totalVendas - totalDespesas;
+
+  let totaisPorPagamento = {
+    "Pix": 0,
+    "Cartão de Crédito": 0,
+    "Cartão de Débito": 0,
+    "Dinheiro": 0,
+    "Outros": 0
+  };
   let rankingGarcons = {};
-  let vendasPorHora = {};
-  let vendasPorDiaSemana = {};
-  let contagemProdutos = {};
+  let rankingProdutos = {};
 
-  vendasFiltradas.forEach(v => {
-    let pg = v.pagamento || "Outros";
-    porPagamento[pg] = (porPagamento[pg] || 0) + Number(v.total || 0);
-    
-    let g = v.garcom || "Não inf.";
-    if(!rankingGarcons[g]) rankingGarcons[g] = { total: 0, mesas: 0 };
-    rankingGarcons[g].total += Number(v.total || 0);
-    rankingGarcons[g].mesas += 1;
-
-    if(v.horario) {
-      let horaStr = v.horario.split(':')[0] + "h";
-      vendasPorHora[horaStr] = (vendasPorHora[horaStr] || 0) + Number(v.total || 0);
+  vendasPeriodo.forEach(v => {
+    const val = Number(v.total || 0);
+    const pg = v.pagamento || "Outros";
+    if (totaisPorPagamento.hasOwnProperty(pg)) {
+      totaisPorPagamento[pg] += val;
+    } else {
+      totaisPorPagamento["Outros"] += val;
     }
 
-    const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v)) || "Outros";
-    vendasPorDiaSemana[diaSem] = (vendasPorDiaSemana[diaSem] || 0) + Number(v.total || 0);
+    const gNome = (v.garcom && v.garcom.trim()) ? v.garcom.trim() : "Sem Garçom";
+    rankingGarcons[gNome] = (rankingGarcons[gNome] || 0) + val;
 
-    if(v.itens && Array.isArray(v.itens)){
+    if (Array.isArray(v.itens)) {
       v.itens.forEach(it => {
-        contagemProdutos[it.nome] = (contagemProdutos[it.nome] || 0) + (Number(it.qtd) || 0);
+        const qtd = Number(it.qtd || 0);
+        const sub = qtd * Number(it.preco || 0);
+        if (!rankingProdutos[it.nome]) {
+          rankingProdutos[it.nome] = { qtd: 0, total: 0 };
+        }
+        rankingProdutos[it.nome].qtd += qtd;
+        rankingProdutos[it.nome].total += sub;
       });
     }
   });
 
-  let garconsHTML = Object.keys(rankingGarcons).sort((a,b) => rankingGarcons[b].total - rankingGarcons[a].total).map((g, idx) => `
+  const fundoTrocoAtual = Number(configSistema.fundoTroco || 0);
+  const dinheiroEsperadoGaveta = fundoTrocoAtual + totaisPorPagamento["Dinheiro"] - totalDespesas;
+
+  const vendasExibidas = termoBuscaRelatorio
+    ? vendasPeriodo.filter(v => {
+        const diaSem = (v.diaSemana || obterDiaSemanaPorTimestamp(v.timestamp) || "").toLowerCase();
+        const mesaStr = `mesa ${pad(v.mesa)}`.toLowerCase();
+        const garcomStr = (v.garcom || "").toLowerCase();
+        const pgStr = (v.pagamento || "").toLowerCase();
+        const dataStr = (v.data || "").toLowerCase();
+        const itensStr = (v.itens || []).map(i => i.nome.toLowerCase()).join(" ");
+        return diaSem.includes(termoBuscaRelatorio) ||
+               mesaStr.includes(termoBuscaRelatorio) ||
+               garcomStr.includes(termoBuscaRelatorio) ||
+               pgStr.includes(termoBuscaRelatorio) ||
+               dataStr.includes(termoBuscaRelatorio) ||
+               itensStr.includes(termoBuscaRelatorio);
+      })
+    : vendasPeriodo;
+
+  let garconsHTML = Object.keys(rankingGarcons)
+    .sort((a, b) => rankingGarcons[b] - rankingGarcons[a])
+    .map(g => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span>👤 <b>${escapeHTML(g)}</b></span>
+        <b style="color:#10b981">${br(rankingGarcons[g])}</b>
+      </div>
+    `).join('');
+
+  let produtosTopHTML = Object.keys(rankingProdutos)
+    .sort((a, b) => rankingProdutos[b].qtd - rankingProdutos[a].qtd)
+    .slice(0, 10)
+    .map((nome, idx) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span><b>${idx + 1}.</b> ${escapeHTML(nome)} <small class="muted">(${rankingProdutos[nome].qtd} un)</small></span>
+        <b style="color:var(--brand)">${br(rankingProdutos[nome].total)}</b>
+      </div>
+    `).join('');
+
+  let vendasHTML = vendasExibidas.map(v => {
+    const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(v.timestamp);
+    const qtdItens = (v.itens || []).reduce((acc, i) => acc + Number(i.qtd || 0), 0);
+    return `
+      <div class="report-sale-card" onclick="abrirDetalhesVendaRelatorio('${escapeHTML(v._docId)}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div>
+            <b style="font-size:13px">Mesa ${pad(v.mesa)}</b>
+            ${diaSem ? `<span class="weekday-badge" style="margin-left:6px">${escapeHTML(diaSem)}</span>` : ''}
+          </div>
+          <b style="color:#10b981;font-size:14px">${br(v.total)}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:11px">
+          <span>👤 ${escapeHTML(v.garcom || 'Sem Garçom')} • 💳 ${escapeHTML(v.pagamento || '')}</span>
+          <span>🕒 ${v.data || ''} ${v.horario || ''} (${qtdItens} itens)</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  let despesasHTML = despesasPeriodo.map(d => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-      <div><b>${idx+1}º ${escapeHTML(g)}</b> <small class="muted">(${rankingGarcons[g].mesas} baixas)</small></div>
-      <b style="color:var(--brand)">${br(rankingGarcons[g].total)}</b>
+      <div>
+        <b>${escapeHTML(d.desc)}</b>
+        <div style="font-size:10px;color:var(--muted)">${d.data || ''} às ${d.horario || ''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <b style="color:#d32f2f">− ${br(d.valor)}</b>
+        <button onclick="apagarDespesa('${escapeHTML(d._docId)}')" style="border:0;background:rgba(211,47,47,0.12);color:var(--brand);border-radius:8px;padding:4px 8px;cursor:pointer;font-weight:900">🗑️</button>
+      </div>
     </div>
   `).join('');
 
-  let topProdutosHTML = Object.keys(contagemProdutos).sort((a,b) => contagemProdutos[b] - contagemProdutos[a]).slice(0, 10).map((prod, idx) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-      <div><b>${idx+1}º ${escapeHTML(prod)}</b></div>
-      <span class="tag">${contagemProdutos[prod]} un</span>
-    </div>
-  `).join('');
-
-  let maxVendaHora = Math.max(...Object.values(vendasPorHora), 1);
-  let graficoHorasHTML = Object.keys(vendasPorHora).sort().map(h => {
-    let val = vendasPorHora[h];
-    let perc = Math.round((val / maxVendaHora) * 100);
-    return `
-      <div style="margin-bottom:6px;font-size:11px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-          <b>${h}</b><span>${br(val)}</span>
-        </div>
-        <div style="width:100%;background:var(--input-bg);height:8px;border-radius:4px;overflow:hidden">
-          <div style="width:${perc}%;background:var(--brand);height:100%;border-radius:4px"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  let diasOrdenados = Object.keys(vendasPorDiaSemana).sort((a, b) => vendasPorDiaSemana[b] - vendasPorDiaSemana[a]);
-  let maxVendaDia = Math.max(...Object.values(vendasPorDiaSemana), 1);
-  let graficoDiasSemanaHTML = diasOrdenados.map(dia => {
-    let val = vendasPorDiaSemana[dia];
-    let perc = Math.round((val / maxVendaDia) * 100);
-    return `
-      <div style="margin-bottom:6px;font-size:11px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-          <b>${escapeHTML(dia)}</b><span>${br(val)}</span>
-        </div>
-        <div style="width:100%;background:var(--input-bg);height:8px;border-radius:4px;overflow:hidden">
-          <div style="width:${perc}%;background:#0284c7;height:100%;border-radius:4px"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  let cancelamentosHTML = cancelamentosFiltrados.map(c => {
-    const diaSem = c.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(c));
-    return `
-    <div style="background:rgba(211,47,47,0.06);padding:10px;border-radius:14px;border:1px solid rgba(211,47,47,0.2);font-size:12px;margin-bottom:6px">
+  let cancelamentosHTML = cancelamentosPeriodo.map(c => `
+    <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b>Mesa ${pad(c.mesa)} — ${escapeHTML(c.garcom)}</b>
-        <span style="color:#d32f2f;font-weight:900">${br(c.totalCancelado)}</span>
+        <b>Mesa ${pad(c.mesa)} — ${escapeHTML(c.garcom || '')}</b>
+        <b style="color:#d32f2f">${br(c.totalCancelado)}</b>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">
-        ${diaSem ? `<span class="weekday-badge" style="margin-right:4px">${diaSem}</span>` : ''}
-        🕒 ${c.data || ''} às ${c.horario} • Motivo: <i>${escapeHTML(c.motivo)}</i>
-      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Motivo: ${escapeHTML(c.motivo || '')} • ${c.data || ''} ${c.horario || ''}</div>
     </div>
-  `}).join('');
-
-  const resumoPeriodoTexto = modoFiltroRelatorio === 'TODAS'
-    ? 'Exibindo todo o histórico acumulado no banco'
-    : `${formatarDateTimeLocalParaBR(filtroDataHoraInicio)} até ${formatarDateTimeLocalParaBR(filtroDataHoraFim)}`;
+  `).join('');
 
   document.getElementById("conteudo").innerHTML = `
-   <div class="section-title">
-     <h2>📊 Relatórios & Gestão</h2>
-     <div style="display:flex;gap:6px">
-       <button onclick="abrirConferenciaGavetaModal(${porPagamento['Dinheiro'] || 0}, ${totalDesp}, ${configSistema.fundoTroco || 0})" style="border:1px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">💰 Gaveta</button>
-       <button onclick="exportarRelatorioCSV()" style="border:1px solid #0284c7;background:rgba(2,132,199,0.12);color:#0284c7;border-radius:12px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer">📥 Excel/CSV</button>
-     </div>
-   </div>
+    <div class="section-title">
+      <div><h2>Relatórios & Caixa</h2><span class="muted">Fechamento financeiro por turno e período</span></div>
+      <button onclick="exportarRelatorioCSV()" style="border:1px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;border-radius:12px;padding:7px 12px;font-size:11px;font-weight:900;cursor:pointer">📥 Exportar CSV</button>
+    </div>
 
-   <!-- FILTRO DE TURNO / DATA E HORA INICIAL E FINAL -->
-   <div class="card" style="padding:14px;margin-bottom:14px;border:1px solid rgba(211,47,47,0.25)">
-     <div style="font-size:11px;font-weight:900;text-transform:uppercase;color:var(--brand);margin-bottom:8px">📅 Filtrar Período / Turno (Data e Hora):</div>
-     
-     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;scrollbar-width:none">
-       <button type="button" onclick="definirAtalhoTurnoAtual()" class="filter-tab" style="padding:6px 12px;font-size:10px">🌙 Turno Atual (15h→09h)</button>
-       <button type="button" onclick="definirAtalhoHoje()" class="filter-tab" style="padding:6px 12px;font-size:10px">📆 Hoje</button>
-       <button type="button" onclick="definirAtalhoOntem()" class="filter-tab" style="padding:6px 12px;font-size:10px">⏪ Ontem</button>
-       <button type="button" onclick="definirAtalhoTudo()" class="filter-tab ${modoFiltroRelatorio === 'TODAS' ? 'active' : ''}" style="padding:6px 12px;font-size:10px">♾️ Tudo</button>
-     </div>
+    <div class="card" style="padding:14px">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="filter-tab ${modoFiltroRelatorio === 'PERIODO' ? 'active' : ''}" onclick="alterarModoFiltroRelatorio('PERIODO')">📅 Filtrar Turno / Período</button>
+        <button class="filter-tab ${modoFiltroRelatorio === 'TODAS' ? 'active' : ''}" onclick="alterarModoFiltroRelatorio('TODAS')">♾️ Todo o Histórico</button>
+      </div>
 
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-       <div>
-         <label style="font-size:10px;font-weight:900;color:var(--muted);display:block;margin-bottom:3px">Início (Dia e Hora)</label>
-         <input type="datetime-local" id="filtroDtInicio" value="${filtroDataHoraInicio}" onchange="aplicarFiltroPeriodoRelatorio()" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:800;outline:none">
-       </div>
-       <div>
-         <label style="font-size:10px;font-weight:900;color:var(--muted);display:block;margin-bottom:3px">Fim (Dia e Hora)</label>
-         <input type="datetime-local" id="filtroDtFim" value="${filtroDataHoraFim}" onchange="aplicarFiltroPeriodoRelatorio()" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:800;outline:none">
-       </div>
-     </div>
-     <div style="font-size:11px;color:var(--muted);font-weight:700;background:var(--input-bg);padding:6px 10px;border-radius:10px">
-       🔎 ${escapeHTML(resumoPeriodoTexto)}
-     </div>
-   </div>
-   
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-     <div class="card" style="padding:14px;text-align:center;margin:0">
-       <div style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Faturamento Bruto</div>
-       <div style="font-size:19px;font-weight:900;color:var(--brand);margin-top:4px">${br(totalBruto)}</div>
-     </div>
-     <div class="card" style="padding:14px;text-align:center;margin:0">
-       <div style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Saldo Líquido</div>
-       <div style="font-size:19px;font-weight:900;color:#10b981;margin-top:4px">${br(liquido)}</div>
-     </div>
-     <div class="card" style="padding:14px;text-align:center;margin:0">
-       <div style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Ticket Médio</div>
-       <div style="font-size:17px;font-weight:900;color:var(--ink);margin-top:4px">${br(ticketMedio)}</div>
-     </div>
-     <div class="card" style="padding:14px;text-align:center;margin:0">
-       <div style="font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase">Cancelados</div>
-       <div style="font-size:17px;font-weight:900;color:#f59e0b;margin-top:4px">${br(totalCancelado)}</div>
-     </div>
-   </div>
+      ${modoFiltroRelatorio === 'PERIODO' ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px">Início do Turno:</label>
+            <input type="datetime-local" id="inpFiltroInicio" value="${filtroDataHoraInicio}" onchange="aplicarFiltroPeriodoRelatorio()" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:800">
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px">Fim do Turno:</label>
+            <input type="datetime-local" id="inpFiltroFim" value="${filtroDataHoraFim}" onchange="aplicarFiltroPeriodoRelatorio()" style="width:100%;padding:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);border-radius:10px;font-size:11px;font-weight:800">
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="definirTurnoHojeRelatorio()" style="padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-size:11px;font-weight:800;cursor:pointer">🔥 Turno Atual (15h → 09h)</button>
+          <button onclick="definirDiaAnteriorRelatorio()" style="padding:6px 10px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--ink);font-size:11px;font-weight:800;cursor:pointer">⏮️ Turno Anterior (-24h)</button>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;font-weight:700">
+          Exibindo: <b>${formatarDateTimeLocalParaBR(filtroDataHoraInicio)}</b> até <b>${formatarDateTimeLocalParaBR(filtroDataHoraFim)}</b>
+        </div>
+      ` : ''}
+    </div>
 
-   <div class="card" style="padding:16px;margin-bottom:14px">
-     <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">💳 Resumo por Forma de Pagamento</h3>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-       <div style="background:var(--input-bg);padding:10px;border-radius:12px">💠 Pix: <b>${br(porPagamento["Pix"] || 0)}</b></div>
-       <div style="background:var(--input-bg);padding:10px;border-radius:12px">💳 Crédito: <b>${br(porPagamento["Cartão de Crédito"] || 0)}</b></div>
-       <div style="background:var(--input-bg);padding:10px;border-radius:12px">🏧 Débito: <b>${br(porPagamento["Cartão de Débito"] || 0)}</b></div>
-       <div style="background:var(--input-bg);padding:10px;border-radius:12px">💵 Dinheiro: <b>${br(porPagamento["Dinheiro"] || 0)}</b></div>
-     </div>
-     ${totalDescontos > 0 ? `<div style="margin-top:8px;font-size:11px;color:#d97706;font-weight:800">🏷️ Total de descontos concedidos no período: ${br(totalDescontos)}</div>` : ''}
-   </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="card" style="margin:0;padding:14px;border-left:4px solid #10b981">
+        <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">💰 Faturamento Bruto</div>
+        <div style="font-size:20px;font-weight:900;color:#10b981;margin-top:4px">${br(totalVendas)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${vendasPeriodo.length} recebimentos</div>
+      </div>
+      <div class="card" style="margin:0;padding:14px;border-left:4px solid #0284c7">
+        <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">📈 Saldo Líquido</div>
+        <div style="font-size:20px;font-weight:900;color:#0284c7;margin-top:4px">${br(lucroLiquido)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Vendas − Despesas</div>
+      </div>
+      <div class="card" style="margin:0;padding:14px;border-left:4px solid #f59e0b">
+        <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">💸 Despesas / Saídas</div>
+        <div style="font-size:18px;font-weight:900;color:#f59e0b;margin-top:4px">${br(totalDespesas)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${despesasPeriodo.length} lançamentos</div>
+      </div>
+      <div class="card" style="margin:0;padding:14px;border-left:4px solid var(--brand)">
+        <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase">⚠️ Cancelamentos</div>
+        <div style="font-size:18px;font-weight:900;color:var(--brand);margin-top:4px">${br(totalCancelados)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${cancelamentosPeriodo.length} registros</div>
+      </div>
+    </div>
 
-   <div class="card" style="padding:16px;margin-bottom:14px">
-     <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">📅 Movimento por Dia da Semana</h3>
-     ${graficoDiasSemanaHTML || '<div class="empty" style="padding:10px">Sem dados no período.</div>'}
-   </div>
+    <div class="card" style="padding:14px">
+      <h3 style="margin:0 0 10px;font-size:14px;font-weight:900;color:var(--ink)">💳 Resumo por Forma de Pagamento & Gaveta</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
+        <div style="background:var(--input-bg);padding:8px 10px;border-radius:12px">💠 Pix: <b>${br(totaisPorPagamento["Pix"])}</b></div>
+        <div style="background:var(--input-bg);padding:8px 10px;border-radius:12px">💳 Crédito: <b>${br(totaisPorPagamento["Cartão de Crédito"])}</b></div>
+        <div style="background:var(--input-bg);padding:8px 10px;border-radius:12px">🏧 Débito: <b>${br(totaisPorPagamento["Cartão de Débito"])}</b></div>
+        <div style="background:var(--input-bg);padding:8px 10px;border-radius:12px">💵 Dinheiro: <b>${br(totaisPorPagamento["Dinheiro"])}</b></div>
+      </div>
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:10px;border-radius:12px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>🗄️ <b>Dinheiro Esperado na Gaveta:</b></span>
+          <b style="color:#10b981;font-size:15px">${br(dinheiroEsperadoGaveta)}</b>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">
+          Fundo Troco (${br(fundoTrocoAtual)}) + Vendas Dinheiro (${br(totaisPorPagamento["Dinheiro"])}) − Despesas (${br(totalDespesas)})
+        </div>
+      </div>
+    </div>
 
-   <div class="card" style="padding:16px;margin-bottom:14px">
-     <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">🔥 Top 10 Produtos Mais Vendidos</h3>
-     ${topProdutosHTML || '<div class="empty" style="padding:10px">Nenhuma venda registrada no período.</div>'}
-   </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="card" style="margin:0;padding:14px">
+        <h3 style="margin:0 0 8px;font-size:13px;font-weight:900;color:var(--brand)">🏆 Ranking Garçons</h3>
+        ${garconsHTML || '<div class="muted" style="font-size:11px">Sem vendas no período.</div>'}
+      </div>
+      <div class="card" style="margin:0;padding:14px">
+        <h3 style="margin:0 0 8px;font-size:13px;font-weight:900;color:var(--brand)">🔥 Mais Vendidos</h3>
+        ${produtosTopHTML || '<div class="muted" style="font-size:11px">Sem itens no período.</div>'}
+      </div>
+    </div>
 
-   <div class="card" style="padding:16px;margin-bottom:14px">
-     <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">🏆 Ranking de Garçons</h3>
-     ${garconsHTML || '<div class="empty" style="padding:10px">Nenhuma venda registrada no período.</div>'}
-   </div>
+    <div class="card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="margin:0;font-size:14px;font-weight:900">💸 Despesas do Turno</h3>
+        <button onclick="adicionarDespesa()" style="border:0;background:var(--brand);color:#fff;border-radius:10px;padding:6px 12px;font-size:11px;font-weight:900;cursor:pointer">+ Lançar Gasto</button>
+      </div>
+      ${despesasHTML || '<div class="muted" style="font-size:12px;text-align:center;padding:10px">Nenhuma despesa lançada neste período.</div>'}
+    </div>
 
-   <div class="card" style="padding:16px;margin-bottom:14px">
-     <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900">⏰ Horários de Pico</h3>
-     ${graficoHorasHTML || '<div class="empty" style="padding:10px">Sem dados de horário no período.</div>'}
-   </div>
+    <div class="card" style="padding:14px">
+      <h3 style="margin:0 0 10px;font-size:14px;font-weight:900">🧾 Histórico de Recebimentos (Toque para ver itens)</h3>
+      <div class="search-box" style="margin-bottom:10px">
+        <span>🔍</span>
+        <input type="text" placeholder="Filtrar por mesa, garçom, Pix, dia ou produto..." value="${escapeHTML(termoBuscaRelatorio)}" oninput="filtrarVendasRelatorio(this.value)">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto">
+        ${vendasHTML || '<div class="empty">Nenhuma venda registrada neste filtro.</div>'}
+      </div>
+    </div>
 
-   <div class="card" style="padding:16px;margin-bottom:14px">
-     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-       <h3 style="margin:0;font-size:14px;font-weight:900">💸 Saídas e Despesas (${br(totalDesp)})</h3>
-       <button class="secondary" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="adicionarDespesa()">+ Gasto</button>
-     </div>
-     ${despesasFiltradas.map(d => {
-       const diaSem = d.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(d));
-       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-         <div>
-           <span>${escapeHTML(d.desc)}</span>
-           <small class="muted" style="display:block;font-size:10px">${diaSem ? `${diaSem}, ` : ''}${d.data || ''} às ${d.horario}</small>
-         </div>
-         <div style="display:flex;align-items:center;gap:6px">
-           <b style="color:#d32f2f">- ${br(d.valor)}</b>
-           <button onclick="apagarDespesa('${d._docId}')" style="border:0;background:rgba(211,47,47,0.1);color:var(--brand);border-radius:6px;padding:3px 6px;font-size:10px;font-weight:900;cursor:pointer">✕</button>
-         </div>
-       </div>`;
-     }).join('') || '<div class="empty" style="padding:10px">Nenhuma despesa registrada no período.</div>'}
-   </div>
+    ${cancelamentosPeriodo.length ? `
+      <div class="card" style="padding:14px;border-color:rgba(211,47,47,0.3)">
+        <h3 style="margin:0 0 8px;font-size:14px;font-weight:900;color:var(--brand)">⚠️ Auditoria de Cancelamentos</h3>
+        ${cancelamentosHTML}
+      </div>
+    ` : ''}
 
-   ${cancelamentosHTML ? `
-   <div class="card" style="padding:16px;margin-bottom:14px;border-color:rgba(211,47,47,0.3)">
-     <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:900;color:#d32f2f">⚠️ Histórico de Cancelamentos</h3>
-     ${cancelamentosHTML}
-   </div>` : ''}
-
-   <div class="card" style="padding:16px">
-     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-       <h3 style="margin:0;font-size:14px;font-weight:900">📋 Vendas Realizadas (${vendasFiltradas.length})</h3>
-       <span style="font-size:10px;color:var(--muted);font-weight:800">Toque para ver detalhes</span>
-     </div>
-     <div style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto">
-       ${vendasFiltradas.map(v => {
-         const diaSem = v.diaSemana || obterDiaSemanaPorTimestamp(obterTimestampRegistro(v));
-         return `
-         <div class="report-sale-card" onclick="abrirDetalhesVendaRelatorio('${v._docId}')">
-           <div style="display:flex;justify-content:space-between;align-items:center">
-             <b>Mesa ${pad(v.mesa)} — ${escapeHTML(v.pagamento)}</b>
-             <b style="color:#10b981">${br(v.total)}</b>
-           </div>
-           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;flex-wrap:wrap;gap:4px">
-             <small class="muted">👤 ${escapeHTML(v.garcom || 'Não inf.')} • 🕒 ${v.data || ''} às ${v.horario}</small>
-             ${diaSem ? `<span class="weekday-badge">${diaSem}</span>` : ''}
-           </div>
-         </div>
-       `}).join('') || '<div class="empty" style="padding:10px">Nenhuma venda registrada neste período.</div>'}
-     </div>
-   </div>
-
-   <button class="primary" onclick="fecharCaixaDiario()" style="background:#111827;margin-top:10px">🔒 Fechar Caixa Diário e Zerar Histórico</button>
+    <button class="secondary" onclick="fecharCaixaDiario()" style="border-color:var(--brand);color:var(--brand);margin-top:6px">🗑️ Fechar / Zerar Caixa Acumulado</button>
   `;
 }
 
 function renderizar(){
-  if (modoCliente) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('navInferior').style.display = 'none';
-    document.getElementById('adminHeaderBtn').style.display = 'none';
-    document.getElementById('logoutHeaderBtn').style.display = 'none';
-    document.getElementById('soundToggleBtn').style.display = 'none';
-    document.getElementById('pushToggleBtn').style.display = 'none';
-    document.getElementById('btPrinterBtn').style.display = 'none';
-    document.getElementById('user-role-label').textContent = `CARDÁPIO DIGITAL — Mesa ${pad(mesaUrlCliente || 1)}`;
-    if (!mesaSelecionada) {
-      mesaSelecionada = mesaUrlCliente || 1;
-      pedidoTemp = { "Cliente 1": {} };
-      clienteAtual = "Cliente 1";
-      iniciarOuvintesFirebase();
-    }
-    renderAtendimento();
-    return;
-  }
+  document.querySelectorAll(".bottom button").forEach(b => b.classList.remove("active"));
+  const mapNav = {
+    mesas: "navMesas",
+    atendimento: "navMesas",
+    comandas: "navComandas",
+    cozinha: "navCozinha",
+    churrasco: "navChurrasco",
+    bebidas: "navBebidas",
+    relatorios: "navRelatorios"
+  };
+  const btnAtivo = document.getElementById(mapNav[telaAtual]);
+  if (btnAtivo) btnAtivo.classList.add("active");
 
-  document.querySelectorAll(".bottom button").forEach(b=>b.classList.remove("active"));
-  const navMap = { "mesas": "navMesas", "comandas": "navComandas", "cozinha": "navCozinha", "churrasco": "navChurrasco", "bebidas": "navBebidas", "relatorios": "navRelatorios" };
-  if(navMap[telaAtual]) document.getElementById(navMap[telaAtual])?.classList.add("active");
-  
-  if(telaAtual === "mesas") renderMesas();
-  else if(telaAtual === "comandas") renderComandas();
-  else if(telaAtual === "cozinha") renderCozinha();
-  else if(telaAtual === "churrasco") renderChurrasco();
-  else if(telaAtual === "bebidas") renderBebidas();
-  else if(telaAtual === "relatorios") renderRelatorios();
-  else if(telaAtual === "atendimento") renderAtendimento();
+  if (telaAtual === "mesas") renderMesas();
+  else if (telaAtual === "atendimento") renderAtendimento();
+  else if (telaAtual === "comandas") renderComandas();
+  else if (telaAtual === "cozinha") renderCozinha();
+  else if (telaAtual === "churrasco") renderChurrasco();
+  else if (telaAtual === "bebidas") renderBebidas();
+  else if (telaAtual === "relatorios") renderRelatorios();
+
   atualizarBar();
 }
 
+// ----------------- INICIALIZAÇÃO MODO CLIENTE (QR CODE / DELIVERY) -----------------
 if (modoCliente) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('navInferior').style.display = 'none';
+  document.getElementById('adminHeaderBtn').style.display = 'none';
+  document.getElementById('logoutHeaderBtn').style.display = 'none';
+  document.getElementById('btPrinterBtn').style.display = 'none';
+  document.getElementById('user-role-label').textContent = mesaUrlCliente
+    ? `CARDÁPIO DIGITAL — Mesa ${pad(mesaUrlCliente)}`
+    : 'CARDÁPIO DIGITAL — Pedido Online';
+
+  iniciarOuvintesFirebase();
+  mesaSelecionada = mesaUrlCliente || 1;
+  pedidoTemp = { "Cliente 1": {} };
+  clienteAtual = "Cliente 1";
+  garcomTemp = "Cliente Online";
+  telaAtual = "atendimento";
   renderizar();
 }
 </script>
